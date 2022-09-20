@@ -1,0 +1,478 @@
+--
+-- Show REDO Log Information.
+--
+ 
+SET PAUSE ON
+SET PAUSE 'Press Return to Continue'
+SET PAGESIZE 60
+SET LINESIZE 300
+SET VERIFY OFF
+ 
+COL group# HEA " Group " FOR 99
+COL sequence# HEA " Sequence " FOR 9,999,999,999
+COL bytes HEA " Datafile Size (bytes) " FOR 999,999,999,999,999
+COL members HEA " Member " FOR 999
+COL member HEA " Datafile Name " FOR a44
+COL archived HEA " Arc? " FOR a4
+COL status HEA " Status " FOR a16
+COL first_changed# HEA " First Changed No. " FOR 999,999,999,999
+COL first_time HEA " First Time " FOR a20
+ 
+SELECT l.group#, l.members, l.sequence#, lf.member, l.bytes,
+       l.status, l.archived, l.first_change#, To_Char(l.first_time,'DD-Mon-YYYY HH24:MI:SS') as first_time
+FROM v$log l,v$logfile lf
+WHERE l.group# = lf.group#
+/
+
+QL> startup
+ORACLE instance started.
+
+Total System Global Area  655852072 bytes
+Fixed Size                   729640 bytes
+Variable Size             536870912 bytes
+Database Buffers          117440512 bytes
+Redo Buffers                 811008 bytes
+Database mounted.
+ORA-00314: log 1 of thread 1, expected sequence#  doesn't match
+ORA-00312: online log 1 thread 1: '/QWICMAIN/oradata/redo01a.dbf'
+ORA-00312: online log 1 thread 1: '/QWICMAIN/oradata/redo01b.dbf'
+
+SQL> shutdown immediate;
+SQL> startup mount;
+SQL> select group#,status,archived from v$log;
+
+    GROUP# STATUS           ARC
+---------- ---------------- ---
+         1 CURRENT          NO
+         2 INACTIVE         YES
+         3 INACTIVE         YES
+         4 INACTIVE         YES
+
+SQL> alter database clear unarchived logfile group 1;
+
+Database altered.
+
+SQL> alter system switch logfile;
+alter system switch logfile
+*
+ERROR at line 1:
+ORA-01109: database not open
+
+SQL> alter database open;
+alter database open
+*
+ERROR at line 1:
+ORA-00322: log 3 of thread 1 is not current copy
+ORA-00312: online log 3 thread 1: '/QWICMAIN/oradata/redo03a.dbf'
+ORA-00312: online log 3 thread 1: '/QWICMAIN/oradata/redo03b.dbf'
+
+SQL> alter database clear unarchived logfile group 3;
+
+Database altered.
+
+SQL> alter database open;
+alter database open
+*
+ERROR at line 1:
+ORA-00322: log 4 of thread 1 is not current copy
+ORA-00312: online log 4 thread 1: '/QWICMAIN/oradata/redo04a.dbf'
+ORA-00312: online log 4 thread 1: '/QWICMAIN/oradata/redo04b.dbf'
+
+SQL> alter database clear unarchived logfile group 4;
+
+Database altered.
+
+SQL> alter database open;
+
+Database altered.
+
+spool log_history.lst
+ set feed off
+ set pages 1000
+ set lines 200
+ col Total format 9999
+ col h0 format 99
+ col h1 format 99
+ col h2 format 99
+ col h3 format 99
+ col h4 format 99
+ col h5 format 99
+ col h6 format 99
+ col h7 format 99
+ col h8 format 99
+ col h9 format 99
+ col h10 format 99
+ col h11 format 99
+ col h12 format 99
+ col h13 format 99
+ col h14 format 99
+ col h15 format 99
+ col h16 format 99
+ col h17 format 99
+ col h18 format 99
+ col h19 format 99
+ col h20 format 99
+ col h21 format 99
+ col h22 format 99
+ col h23 format 99
+ col Day format a4
+
+ SELECT  trunc(first_time) "Date"
+,to_char(first_time, 'Dy') "Day"
+,count(1) "Total"
+,SUM(decode(to_char(first_time, 'hh24'),'00',1,0)) "h0"
+,SUM(decode(to_char(first_time, 'hh24'),'01',1,0)) "h1"
+,SUM(decode(to_char(first_time, 'hh24'),'02',1,0)) "h2"
+,SUM(decode(to_char(first_time, 'hh24'),'03',1,0)) "h3"
+,SUM(decode(to_char(first_time, 'hh24'),'04',1,0)) "h4"
+,SUM(decode(to_char(first_time, 'hh24'),'05',1,0)) "h5"
+,SUM(decode(to_char(first_time, 'hh24'),'06',1,0)) "h6"
+,SUM(decode(to_char(first_time, 'hh24'),'07',1,0)) "h7"
+,SUM(decode(to_char(first_time, 'hh24'),'08',1,0)) "h8"
+,SUM(decode(to_char(first_time, 'hh24'),'09',1,0)) "h9"
+,SUM(decode(to_char(first_time, 'hh24'),'10',1,0)) "h10"
+,SUM(decode(to_char(first_time, 'hh24'),'11',1,0)) "h11"
+,SUM(decode(to_char(first_time, 'hh24'),'12',1,0)) "h12"
+,SUM(decode(to_char(first_time, 'hh24'),'13',1,0)) "h13"
+,SUM(decode(to_char(first_time, 'hh24'),'14',1,0)) "h14"
+,SUM(decode(to_char(first_time, 'hh24'),'15',1,0)) "h15"
+,SUM(decode(to_char(first_time, 'hh24'),'16',1,0)) "h16"
+,SUM(decode(to_char(first_time, 'hh24'),'17',1,0)) "h17"
+,SUM(decode(to_char(first_time, 'hh24'),'18',1,0)) "h18"
+,SUM(decode(to_char(first_time, 'hh24'),'19',1,0)) "h19"
+,SUM(decode(to_char(first_time, 'hh24'),'20',1,0)) "h20"
+,SUM(decode(to_char(first_time, 'hh24'),'21',1,0)) "h21"
+,SUM(decode(to_char(first_time, 'hh24'),'22',1,0)) "h22"
+,SUM(decode(to_char(first_time, 'hh24'),'23',1,0)) "h23"
+FROM    V$log_history
+group by trunc(first_time), to_char(first_time, 'Dy')
+Order by 1
+/
+spool off
+
+
+--
+-- Show redo log information
+--
+set pages 60
+set lines 256
+
+column LOG format a3
+column GRP format 99
+column MB format 9999
+column SEQUENCE# format 9999999
+column FIRST_CHANGE# format 9999999999999999
+column FIRST_TIME format a20
+column MEMBER format a55
+column STATUS format a20
+select 'RL ' LOG
+     , a.group# GRP
+     , a.bytes/1024/1024 as MB
+     , a.SEQUENCE#
+     , FIRST_CHANGE#
+     , to_char(FIRST_TIME,'DD-MON-YYYY HH24:MI:SS') FIRST_TIME
+     , substr(b.member,1,50) member
+     , a.status
+  from v$log a
+     , v$logfile b
+where a.group# = b.group#
+union
+select 'SRL'
+     , a.group#
+     , a.bytes/1024/1024 as MB
+     , a.SEQUENCE#
+     , FIRST_CHANGE#
+     , to_char(FIRST_TIME,'DD-MON-YYYY HH24:MI:SS') FIRST_TIME
+     , substr(b.member,1,40)
+     , a.status
+  from v$standby_log a
+     , v$logfile b
+where a.group# = b.group#
+/
+
+show parameter fast_start_mttr_target
+
+column ACTUAL_REDO_BLKS format 9,999,999,999
+column TARGET_REDO_BLKS format 9,999,999,999
+column TARGET_MTTR format 9,999,999,999
+column ESTIMATED_MTTR format 9,999,999,999
+column OPTIMAL_LOGFILE_SIZE format 9,999,999,999
+column CKPT_BLOCK_WRITES format 9,999,999,999
+
+select ACTUAL_REDO_BLKS
+      ,TARGET_REDO_BLKS
+      ,TARGET_MTTR
+      ,ESTIMATED_MTTR
+      ,OPTIMAL_LOGFILE_SIZE "Optimal Size MB"
+      ,CKPT_BLOCK_WRITES
+from v$instance_recovery
+/
+
+column GROUP# format 999999
+column THREAD# format 9999999
+column STATUS format a8
+column MBYTES format 9,999,999
+column ARCHIVED format a8
+column STATUS2 format a8
+column TYPE format a8
+column MEMBER format a55
+
+SELECT l.THREAD#
+     , l.GROUP#
+     , lf.TYPE
+     , l.STATUS
+     , l.BYTES / 1048576 "MBytes"
+     , l.ARCHIVED
+     , lf.MEMBER
+FROM    v$log l
+       ,v$logfile lf
+where l.GROUP# = lf.GROUP#
+ORDER BY l.THREAD#
+       , l.GROUP#
+       , lf.MEMBER
+/
+
+
+set lines 132
+set pages 60
+set verify off
+
+col THREAD# format 99
+col SEQUENCE# format 99999999
+col FIRST_CHANGE# format 999999999999999
+col FIRST_TIME format a20 
+col NEXT_CHANGE# format 999999999999999
+
+accept mins prompt 'Min Seq [*] : '
+accept maxs prompt 'Max Seq [*] : '
+
+select 
+       THREAD#
+      ,SEQUENCE#
+      ,FIRST_CHANGE#
+      ,NEXT_CHANGE#
+      ,to_char(FIRST_TIME,'DD-MON-YYYY HH24:MI:SS')
+ from v$log_history
+where SEQUENCE# >= decode('&mins','',SEQUENCE#,'&mins')
+  and SEQUENCE# <= decode('&maxs','',SEQUENCE#,'&maxs');
+
+--
+-- Count v$loghist by the hour
+--
+
+select to_char(FIRST_TIME, 'DD-MM-YYYY HH24'), count(*)
+from v$loghist
+group by to_char(FIRST_TIME, 'DD-MM-YYYY HH24');
+
+DROPPING RAC LOGFILE GROUP
+
+SYS@teorcfpe1 SQL> select group# from v$log where thread# <> 1;
+
+    GROUP#
+----------
+         1
+         2
+         3
+         4
+
+SYS@teorcfpe1 SQL> select THREAD#, STATUS, ENABLED from v$thread;
+
+
+SYS@teorcfpe1 SQL> alter database drop logfile group 1;
+alter database drop logfile group 1
+*
+ERROR at line 1:
+ORA-01623: log 1 is current log for instance UNNAMED_INSTANCE_2 (thread 2) - cannot drop
+ORA-00312: online log 1 thread 2: '+CLU02_DATA_01/teorcfpe/onlinelog/group_1.331.871312835'
+ORA-00312: online log 1 thread 2: '+CLU02_RECO_01/teorcfpe/onlinelog/group_1.1639.871312835'
+
+ORA-01567 While Dropping Redo Log Group (Doc ID 742384.1)
+
+SYS@teorcfpe1 SQL> ALTER DATABASE DISABLE THREAD 2;
+Database altered.
+
+SYS@teorcfpe1 SQL> ALTER DATABASE DISABLE THREAD 3;
+Database altered.
+
+SYS@teorcfpe1 SQL> alter database drop logfile group 1;
+Database altered.
+
+SYS@teorcfpe1 SQL> alter database drop logfile group 2;
+Database altered.
+
+SYS@teorcfpe1 SQL> alter database drop logfile group 3;
+Database altered.
+
+SYS@teorcfpe1 SQL> alter database drop logfile group 4;
+Database altered.
+
+SYS@teorcfpe1 SQL> select group# from v$log where thread#=1;
+SYS@teorcfpe1 SQL>  select thread#, group# from v$log;
+
+   THREAD#     GROUP#
+---------- ----------
+         1          7
+         1          8
+
+
+SYS@teorcfpe1 SQL> select member from v$logfile;
+
+MEMBER
+------------------------------------------------------------------------------------------------------------------------------------------------------
++CLU02_DATA_01/teorcfpe/onlinelog/group_8.330.871312833
++CLU02_RECO_01/teorcfpe/onlinelog/group_8.2270.871312833
++CLU02_DATA_01/teorcfpe/onlinelog/group_7.329.871312831
++CLU02_RECO_01/teorcfpe/onlinelog/group_7.3042.871312831
+
+    GROUP#
+----------
+         1
+         2
+         3
+         4
+
+SYS@teorcfpe1 SQL> select THREAD#, STATUS, ENABLED from v$thread;
+
+
+Only Archivelog Capacity:
+select name,state,total_mb,free_mb from v$asm_diskgroup where name like '%PROD%ARC%'
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+select vadg.name
+      ,round(vadg.total_mb/1024,2) total_gb
+      ,round(vadg.free_mb/1024,2) free_gb
+      ,round((vadg.total_mb - vadg.free_mb)/1024,2) used_gb
+      ,round(100-(vadg.free_mb/vadg.total_mb*100),2) pct_used_gb
+FROM v$asm_diskgroup vadg
+where name =  (select substr(value,length('location=+')+1,999) log_dest 
+                 from v$parameter 
+               where name = 'log_archive_dest_1');
+               
+               
+               --
+-- Show rollback information.
+--
+SET PAUSE ON
+SET PAUSE 'Press Return to Continue'
+SET PAGESIZE 60
+SET LINESIZE 300
+ 
+COLUMN username FORMAT A20
+COLUMN sid FORMAT 9999
+COLUMN serial# FORMAT 99999
+ 
+SELECT s.username,
+       s.sid,
+       s.serial#,
+       t.used_ublk,
+       t.used_urec,
+       rs.segment_name,
+       r.rssize,
+       r.status
+FROM   v$transaction t,
+       v$session s,
+       v$rollstat r,
+       dba_rollback_segs rs
+WHERE  s.saddr = t.ses_addr
+AND    t.xidusn = r.usn
+AND   rs.segment_id = t.xidusn
+ORDER BY t.used_ublk DESC
+/
+
+--
+-- Shows user and process utilizing each rollback segment
+--
+
+SELECT substr(a.os_user_name,1,8)||'('||e.sid||')' "OS User(SID)",
+       substr(a.oracle_username,1,8) "DB User", 
+       substr(b.owner,1,8)           "Schema", 
+       substr(b.object_name,1,20)    "Object Name", 
+       substr(b.object_type,1,10)    "Type", 
+       substr(c.segment_name,1,5)    "RBS", 
+       substr(d.used_urec,1,12)      "# of Records"
+from   v$locked_object a, 
+       dba_objects b, 
+       dba_rollback_segs c, 
+       v$transaction d, 
+       v$session e
+where  a.object_id =  b.object_id and 
+       a.xidusn    =  c.segment_id and 
+       a.xidusn    =  d.xidusn and 
+       a.xidslot   =  d.xidslot and 
+       d.addr      =  e.taddr
+/
+
+--
+-- Displays rollback stats.
+--
+ 
+SET PAUSE ON
+SET PAUSE 'Press Return to Continue'
+SET PAGESIZE 60
+SET LINESIZE 300
+ 
+SELECT b.name "Segment Name",
+       Trunc(c.bytes/1024) "Size (Kb)",
+       a.optsize "Optimal",
+       a.shrinks "Shrinks",
+       a.aveshrink "Avg Shrink",
+       a.wraps "Wraps",
+       a.extends "Extends"
+FROM   v$rollstat a,
+       v$rollname b,
+       dba_segments c
+WHERE  a.usn  = b.usn
+AND    b.name = c.segment_name
+ORDER BY b.name
+/
+
+the name and status of the rollback segment
+select s.sid, s.serial#, s.username, s.program
+,r.name undo_name, rs.status
+,rs.rssize/1024/1024 redo_size_mb
+,rs.extents
+from v$session s
+,v$transaction t
+,v$rollname r
+,v$rollstat rs
+where s.taddr = t.addr
+and t.xidusn = r.usn
+and r.usn = rs.usn;
+The prior queries allow you to pinpoint which users are responsible for space allocated within the undo
+tablespace. This can be especially useful when there is code that is not committing at appropriate times and that is
+excessively consuming undo space.
+
+1) take offline the current online rollback segments. 
+select 'alter rollback segment '||segment_name||' offline;'
+from dba_rollback_segs
+where status ='ONLINE'
+and segment_name <> 'SYSTEM';
+
+2) drop the offline rollback segments
+select 'drop rollback segment '||segment_name||';'
+
+FIELD LEADERSHIP Database
+I did following two changes
+-----------------------------
+I have changed the undo_retention to 28426 [seconds]. The value was set to 18000.
+I added two additional datafiles for the active UNDO tablespace to grow 20G to 72G.
+
+select max(maxquerylen) from v$undostat;
+select max(maxquerylen) from dba_hist_undostat;
+
+SQL> select max(maxquerylen),instance_number from dba_hist_undostat
+  2  group by instance_number;
+
+MAX(MAXQUERYLEN) INSTANCE_NUMBER
+---------------- ---------------
+           10065               1
+            3308               2
+           28426               3
+
+
+SQL> select max(maxquerylen) from v$undostat;
+
+MAX(MAXQUERYLEN)
+----------------
+            2765
+
+SQL>ALTER SYSTEM SET UNDO_RETENTION = 2800 scope=both sid='*';
