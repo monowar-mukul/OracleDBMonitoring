@@ -1,48 +1,34 @@
-
-USER 
-
-ALTER PROFILE BHPB_DEFAULT LIMIT PASSWORD_VERIFY_FUNCTION NULL;
-
-CREATE USER PI_READONLY
+### Create user
+  CREATE USER PI_READONLY
   IDENTIFIED BY PI_READONLY
   DEFAULT TABLESPACE USERS
   TEMPORARY TABLESPACE TEMP
-  PROFILE BHPB_DEFAULT
+  PROFILE &profile_DEFAULT
   ACCOUNT UNLOCK;
 
-GRANT CREATE SESSION TO PI_READONLY;
-ALTER USER PI_READONLY QUOTA UNLIMITED ON USERS;
-alter profile bhpb_default limit password_verify_function verify_function;
-
-spool grant_select.sql
-set head off
-Select 'GRANT SELECT ON '||OWNER||'.'||Table_Name||' TO  PI_READONLY;' 
-From dba_Tables Where Owner in ('DW_LND','PNIA_DMF');
-spool off
-----------------------------------------------
 set long 150
 set linesize 150
 set longchunksize 150
 select 'alter user '||username||' identified by values '||REGEXP_SUBSTR(DBMS_METADATA.get_ddl ('USER',USERNAME), '''[^'']+''')||';' from dba_users
 
-SQL> alter session set nls_date_format = 'DY DD-MON-RRRR';
-SYS@arisbs3 SQL> select username, account_status from dba_users where username like '%ARI%';
+alter session set nls_date_format = 'DY DD-MON-RRRR';
+select username, account_status from dba_users where username like '%ARI%';
 
 USERNAME                      ACCOUNT_STATUS
 ------------------------------------------------------------------------------------------------
 ARIS71			EXPIRED
 
-SYS@arisbs3 SQL> select spare4 from sys.user$ where name='ARIS71';
+select spare4 from sys.user$ where name='ARIS71';
 
 SPARE4
 ---------------------------------------------------------------------------------------------------------------------------------------
 S:22153917B658C47DE9FDB9C18CEC5E129F03C07C1456B08E325A4288D367
 
-SYS@arisbs3 SQL> alter user ARIS71 identified by values 'S:22153917B658C47DE9FDB9C18CEC5E129F03C07C1456B08E325A4288D367';
+alter user ARIS71 identified by values 'S:22153917B658C47DE9FDB9C18CEC5E129F03C07C1456B08E325A4288D367';
 
 User altered.
 
-SYS@arisbs3 SQL> select username, account_status from dba_users where username like '%ARI%';
+select username, account_status from dba_users where username like '%ARI%';
 
 USERNAME		ACCOUNT_STATUS
 ----------------------------------------------------------
@@ -53,34 +39,10 @@ select  username
    ,       expiry_date
   ,       sysdate
 from dba_users
-where username='ARIS71';
-
-select spare4 from user$ where name in ('BLASTHOLES','BH_OWNER','BHVULCAN');
-SPARE4
---------------------------------------------------------------------------------
-S:DDEAAC123B48FB8906360A04E9E834999C0100564CC08F8B6C3A774819C0
-S:E5499DD98CC4AE6E42692D52CE3193DFB02C528B5F4972D4961620FDDC2E
-S:FA2AF7602DE1DFD9A059F70129D2D658C7D1936F4723F9344E5AB0E97C64
-
-FOR TEST
-SQL> select spare4 from user$ where name in ('BLASTHOLES','BH_OWNER','BHVULCAN');
-
-SPARE4
---------------------------------------------------------------------------------
-S:1B678637DD89416FA7B1385837BCD034058470046728989FF6FAD001E1D0
-S:24A9FDBAC704036ADBF51809873ACBEA0A09DB007FE488C3D5FA41AFB5C8
-S:67031E3B41D11176C3D3F2D543E83790E68EC3C65FB56F23361BD8A98DB5
-alter user amit identified by values '';
-Alter USER PNIA_DMF DEFAULT TABLESPACE PNIA_DMF;
-Alter USER PNIA_DMF quota unlimited on PNIA_DMF;
-Alter USER PNIA_DMF quota 0M on USERS;
-  
+where username='&usr';
 
 
-
-Clone 
-
-
+### User Clone 
 
 set pages 0 feed off verify off lines 500
 accept oldname prompt "Enter user to model new user to: "
@@ -119,7 +81,7 @@ where grantee = upper('&&oldname');
  where grantee = upper('&&oldname')
 and default_role = 'YES';
 
--------------------------------Copy all the privileges from a source environment ---------------------------------
+### Copy all the privileges from a source environment
 
 set head off
 set pages 0
@@ -141,20 +103,6 @@ Password Expire
 ALTER PROFILE SPER_PROFILE_TEMPORARY LIMIT
   FAILED_LOGIN_ATTEMPTS 3
   PASSWORD_LIFE_TIME UNLIMITED;
-
-userid=system
-directory=expmono1
-dumpfile=pprod2ofull01.dmp
-logfile=impurgdev20_2.log 
-parallel=2
-REMAP_SCHEMA=<Below SQL>
-select 'REMAP_SCHEMA=' || username || ':' || username || '_2' cmd
-
-select username
-from dba_users
-where username not in ('SYS','SYSTEM','SYSMAN','OUTLN','SCOTT','ADAMS','JONES','CLARK','BLAKE','HR','OE','SH','DEMO','ANONYMOUS','AURORA$ORB$UNAUTHENTICATED',
-'AWR_STAGE','CSMIG','CTXSYS','DBSNMP','DIP','DMSYS','EXFSYS','LBACSYS','MDSYS ','ORACLE_OCM','ORDPLUGINS','ORDPLUGINS','ORDSYS ','PERFSTAT ','TRACESVR',
-'TSMSYS ','XDB','OLAPSYS','WMSYS','MDSYS','OWBSYS','OWBSYS_AUDIT');
 
 
 select 'alter user "'||username||'" identified by Password01 account unlock;' from dba_users where username not in ('SYS','SYSTEM','SYSMAN','OUTLN','SCOTT','ADAMS','JONES','CLARK','BLAKE','HR','OE','SH','DEMO','ANONYMOUS','AURORA$ORB$UNAUTHENTICATED',
