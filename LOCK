@@ -217,7 +217,7 @@ SELECT DECODE(request,0,'Holder: ','Waiter: ')||sid sess,
 
 Get the holder Session ID -- find out SID and serial
 
-select OSUSER, USERNAME, sid, serial#  from v$session where USERNAME='HARRISLA';
+select OSUSER, USERNAME, sid, serial#  from v$session where USERNAME='&usr';
 
  SELECT s.sid, s.serial#, s.username, s.osuser, p.spid, s.machine, p.terminal, s.program
     FROM v$session s, v$process p
@@ -236,6 +236,7 @@ SELECT USERNAME,
       AND USERNAME in ('MSGIS','MSHIST')
    ORDER BY MINUTES_LOGGED_ON DESC;
 
+IF YOU NEED TO KILL THE SESSION AFTER CONFIRMING FROM THE RESPECTIVE TEAM / USER - 
 
 select sid, serial#  from v$session where SID=&SID;
 
@@ -259,12 +260,13 @@ and p.spid=&SPID ;
 
 select s.sid, s.serial#, s.status, p.spid 
 from v$session s, v$process p 
-where s.username = 'S119' 
+where s.username = '&usr' 
 and p.addr (+) = s.paddr; 
 
 Then kill from Unix prompt
 =================================
 kill -9 <PID>
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 You need to find out which user is waiting and which user is holding and then find out which SQL is being run. Do the following:
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -341,8 +343,8 @@ and l2.id2 = l2.id2
 AND s1.PREV_SQL_ADDR =s3.address
 and s1.PREV_HASH_VALUE=s3.HASH_VALUE;
 
-------------------
-ORA-000060: Deadlock detected. More info in file /oracle/admin/angprd/udump/angprd_ora_24409.trc.
+------------------ DeadLock ---------------------------
+ORA-000060: Deadlock detected. More info in file /oracle/admin/<>/udump/<>_ora_24409.trc.
 
 If you are, one session automatically gets rolled back - so there is nothing to check and you will have a trace file with deadlock detected in it.
 For staying long period deadlock you can check the following:
@@ -391,8 +393,7 @@ Sess
 ---- ----------
  410      18132
 
-[ NOTE: 
-MINSV100:ANGPRD (SYSTEM)> 
+> 
 select ctime, sid  
 from v$lock
 where SID in (45, 118);
@@ -407,7 +408,7 @@ where SID in (45, 118);
      12653
 Then notify to  
 
-It being blocking for (2527/60) 42 minutes and SQL is being running for  (12653/60/60) 3.5 hours. Reassign to ELLIPSE team.
+It being blocking for (2527/60) 42 minutes and SQL is being running for  (12653/60/60) 3.5 hours. Reassign to respective team.
 
 rem NAME: blockers.sql
 rem FUNCTION: Show all processes causing a dead lock [Not for 8.1.]
@@ -485,7 +486,6 @@ SET LINES 80 PAGES 22 FEEDBACK ON ECHO ON
 TTITLE OFF
 
 ==========================================================================================================
-
 --SHOW BLOCKING LOCKS. ALSO SEE SQL HERE
 
 select SID,ADDR,KADDR,type,LMODE,round(CTIME/60) "Time(Min)" from V$LOCK where block=1;
@@ -794,8 +794,6 @@ spool off
 
 
 =================
-SYS@DPDW1_1 SQL> drop index PNIA_DMF.PNIA_STAGING_MVMNT_CONTRIB_I01;
-drop index PNIA_DMF.PNIA_STAGING_MVMNT_CONTRIB_I01
                     *
 ERROR at line 1:
 ORA-00054: resource busy and acquire with NOWAIT specified or timeout expired
@@ -844,7 +842,7 @@ EC
 
 SOLUTION:
 We have 3 options to fix this error
-       1.  Kill the DB session and get the tables unlocked
+      1.  Kill the DB session and get the tables unlocked
       2. Kill the application which holds this particular session(sql connection)
       3. The ideal solution is to get to the actual process(application) to debug/fix the issue
 
@@ -857,23 +855,18 @@ cleared
 SELECT O.OBJECT_NAME, S.SID, S.SERIAL#, P.SPID, S.PROGRAM,S.USERNAME,S.MACHINE,S.PORT ,S.LOGON_TIME,SQ.SQL_FULLTEXT FROM V$LOCKED_OBJECT L, DBA_OBJECTS O, V$SESSION S, V$PROCESS P, V$SQL SQ WHERE L.OBJECT_ID = O.OBJECT_ID AND L.SESSION_ID = S.SID AND S.PADDR = P.ADDR AND S.SQL_ADDRESS = SQ.ADDRESS; 
 
 LOGON_TIME 
-
 [bash]$ ps aux | grep java
-
 kill -15 <PID>
 
 3. Getting to the Actual Process on the application server
 
-
 The better way to find the process is to get the V$SESSION.PORT from the above sql  and find the process listening on that port.
-
 
 SELECT O.OBJECT_NAME, S.SID, S.SERIAL#, P.SPID, S.PROGRAM,S.USERNAME,S.MACHINE,S.PORT ,S.LOGON_TIME,SQ.SQL_FULLTEXT FROM V$LOCKED_OBJECT L, DBA_OBJECTS O, V$SESSION S, V$PROCESS P, V$SQL SQ WHERE L.OBJECT_ID = O.OBJECT_ID AND L.SESSION_ID = S.SID AND S.PADDR = P.ADDR AND S.SQL_ADDRESS = SQ.ADDRESS;
 
-
 To get to the process listening on the port, execute the below command.For me, the port number was  xxxxx 
 
-   netstat -ap | grep xxxxx
+netstat -ap | grep xxxxx
 
 which gave me
 
