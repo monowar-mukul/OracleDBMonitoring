@@ -1,0 +1,100 @@
+Identifying Installed Plugins
+
+Identify all plugins installed on your system using the query provided in the documentation, run as SYSMAN against your repository database.
+
+SELECT epv.display_name, epv.plugin_id, epv.version, epv.rev_version,decode(su.aru_file, null, 'Media/External', 'https://updates.oracle.com/Orion/Services/download/'||aru_file||'?aru='||aru_id||chr(38)||'patch_file='||aru_file) URL
+FROM em_plugin_version epv, em_current_deployed_plugin ecp, em_su_entities su
+WHERE epv.plugin_type NOT IN ('BUILT_IN_TARGET_TYPE', 'INSTALL_HOME')
+AND ecp.dest_type='2'
+AND epv.plugin_version_id = ecp.plugin_version_id
+AND su.entity_id = epv.su_entity_id;
+
+TTITLE CENTER BOLD 'Missing EM12c Target Properties' SKIP 2 CENTER ''
+
+select tar.target_name "Target Name"
+,      tar.target_type "Target Type"
+,      tar.type_display_name "Type Display Name"
+from   mgmt$target tar
+where  tar.target_type not in ('composite')
+and    (not exists   (select 1
+                      from mgmt$target_properties prop
+                      where tar.target_guid = prop.target_guid
+                      and   prop.property_name = 'orcl_gtp_lifecycle_status'
+                      )
+        or not exists (select 1
+                       from mgmt$target_properties prop
+                       where tar.target_guid = prop.target_guid
+                       and   prop.property_name = 'orcl_gtp_line_of_bus'
+                      )
+        or not exists (select 1
+                       from mgmt$target_properties prop
+                       where tar.target_guid = prop.target_guid
+                       and   prop.property_name = 'orcl_gtp_cost_center'
+                      )
+        )
+;
+
+TTITLE CENTER BOLD 'Incorrect EM12c Target Properties' SKIP 2 CENTER ''
+
+select prop.target_name "Target Name"
+,      tar.type_display_name "Target Type"
+,      pdef.property_display_name "Property Display Name"
+,      prop.property_value "Incorrect Propery Value"
+from   mgmt$target tar
+,      mgmt$target_properties prop
+,      mgmt$all_target_prop_defs pdef
+where  tar.target_guid    = prop.target_guid
+and    prop.property_name = pdef.property_name
+and    (( prop.property_name = 'orcl_gtp_cost_center' and prop.property_value <> 'BHP Billiton Iron Ore')
+        or     ( prop.property_name = 'orcl_gtp_line_of_bus' and prop.property_value <> 'IM Oracle DBA')
+        or     ( prop.property_name = 'orcl_gtp_lifecycle_status' and prop.property_value not in ('Production','Stage','Test','Development','MissionCritical'))
+        )
+;
+
+
+To determine the platform id of the target host use emcli with the list_add_host_platforms verb. 
+emcli list_add_host_platforms -all
+Platform ID Platform Name
+226 Linux x86-64
+23 Oracle Solaris on SPARC (64-bit) [Agent Software Unavailable]
+46 Linux x86 [Agent Software Unavailable]
+59 HP-UX PA-RISC (64-bit) [Agent Software Unavailable]
+197 HP-UX Itanium [Agent Software Unavailable]
+211 IBM S/390 Based Linux (31-bit) [Agent Software Unavailable]
+212 IBM AIX on POWER Systems (64-bit) [Agent Software Unavailable]
+227 IBM: Linux on POWER Systems [Agent Software Unavailable]
+233 Microsoft Windows x64 (64-bit) [Agent Software Unavailable]
+267 Oracle Solaris on x86-64 (64-bit) [Agent Software Unavailable]
+912 Microsoft Windows (32-bit) [Agent Software Unavailable]
+209 IBM: Linux on System z [Agent Software Unavailable]
+
+I like to also check which named credentials are available. You can do so using the list_named_credentials verb. 
+$ ./emcli list_named_credentials
+Credential Name  Credential Owner  Authenticating target type.  Cred Type Name  Target Name   Target Username
+NC_ASMCLUS_SASM  OEM_SEC_USER      osm_cluster                  ASMCreds                      sys
+NC_ASMCLUS_SDBA  OEM_SEC_USER      osm_cluster                  ASMCreds                      sys
+NC_ASM_SASM      OEM_SEC_USER      osm_instance                 ASMCreds                      sys
+NC_ASM_SDBA      OEM_SEC_USER      osm_instance                 ASMCreds                      sys
+NC_DBS_NORM      OEM_SEC_USER      oracle_database              DBCreds                       dbsnmp
+NC_DBS_SDBA      OEM_SEC_USER      oracle_database              DBCreds                       sys
+NC_HOST_GRID     OEM_SEC_USER      host                         HostCreds                     grid
+NC_HOST_ORACLE   OEM_SEC_USER      host                         HostCreds                     oracle
+NC_HOST_PRIV     OEM_SEC_USER      host                         HostCreds                     root
+
+Generate SQL to remove alerts from specific targets
+-----------------------------------------------------------------------------------
+select t.target_name
+,      t.target_type
+,      collection_timestamp
+,      message
+,      'exec em_severity.delete_current_severity(''' ||
+           t.target_guid || ''',''' ||
+           metric_guid || ''',''' ||
+           key_value || ''')' em_severity
+from   mgmt_targets t
+inner join
+       mgmt_current_severity s
+on
+       t.target_guid = s.target_guid
+where
+       target_name like '&TARGET'
