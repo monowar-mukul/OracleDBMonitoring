@@ -1,0 +1,288 @@
+{\rtf1\ansi\deff0\deftab862{\fonttbl{\f0\fnil\fcharset0 Arial;}{\f1\fnil\fcharset2 symbol;}{\f2\fnil\fcharset2 WingDings;}}{\colortbl\red0\green0\blue0;\red255\green0\blue0;\red0\green128\blue0;\red0\green0\blue255;\red255\green255\blue0;\red255\green0\blue255;\red128\green0\blue128;\red128\green0\blue0;\red0\green255\blue0;\red0\green255\blue255;\red0\green128\blue128;\red0\green0\blue128;\red255\green255\blue255;\red192\green192\blue192;\red128\green128\blue128;\red0\green0\blue0;}{\*\listtable{\list\listtemplateid19690212{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc1{\leveltext\'02\'00.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc3{\leveltext\'02\'01.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'02\'02.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc4{\leveltext\'02\'03);}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc2{\leveltext\'03(\'04);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc4{\leveltext\'03(\'05);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'06);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'07);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'08);}{\levelnumbers\'02;}}
+\listid1194737}}{\*\listoverridetable{\listoverride\listid1194737\listoverridecount0\ls1}}\endnhere\sectdefaultcl{\pard{\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 REAL APPLICATION TESTING - include two tools 1) SQL Performance Analyzer and 2) Database Replay\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Database Replay\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 STEPS:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 1. Capture the production workload.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 2. Preprocess the captured workload.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 3. Replay the workload.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 4. Analyze the replayed workload and create a report.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Capturing the Production Workload\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Restart the database in the restricted mode using the startup restrict\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 command, in order to prevent users from connecting and starting transactions before\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 you start the workload capture.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 FILTER procedure:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> begin\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dbms_workload_capture.add_filter (\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 fname => 'user_salapati',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 fattribute => 'USER',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 fvalue => 'salapati'\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 end;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 /\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 In the ADD_FILTER procedure, the various parameters are defined as follows:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \'81\'a1 fname specifies the filter name.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \'81\'a1 fattribute specifies the filter attributes such as program, module,\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 action, service, instance_number, and user.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \'81\'a1 fvalue specifies the value of the attribute corresponding to the\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 fattribute parameter you choose. In my example, I chose user as\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 the fattribute parameter\'81fs value. The fvalue attribute specifies the\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 particular username of the user (salapati) whose actions will be captured.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 You can remove a filter by using\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 the DELETE_FILTER procedure, as shown here:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> begin\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dbms_workload_capture.delete_filter (fname =>\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 'user_salapati');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 end;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 CAPTURING THE PRODUCTION WORKLOAD\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Start the workload capture by using the START_CAPTURE procedure, as\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 shown here:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL>begin\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dbms_workload_capture.start_capture (name => '2008Jan',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dir => 'jan08',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 duration => 1200);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 end;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The three parameters of the START_CAPTURE procedure stand for the following:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \'81\'a1 name stands for the name of the workload capture.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \'81\'a1 dir specifies the directory object pointing to the workload capture directory. [NOTE: Make sure you set up a directory on your file\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 system that\'92s large enough to hold the results of the workload capture process.]\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \'81\'a1 duration specifies the number of seconds for which the workload will be\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 captured.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Of the three parameters shown here, only the DIR parameter is mandatory. If\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 you don\'81ft specify the DURATION parameter, the workload capture will continue\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 indefinitely, until you stop it with the FINISH_CAPTURE procedure, as shown here:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 begin\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dbms_workload.capture.finish_capture ();\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 end;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 /\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 PREPROCESSING THE WORKLOAD\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 NOTE:You can preprocess the captured workload on the production system, a test\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 system, or even a different system as long as the database versions are the\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 same.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Use the PROCESS_CAPTURE procedure to preprocess the captured workload,\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 as shown here:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 begin\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dbms_workload_replay.process_capture (capture_dir => 2008jan');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 end;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The capture_dir parameter refers to the directory where the database has\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 stored the captured workload.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 MAKING THE SYSTEM CHANGE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 the system change can be a database or server upgrade,\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 schema changes or hardware changes, or a migration to an Oracle RAC environment\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 from a single instance setup.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 #################################################################################################################\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \'93Simulating production load is not possible\'94 , you might have heard these word. \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 In one project, where last 2 year  management want to migrate from UNIX system to Linux system ( RAC ) , but they still testing because they are not sure where this Linux Boxes where bale to handle load or not. They have put lot of efforts and time in load testing and functional testing etc, but still not le gain confidence. \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 After using these feature of 11g , they will gain confidence and will able to migrate to Linux with full confidence and will know how there system will behave after migration/upgrade.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 As per  datasheet given on OTN\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Database Replay workload capture of external clients is performed at the database server level. Therefore, Database Replay can be used to assess the impact of any system changes below the database tier level such as below:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  Database upgrades, patches, parameter, schema changes, etc.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Configuration changes such as conversion from a single instance to RAC etc.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Storage, network, interconnect changes\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Operating system, hardware migrations, patches, upgrades, parameter changes\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DB replay does this by capturing a workload on the production system with negligible performance overhead( My observation is 2-5% more CPU usage ) and replaying it on a test system with the exact timing, concurrency, and transaction characteristics of the original workload. This makes possible complete assessment of the impact of the change including undesired results; new contentions points or performance regressions. Extensive analysis and reporting ( AWR , ADDM report and DB replay report) is provided to help identify any potential problems, such as new errors encountered and performance divergences. The ability to accurately capture the production workload results in significant cost and timesaving since it completely eliminates the need to develop simulation workloads or scripts. As a result, realistic testing of even complex applications using load simulation tools/scripts that previously took several months now can be accomplished at most in a few days with Database Replay and with minimal effort. Thus using Database Replay, businesses can incur much lower costs and yet have a high degree of confidence in the overall success of the system change and significantly reduce production deployment\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Steps for Database Replay \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Workload Capture\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Database are tracked and stored in binary files, called capture files, on the file system. These files contain all relevant information about the call needed for replay such as SQL text, bind values, wall clock time, SCN, etc.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 1)     Backup production Database #\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 2)     Add/remove filter ( if any you want )\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 By default, all user sessions are recorded during workload capture. You can use workload filters to specify which user sessions to include in or exclude from the workload. Inclusion filters enable you to specify user sessions that will be captured in the workload. This is useful if you want to capture only a subset of the database workload.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 For example , we don't want to capture load for SCOTT user \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0      \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BEGIN\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   DBMS_WORKLOAD_CAPTURE.ADD_FILTER (\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                            fname => 'user_scott',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                            fattribute => 'USER',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                            fvalue => 'SCOTT');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 END;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Here filter name is "user_scott" ( user define name)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 3)     Create directory make sure enough space is there\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 CREATE OR REPLACE DIRECTORY db_replay_dir \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 AS '/u04/oraout/test/db-replay-capture';\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 4)     Capture workload    \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BEGIN\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0       DBMS_WORKLOAD_CAPTURE.start_capture (\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0        name => capture_testing',dir=>'DB_REPLAY_DIR',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0       duration => NULL );\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 END; \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Duration => NULL mean , it will capture load till we stop with below mentioned manual SQL command. Duration is optional input to specify the duration (in seconds) , default is NULL\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 5)     Finish capture\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BEGIN \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0     DBMS_WORKLOAD_CAPTURE.finish_capture; \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 END;  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 # Take backup of production before Load capture, so we can restore database on test environment and will run replay on same SCN level of database to minimize data divergence \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  Note as per Oracle datasheet \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The workload that has been captured on Oracle Database release 10.2.0.4 and higher can also be replayed on Oracle Database 11g release.So , I think , It simply mean NEW patch set 10.2.0.4 will support capture processes.  Is it mean Current patch set (10.2.0.3) not support load capture ??????\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  2.      Workload Processing\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Once the workload has been captured, the information in the capture files has to be processed preferably on the test system because it is very resource intensive job. This processing transforms the captured data and creates all necessary metadata needed for replaying the workload.                   \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 exec DBMS_WORKLOAD_REPLAY.process_capture('DB_REPLAY_DIR');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Workload Replay\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 1)     Restore database backup taken step one to test system and start Database\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 2)     Initialize\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BEGIN\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DBMS_WORKLOAD_REPLAY.initialize_replay (\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   replay_name => 'TEST_REPLAY',\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   replay_dir => 'DB_REPLAY_DIR');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 END;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 3)     Prepare\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0    exec DBMS_WORKLOAD_REPLAY.prepare_replay(synchronization => TRUE)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 4)     Start clients\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  $ wrc mode=calibrate replaydir=/u03/oradata/test/db-replay-capture\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Workload Replay Client: Release 11.1.0.6.0 - Production on Wed Dec 26 00:31:41 2007\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Copyright (c) 1982, 2007, Oracle.  All rights reserved.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Report for Workload in: /u03/oradata/test/db-replay-capture\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 -----------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Recommendation:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Consider using at least 1 clients divided among 1 CPU(s).\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Workload Characteristics:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 - max concurrency: 1 sessions\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 - total number of sessions: 7\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Assumptions:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 - 1 client process per 50 concurrent sessions\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 - 4 client process per CPU\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 - think time scale = 100\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 - connect time scale = 100\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 - synchronization = TRUE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  wrc system/pass mode=replay replaydir=/u03/oradata/test/db-replay-capture\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Workload Replay Client: Release 11.1.0.6.0 - Production on Wed Dec 26 00:31:52 2007\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Copyright (c) 1982, 2007, Oracle.  All rights reserved.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Wait for the replay to start (00:31:52)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 5)     Start Replay\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0     BEGIN\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0         DBMS_WORKLOAD_REPLAY.start_replay;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 END;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 / \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 $ wrc system/pass mode=replay replaydir=/u03/oradata/test/db-replay-capture\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Workload Replay Client: Release 11.1.0.6.0 - Production on Wed Dec 26 00:31:52 2007\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Copyright (c) 1982, 2007, Oracle.  All rights reserved.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Wait for the replay to start (00:31:52)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Replay started (00:33:32)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Replay finished (00:42:52) \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Analysis and Reporting\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Generate AWR , ADDM and DB reply report and compare with data gathered on production for same time period when load was captured on Production database. For Database Replay Report  run following command \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0    SQL>  COLUMN name FORMAT A20\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                 SQL> SELECT id, name FROM dba_workload_replays;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                             ID NAME\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                     ---------- --------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                              1 TEST_REPLAY\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DECLARE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0    v_report  CLOB;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BEGIN\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0     v_report := DBMS_WORKLOAD_replay.report(\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                      replay_id => 1,\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                   format=>DBMS_WORKLOAD_CAPTURE.TYPE_HTML\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0                     );\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0     dbms_output.put_line(l_report);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 END;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 / \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 }}
+}

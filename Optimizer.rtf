@@ -1,0 +1,90 @@
+{\rtf1\ansi\deff0\deftab862{\fonttbl{\f0\fnil\fcharset0 Arial;}{\f1\fnil\fcharset2 symbol;}{\f2\fnil\fcharset2 WingDings;}}{\colortbl\red0\green0\blue0;\red255\green0\blue0;\red0\green128\blue0;\red0\green0\blue255;\red255\green255\blue0;\red255\green0\blue255;\red128\green0\blue128;\red128\green0\blue0;\red0\green255\blue0;\red0\green255\blue255;\red0\green128\blue128;\red0\green0\blue128;\red255\green255\blue255;\red192\green192\blue192;\red128\green128\blue128;\red0\green0\blue0;}{\*\listtable{\list\listtemplateid19690212{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc1{\leveltext\'02\'00.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc3{\leveltext\'02\'01.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'02\'02.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc4{\leveltext\'02\'03);}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc2{\leveltext\'03(\'04);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc4{\leveltext\'03(\'05);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'06);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'07);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'08);}{\levelnumbers\'02;}}
+\listid1194737}}{\*\listoverridetable{\listoverride\listid1194737\listoverridecount0\ls1}}\endnhere\sectdefaultcl{\pard{\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Optimizer - creates the execution plan for a SQL statement. The execution plan is a series of operation (set of steps) that are performed by optimizer in sequence to execute the statement.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The optimizer considers many factors related to the objects referenced and the conditions specified in the query.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 See the execution plan that the optimizer chooses -  EM, EXPLAIN PLAN, SQL*Plus AUTOTRACE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 11g: The optimizer has two name based on its functionality\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   1. the query optimizer or run-time optimizer  - creates the execution plan at run time.In this mode the optimizer is time limited, it can only consider a limited number of alternatives.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   2.The Automatic tuning optimizer (ATO) which depends on sharing SQL cursors. - In this mode the optimizer is given a much longer time to consider more option and gather statistics. \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0    ATO can provide a better plan and create a SQL profile that will influence the optimizer to choose the better plan.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The DBMS_STATS package is more versatile and potentially faster than using the ANALYZE command to generate statistics.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DBMS_STATS has parallel execution and Oracle partitioning benefits plus performance tuning capabilities that the ANALYZE command does not have.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The DBMS_STATS package can even be used to copy statistics between databases, thus allowing accurate simulated tuning between testing and production databases.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The EXPLAIN PLAN command simply creates readable descriptions of the steps in the query plan and inserts those steps as entries into a table called the PLAN_TABLE.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 A SQL statement query plan contains several general items. These items describe how a SQL statement should be executed:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   The sequence in which tables are accessed\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   - An estimated or guesstimated cost of the query plan as a whole, and a cost for each step \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   - I/O estimates, temporary sort space usage, rows accessed and bytes read, among others\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   A method of access for each table \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  -  Join methods for any joins\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  -  Filtering and sorting operations\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  - Other specialized factors such as parallel processing or concatenation\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 TKPROF is a formatting utility used to format trace file output into an easily readable form. \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 TKPROF can be used to produce EXPLAIN PLAN query plans, as well as store past output from statistics collections previously written to trace files,\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 into a file called TKPROF_TABLE.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DELTA - One can obtain meaningful statistics values taking snapshots at different times and taking a different of the values. The difference is delta. \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 several tools produce a delta - statspack, AWR, customize script\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  Analyze Statement\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ====================\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The ANALYZE statement can be used to gather statistics for a specific table, index or cluster. The statistics can be computed exactly, or estimated based on a specific number of rows, or a percentage of rows.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ANALYZE TABLE employees COMPUTE STATISTICS;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ANALYZE INDEX employees_pk COMPUTE STATISTICS;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ANALYZE TABLE employees ESTIMATE STATISTICS SAMPLE 100 ROWS;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ANALYZE TABLE employees ESTIMATE STATISTICS SAMPLE 15 PERCENT;DBMS_UTILITY\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The DBMS_UTILITY package can be used to gather statistics for a whole schema or database. Both methods follow the same format as the analyze statement.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_UTILITY.analyze_schema('SCOTT','COMPUTE');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_UTILITY.analyze_schema('SCOTT','ESTIMATE', estimate_rows => 100);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_UTILITY.analyze_schema('SCOTT','ESTIMATE', estimate_percent => 15);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_UTILITY.analyze_database('COMPUTE');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_UTILITY.analyze_database('ESTIMATE', estimate_rows => 100);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_UTILITY.analyze_database('ESTIMATE', estimate_percent => 15);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DBMS_STATS\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ==============\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The DBMS_STATS package was introduced in Oracle 8i and is Oracle's preferred method of gathering statistics. Oracle list a number of benefits to using it including parallel execution, long term storage of statistics and transfer of statistics between servers.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The functionality of the DBMS_STATS package varies greatly between database versions, as do the default parameter settings and the quality of the statistics they generate. It is worth spending some time checking the documentation relevant to your version.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Table and Index Stats\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Table statistics can be gathered for the database, schema, table or partition.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_database_stats;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_database_stats(estimate_percent => 15);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_database_stats(estimate_percent => 15, cascade => TRUE);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_schema_stats('SCOTT');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_schema_stats('SCOTT', estimate_percent => 15);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_schema_stats('SCOTT', estimate_percent => 15, cascade => TRUE);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_table_stats('SCOTT', 'EMPLOYEES');\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_table_stats('SCOTT', 'EMPLOYEES', estimate_percent => 15);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_table_stats('SCOTT', 'EMPLOYEES', estimate_percent => 15, cascade => TRUE);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 EXEC DBMS_STATS.gather_dictionary_stats;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 }}
+}

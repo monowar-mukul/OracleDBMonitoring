@@ -1,0 +1,205 @@
+{\rtf1\ansi\deff0\deftab862{\fonttbl{\f0\fnil\fcharset0 Arial;}{\f1\fnil\fcharset2 symbol;}{\f2\fnil\fcharset2 WingDings;}}{\colortbl\red0\green0\blue0;\red255\green0\blue0;\red0\green128\blue0;\red0\green0\blue255;\red255\green255\blue0;\red255\green0\blue255;\red128\green0\blue128;\red128\green0\blue0;\red0\green255\blue0;\red0\green255\blue255;\red0\green128\blue128;\red0\green0\blue128;\red255\green255\blue255;\red192\green192\blue192;\red128\green128\blue128;\red0\green0\blue0;}{\*\listtable{\list\listtemplateid19690212{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc1{\leveltext\'02\'00.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc3{\leveltext\'02\'01.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'02\'02.;}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc4{\leveltext\'02\'03);}{\levelnumbers\'01;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc2{\leveltext\'03(\'04);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc4{\leveltext\'03(\'05);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'06);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'07);}{\levelnumbers\'02;}}
+{\listlevel\leveljc0\levelfollow0\levelstartat1\levelspace0\levelindent360\levelnfc0{\leveltext\'03(\'08);}{\levelnumbers\'02;}}
+\listid1194737}}{\*\listoverridetable{\listoverride\listid1194737\listoverridecount0\ls1}}\endnhere\sectdefaultcl{\pard{\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Instance level trace - cause heavy I/O\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 --------------------------------------------------------------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 exec dbms_monitor.database_trace_enable ()             \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Session Level\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  execute dbms_monitor.session_trace_enable(8,12, waits =>TRUE, binds => TRUE);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 where 8, 12 are the system identifier and serial number of the connected user.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ALTER SESSION SET SQL_TRACE = TRUE;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ALTER SYSTEM SET TIMED_STATISTICS=TRUE;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 You can use the following statement to change the name of the generated trace file:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ALTER SESSION SET TRACEFILE_IDENTIFIER = TEST;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL>  show parameter SQL_TRACE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 NAME                                 TYPE        VALUE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------------------------------------ ----------- ------------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 sql_trace                            boolean     FALSE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> ALTER SESSION SET SQL_TRACE=TRUE;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Session altered.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> show parameter SQL_TRACE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 NAME                                 TYPE        VALUE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------------------------------------ ----------- ------------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 sql_trace                            boolean     TRUE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> SELECT ENAME\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 FROM EMP E\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 WHERE E.JOB IN (\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SELECT E.JOB\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 FROM EMP\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 WHERE E.SAL IN (3000, 1100, 1500)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 );  \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ENAME\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ----------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SCOTT\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 TURNER\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ADAMS\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 FORD\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> ALTER SESSION SET SQL_TRACE=FALSE;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Session altered.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> SELECT s.sid, s.serial#, s.process, p.spid\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 FROM v$session s, v$process p\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 WHERE s.audsid = userenv('sessionid')\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 AND s.paddr = p.addr;  2    3    4\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0        SID    SERIAL# PROCESS                  SPID\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ---------- ---------- ------------------------ ------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0         13      12184 17247                    18234                         ----nOTE THIS spid VALUE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 cd /U01/app/oracle/diag/rdbms/fmap2asm/FMAP2asm/trace\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 tkprof \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 -------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ********************************************************************************\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 count    = number of times OCI procedure was executed\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 cpu      = cpu time in seconds executing\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 elapsed  = elapsed time in seconds executing\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 disk     = number of physical reads of buffers from disk\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 query    = number of buffers gotten for consistent read\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 current  = number of buffers gotten in current mode (usually for update)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 rows     = number of rows processed by the fetch or execute call\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ********************************************************************************\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL ID: 4jh47dz01gqxm\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Plan Hash: 780230286\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 select o.obj#, (o.spare2 + ((o.mtime - o.ctime)*86400)) version, t.property,\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   t.trigflag\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 from\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0  obj$ o, user$ u, tab$ t where u.name = :1   and o.name = :2   and o.owner# =\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0   u.user#   and o.obj# = t.obj#\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 call     count       cpu    elapsed       disk      query    current        rows\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------- ------  -------- ---------- ---------- ---------- ----------  ----------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Parse      341      0.02       0.07          0          0          0           0\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Execute    341      0.01       0.05          0          0          0           0\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Fetch      341      0.01       0.01          0        341          0           0\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------- ------  -------- ---------- ---------- ---------- ----------  ----------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 total     1023      0.04       0.15          0        341          0           0\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------------------------------------------------------------------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The next section from the TKPROF output shows statistics generated by the execution of this SELECT statement expressed in three separate steps.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The importance of the preceding TKPROF output is the ratios between the columns. What are these ratios and why are they significant?\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 PHYSICAL DISK READS VS. LOGICAL READS.   This is disk/(query+ current). The lower this ratio is the better, but not always. An extremely low ratio could indicate poorly tuned SQL code, an extremely high ratio could be normal depending on the application type. There is current thought in the Oracle community that logical reads in the extreme are not as efficient as once thought. Use of huge amounts of RAM and loading entire databases into the database buffer cache is often nowhere near as efficient as we are led to believe. On the contrary, LRU and MRU lists are significant because, for instance, reading a large table can push everything useful out of memory. More in Part III.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BLOCK READS VS. ROWS.   Block reads are often stated as being logical reads only: (query + current). I like to lump together the logical and the physical block reads: (query + current + disk) because they are all reads. The more blocks required to be read for each row the worse performance could possibly be.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 PARSE VS. EXECUTE.   We have a ratio of 1/10, which is good. If there were more parses than executions it would imply that SQL code is being re-parsed unnecessarily and the shared pool is not being shared enough, for a multitude of reasons but most likely due to poorly tuned SQL code.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Determine hit ratio from tkprof output \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Hit Ratio = 1 - Physical Reads/ Logical Reads \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 or \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 1 - Sum(Disk) /(Sum(Query) + Sum(Current)) \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Look at => \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 call count cpu elapsed disk query current rows \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------- ------ -------- ---------- ---------- ---------- ---------- --------- \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Parse 2 0.02 0.02 0 0 0 0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Execute 2 239.39 1003.16 [P]274981 [C]3792129 [D]534 242 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Fetch 0 0.00 0.00 [P]0 [C]0 [D]0 0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------- ------ -------- ---------- ---------- ---------- ---------- --------- \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 total 4 239.41 1003.18 274981 3792129 534 242 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Hit Ratio = ? \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Logical Read = Consistent Get + DB Block Gets \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Logical Read = query + current \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Logical Read = Sum [C] + Sum [D] \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Logical Read = [3792129 + 0] + [534 + 0] \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Logical Read = 3792663 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Hit Ratio = 1 - (Physical Reads / Logical Reads) \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Hit Ratio = 1 - (Sum[P] / Logical Reads) \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Hit Ratio = 1 - ([0 + 274981] / 3792663) \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Hit Ratio = 0.92 = 92% \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 If hit ratio is lower than 99%, we should check how many extents on each of the objects.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> select username, status, sid, serial# from v$session\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 where username ='BPEL_USER' order by 1;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 USERNAME                       STATUS          SID    SERIAL#\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------------------------------ -------- ---------- ----------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      ACTIVE          469      41776\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      ACTIVE          481      55549\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      ACTIVE          513      39783\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      INACTIVE        555      63775\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 8i or 9i\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ----------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Enable Timed Statistics before enabling tracing (is mandatory): \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ALTER SYSTEM SET TIMED_STATISTICS = TRUE \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ALTER SESSION SET sql_trace = true; \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ALTER SESSION SET TRACEFILE_IDENTIFIER='test_mono';   \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dbms_system.set_sql_trace_in_session(sid, serial#, true);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 exec dbms_system.set_sql_trace_in_session(3,5023,true);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 exec dbms_system.set_sql_trace_in_session(3,5023,false);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 As of 11g (since it is new in 11g).\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------------------------------------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The SQL Trace facility and TKPROF (ToolKit Profiler) are two comprehensive and powerful performance diagnostic and summarising tools that can be used to identify the performance issues with Oracle code.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 Notes:\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 If you want to trace your current session in SQL*Plus, you can use \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 alter session set sql_trace=true;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 execute dbms_system.set_sql_trace_in_session (sid, serial#, false)\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 alter session set sql_trace=false;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DBMS_MONITOR package once installed, its execution is granted to DBA user account.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 The DBA user account can grant execution on the DBMS_MONITOR package to other users. For example grant execute on DBMS_MONITOR to sh;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 DBA user account can trace it for other sessions for example \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0          EXECUTE DBMS_MONITOR.SESSION_TRACE_ENABLE(session_id => 51, serial_num => 60, waits => TRUE);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 dbms_monitor.session_trace_enable(session_id, serial_num,binds,waits);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> exec dbms_monitor.session_trace_enable(session_id=>469,serial_num=>41776,binds=>true,waits=>true);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 PL/SQL procedure successfully completed.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> exec dbms_monitor.session_trace_disable(session_id=>469,serial_num=>41776);\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 PL/SQL procedure successfully completed.\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 I needed to increase the size to unlimited to so I could get my trace to complete. When you do this\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 alter session set max_dump_file_size = unlimited;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 SQL> select username, status, sid, serial#, SQL_TRACE\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0    from v$session\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0    where username ='BPEL_USER' order by 1;\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 USERNAME                       STATUS          SID    SERIAL#     SQL_TRAC\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 ------------------------------ -------- ---------- ---------- ----------------------------------------------------------\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      ACTIVE          469      41776          DISABLED\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      ACTIVE          481      55549          DISABLED\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      INACTIVE        486       4206         DISABLED\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      INACTIVE        501      27637        DISABLED\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 BPEL_USER                      INACTIVE        503       3123         DISABLED\par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 \par
+\ql\li0\fi0\ri0\sb0\sl0\sa0 \plain\f0\fs22\cf0 }}
+}
