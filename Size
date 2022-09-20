@@ -1,0 +1,209 @@
+col "Database Size" format a20
+col "Free space" format a20
+col "Used space" format a20
+select  round(sum(used.bytes) / 1024 / 1024 / 1024 ) || ' GB' "Database Size"
+,       round(sum(used.bytes) / 1024 / 1024 / 1024 ) -
+        round(free.p / 1024 / 1024 / 1024) || ' GB' "Used space"
+,       round(free.p / 1024 / 1024 / 1024) || ' GB' "Free space"
+from    (select bytes
+        from    v$datafile
+        union   all
+        select  bytes
+        from    v$tempfile
+        union   all
+        select  bytes
+        from    v$log) used
+,       (select sum(bytes) as p
+        from dba_free_space) free
+group by free.p
+/
+
+Database Size        Used space           Free space
+-------------------- -------------------- --------------------
+3 GB                 2 GB                 1 GB
+
+select 'Data Files' type, sum(bytes)/1024/1024/1024 szgb,count(*) cnt
+from v$datafile group by substr(name,1,instr(name,'/',1,2)-1)
+union
+select 'Temp Files', sum(bytes)/1024/1024/1024 szgb,count(*) cnt
+from v$tempfile group by substr(name,1,instr(name,'/',1,2)-1)
+union
+select 'Redo Member',sum(l.bytes)/1024/1024/1024 szgb,count(*) cnt
+from v$logfile lf, v$log l
+where l.group#=lf.group# group by substr(member,1,instr(member,'/',1,2)-1)
+/
+
+OR
+SELECT 'Database Size' "*****"
+      ,round(sum(round(sum(nvl(fs.bytes/1024/1024,0)))) / 
+        sum(round(sum(nvl(fs.bytes/1024/1024,0))) + round
+        (df.bytes/1024/1024 , sum(nvl(fs.bytes/1024/1024,0))))
+        * 100, 0) "%Free"
+      ,round(sum(round(df.bytes/1024/1024 ,
+        sum(nvl(fs.bytes/1024/1024,0)))) / sum(round(sum
+        (nvl(fs.bytes/1024/1024,0))) + round(df.bytes/1024/
+        1024 , sum(nvl(fs.bytes/1024/1024,0)))) * 100, 0) 
+        "%Used"
+      ,sum(round(sum(nvl(fs.bytes/1024/1024,0)))) "Mb Free"
+      ,sum(round(df.bytes/1024/1024
+      , sum(nvl(fs.bytes/1024/1024,0)))) "Mb Used"
+      ,sum(round(sum(nvl(fs.bytes/1024/1024,0))) + round
+        (df.bytes/1024/1024
+      , sum(nvl(fs.bytes/1024/1024,0)))) "Size"
+FROM dba_free_space fs, dba_data_files df
+WHERE fs.file_id(+) = df.file_id
+GROUP BY df.tablespace_name, df.file_id, df.bytes,
+   df.autoextensible
+ORDER BY df.file_id;
+
+SCHEMA SIZE 
+----------------
+set pagesize 10000
+BREAK ON REPORT
+COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in MB" ON REPORT
+select segment_type, sum(bytes/1024/1024) "Size of Each Segment in MB" 
+from dba_segments where owner='&Owner' 
+group by segment_type order by 1;
+
+Segment SIze based on Type
+set pagesize 10000
+BREAK ON REPORT
+COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in GB" ON REPORT
+select segment_type, sum(bytes/1024/1024/1024) "Size of Each Segment in GB" 
+from dba_segments 
+--where owner='BPELADMIN' 
+group by segment_type order by 1;
+
+SEGMENT_TYPE       Size of Each Segment in MB
+------------------ --------------------------
+INDEX                               .179870605
+LOBINDEX                        .00994873
+LOBSEGMENT               12.975464
+TABLE                              2.84216309
+                   --------------------------
+TOTAL                              216.007446
+
+set pagesize 10000
+BREAK ON REPORT
+COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in GB" ON REPORT
+select segment_type, sum(bytes/1024/1024/1024) "Size of Each Segment in GB" 
+from dba_segments 
+where owner='ICCSYSDB' 
+And segment_name='WMB_MSGS_OLD'
+group by segment_type order by 1;
+
+--ICCSYSDB.WMB_MSGS_OLD
+
+SQL> select extent_id, bytes, blocks
+  2  from dba_extents
+  3  where segment_name = 'WMB_BINARY_DATA_OLD'
+  4  and segment_type = 'TABLE'
+  5  and owner='ICCSYSDB';
+
+
+set pagesize 10000
+BREAK ON REPORT
+COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in GB" ON REPORT
+select segment_type, sum(bytes/1024/1024/1024) "Size of Each Segment in GB" 
+from dba_segments where owner='INTERFACE' 
+group by segment_type order by 1;
+
+
+table size
+########
+select sum(bytes)/(1024*1024), segment_name
+from dba_segments
+where segment_name='&TABLE_NAME'
+and owner='&owner'
+group by segment_name;
+
+Tablespaces Status
+consider the last column "MAX_PCT_USED" to identify current tablespace usage regardless autoextend status (ON/OFF).
+===========================================================================================
+set linesize 300;
+SELECT a.tablespace_name TBS_NAME, ROUND (a.bytes_alloc / 1024 / 1024, 0) MEGS_ALLOC,
+ROUND (NVL (b.bytes_free, 0) / 1024 / 1024, 0) MEGS_FREE,
+ROUND ((a.bytes_alloc - NVL (b.bytes_free, 0)) / 1024 / 1024,0) MEGS_USED,
+ROUND ((NVL (b.bytes_free, 0) / a.bytes_alloc) * 100, 2) PCT_FREE,
+100 - ROUND ((NVL (b.bytes_free, 0) / a.bytes_alloc) * 100, 2) PCT_USED,
+ROUND (maxbytes / 1048576, 2) MAX_MEGS_ALLOC,
+100 - ROUND ((a.bytes_alloc - NVL (b.bytes_free, 0)) / maxbytes * 100, 2) MAX_PCT_FREE,
+ROUND ((a.bytes_alloc - NVL (b.bytes_free, 0)) / maxbytes * 100, 2) MAX_PCT_USED
+FROM (SELECT f.tablespace_name, SUM (f.BYTES) bytes_alloc,
+SUM (DECODE (f.autoextensible,'YES',f.maxbytes,'NO', f.BYTES)) maxbytes
+FROM dba_data_files f
+GROUP BY tablespace_name) a,
+(SELECT f.tablespace_name, SUM (f.BYTES) bytes_free
+FROM dba_free_space f
+GROUP BY tablespace_name) b
+WHERE a.tablespace_name = b.tablespace_name(+)
+order by 8;
+
+Output:
+
+TBS_NAME                       MEGS_ALLOC  MEGS_FREE  MEGS_USED   PCT_FREE   PCT_USED MAX_MEGS_ALLOC MAX_PCT_FREE MAX_PCT_USED
+------------------------------ ---------- ---------- ---------- ---------- ---------- -------------- ------------ ------------
+SYSAUX                               1077        146        932      13.52      86.48       32767.98        97.16         2.84
+UNDOTBS1                            31665      31366        299      99.05        .95       32767.98        99.09          .91
+ORABPEL                            216840      12428     204412       5.73      94.27      225839.92         9.49        90.51
+BPELADMIN                           93756       1788      91968       1.91      98.09       99035.97         7.14        92.86
+USERS                                  42         23         19      54.95      45.05       32767.98        99.94          .06
+SYSTEM                               1024        305        719       29.8       70.2       32767.98        97.81         2.19
+
+6 rows selected.
+
+
+Extent Size
+##########
+COL Object FORMAT a24;
+COL Type FORMAT a5;
+SELECT segment_name "Object", segment_type "Type"
+      ,ROUND(SUM(bytes)/1024/1024) "Mb", ROUND
+         (SUM(bytes)/1024) "Kb"
+      ,SUM(bytes) "Bytes", SUM(blocks) "Blocks"
+FROM dba_extents
+WHERE owner = 'PRODOWNER' AND segment_type IN ('TABLE','INDEX')
+GROUP BY segment_name, segment_type
+ORDER BY segment_name, segment_type DESC;
+ 
+Table space vs index space
+
+SELECT segment_type, ROUND(SUM(size_mb)) size_mb, 
+ROUND((RATIO_TO_REPORT(SUM(size_mb)) OVER ())*100, 2)|| '%' PERC 
+FROM (SELECT owner, segment_name, segment_type, partition_name, ROUND(bytes/(1024*1024),2) SIZE_MB, tablespace_name 
+FROM DBA_SEGMENTS 
+WHERE SEGMENT_TYPE IN ('TABLE', 'INDEX', 'TABLE PARTITION', 'INDEX PARTITION', 
+'TABLE SUBPARTITION', 'INDEX SUBPARTITION') 
+ORDER BY bytes DESC) 
+GROUP BY segment_type 
+ORDER BY size_mb DESC;
+
+SEGMENT_TYPE          SIZE_MB PERC
+------------------ ---------- ------
+INDEX SUBPARTITION    3365434 34.94%
+TABLE SUBPARTITION    3316337 34.43%
+TABLE                 1329498 13.8%
+TABLE PARTITION        767524 7.97%
+INDEX PARTITION        559988 5.81%
+INDEX                  292943 3.04%
+
+If someone wants to have a better grouping like tables against indexes space can use the following. 
+--------------------------------------------------------------------------------
+SELECT SUBSTR(segment_type, 0, 5) SEGMENT, SUM(size_mb) size_mb, 
+ROUND((RATIO_TO_REPORT(SUM(size_mb)) OVER ())*100, 2)|| '%' PERC
+FROM (
+SELECT segment_type, ROUND(SUM(size_mb)) size_mb 
+FROM (SELECT owner, segment_name, segment_type, partition_name, ROUND(bytes/(1024*1024),2) SIZE_MB, tablespace_name 
+FROM DBA_SEGMENTS 
+WHERE SEGMENT_TYPE IN ('TABLE', 'INDEX', 'TABLE PARTITION', 'INDEX PARTITION', 
+'TABLE SUBPARTITION', 'INDEX SUBPARTITION') 
+ORDER BY bytes DESC) 
+GROUP BY segment_type 
+ORDER BY size_mb DESC) 
+GROUP BY SUBSTR(segment_type, 0, 5);
+
+SEGMENT  SIZE_MB PERC
+----- ---------- ------
+INDEX    4218371 43.8%
+TABLE    5413359 56.2%
+
