@@ -1,0 +1,344 @@
+## Physical STandby 
+SQL> select open_mode, database_role from v$database;
+OPEN_MODE            DATABASE_ROLE
+-------------------- ----------------
+MOUNTED              PHYSICAL STANDBY
+
+## Checking Dataguard Transport Lag
+i. First check in the standby database for the curent value
+
+select name, value from v$dataguard_stats
+where name = 'transport lag';
+
+NAME VALUE
+----------------------------------------------------------------
+transport lag +00 00:00:03
+
+# Find Dataguard related metrics for Rac Databases.
+
+select distinct column_label from mgmt_metrics where target_type = 'rac_database' and metric_name like 'dataguard%';
+
+# find the raw stats for Transport Lag for database 
+
+select 
+t.target_name,
+m.column_label,
+mmr.collection_timestamp,
+mmr.value
+from 
+mgmt_targets t,
+mgmt_metrics m,
+mgmt_metrics_raw mmr
+where t.target_guid = mmr.target_guid
+and m.metric_guid = mmr.metric_guid
+and m.column_label = 'Transport Lag (seconds)'
+and t.target_name = '&DB';
+
+# Find the 1 hour rollup stats for metric Transport Lag for database 
+
+select 
+t.target_name,
+m.column_label,
+mm1.rollup_timestamp,
+mm1.value_average,
+mm1.value_minimum,
+mm1.value_maximum
+from 
+mgmt_targets t,
+mgmt_metrics m,
+mgmt_metrics_1hour mm1
+where t.target_guid = mm1.target_guid
+and m.metric_guid = mm1.metric_guid
+and m.column_label = 'Transport Lag (seconds)'
+and t.target_name = 'pl01sbt';
+
+set pages 999 lines 999
+col MESSAGE for a100
+select to_char(timestamp,'YYYY-MON-DD HH24:MI:SS')||' '||message||severity from gv$dataguard_status 
+where severity in ('Error','Fatal') order by timestamp;
+ 
+LISTNER VERIFICATION FROM PRIMATY DB
+ ------------------------------------
+ select dest_id,status,error from v$archive_dest where dest_name='LOG_ARCHIVE_DEST_2';
+ 
+FIND GAP
+ --------
+ select thread#,low_sequence#,high_sequence# from gv$archive_log;
+
+DR database Alert log error:
+ ----------------------------
+set pages 999 lines 999
+ 
+col MESSAGE for a100
+select to_char(timestamp,'YYYY-MON-DD HH24:MI:SS')||' '||message||severity from gv$dataguard_status where severity in ('Error','Fatal') order by timestamp;
+ 
+select inst_id,process,status,thread#,sequence#,block#,blocks from gv$managed_standby;
+ 
+PROCESS STATUS
+ ------- ------------
+ RFS IDLE
+ RFS IDLE
+ RFS IDLE
+ MRP0 WAIT_FOR_LOG
+ 
+checking log transfer and apply
+ -------------------------------
+ SELECT SEQUENCE#,FIRST_TIME,NEXT_TIME,APPLIED FROM gV$ARCHIVED_LOG ORDER BY SEQUENCE#;
+ select count(*) from GV$ARCHIVED_LOG where applied='NO';
+
+select sum(local.sequence#-target.sequence#) Total_gap
+from 
+(select thread#,max(sequence#) sequence# from gv$archived_log 
+where standby_dest='YES'
+and applied='YES'
+and first_time between sysdate-7 and sysdate
+group by thread#) target,
+(select thread#,max(sequence#) sequence# from gv$log group by thread#) local
+where target.thread#=local.thread#;
+
+Common (C) for both Physical and Logical:
+
+C1. 
+
+On the Standby server, check the latest entry in the log/oracle/log/dataguard_check.<instance>.log If the Standby database has fallen behind, 
+perform the following steps to fix:
+
+C2.
+Login to the Standby database and run the following query to determine the type of Standby database, either PHYSCIAL or LOGICAL#> 
+
+[Which have already got / which are applied]
+
+select * from (
+SELECT SEQUENCE#,APPLIED,completion_time
+FROM V$ARCHIVED_LOG
+ORDER BY SEQUENCE# desc)
+  Where rownum <= 10;
+
+ SEQUENCE# APPLIED                     COMPLETION_TIME
+---------- --------------------------- -------------------
+    105974 IN-MEMORY                   27-05-2016:10:22:13
+    105973 YES                         27-05-2016:10:19:59
+    105972 YES                         27-05-2016:10:22:11
+    105971 YES                         27-05-2016:10:13:11
+    105970 YES                         27-05-2016:10:13:06
+    105969 YES                         27-05-2016:10:13:00
+    105968 YES                         27-05-2016:10:12:00
+    105967 YES                         27-05-2016:09:55:01
+    105966 YES                         27-05-2016:09:56:07
+    105965 YES                         27-05-2016:09:37:01
+
+
+Select * from (select SEQUENCE#, first_time,
+                  To_char(first_time, 'dd-mon-yy hh24:mi') as Completed from
+                  V$log_history
+                        order by sequence# desc)
+                  Where rownum <= 10;
+
+
+SEQUENCE# FIRST_TIME          COMPLETED
+---------- ------------------- ---------------------------------------------
+    105974 27-05-2016:10:19:59 27-may-16 10:19
+    105973 27-05-2016:10:07:59 27-may-16 10:07
+    105972 27-05-2016:10:03:52 27-may-16 10:03
+    105971 27-05-2016:10:03:45 27-may-16 10:03
+    105970 27-05-2016:10:00:24 27-may-16 10:00
+    105969 27-05-2016:10:00:15 27-may-16 10:00
+    105968 27-05-2016:09:55:01 27-may-16 09:55
+    105967 27-05-2016:09:43:02 27-may-16 09:43
+    105966 27-05-2016:09:37:01 27-may-16 09:37
+    105965 27-05-2016:09:25:48 27-may-16 09:25
+
+LAST SEQUENCE RECEIVED AND LAST SEQUENCE APPLIED:
+
+SQL> SELECT al.thrd "Thread", almax "Last Seq Received", lhmax "Last Seq Applied" FROM
+  (select thread# thrd, MAX(sequence#) almax FROM v$archived_log WHERE resetlogs_change#=(SELECT resetlogs_change#
+    FROM v$database) GROUP BY thread#) al, (SELECT thread# thrd, MAX(sequence#) lhmax FROM v$log_history
+WHERE resetlogs_change#=(SELECT resetlogs_change# FROM v$database) GROUP BY thread#) lh WHERE al.thrd = lh.thrd;  
+ 
+SYS@PRAH13 SQL> /
+
+    Thread Last Seq Received Last Seq Applied
+---------- ----------------- ----------------
+         1              5719             5719
+         2              6370             6370
+
+ 
+SQL> select thread#, sequence# from v$log where status='CURRENT';
+
+   THREAD#  SEQUENCE#
+---------- ----------
+         1       5720
+         2       6371
+
+
+ASMCMD> ls
+thread_1_seq_5716.19092.897064887
+thread_1_seq_5717.13265.897064895
+thread_1_seq_5718.1897.897066603
+thread_1_seq_5719.944.897066647
+thread_2_seq_6365.14349.897062461
+thread_2_seq_6366.11695.897063959
+thread_2_seq_6367.17258.897064887
+thread_2_seq_6368.14080.897064897
+thread_2_seq_6369.8793.897066175
+thread_2_seq_6370.15920.897066649
+
+CHECK THE MESSAGES/ERRORS IN STNADBY DATABASE:
+
+set pagesize 2000
+set lines 2000
+col MESSAGE for a90
+SYS@PBLH13 SQL> select message,timestamp from V$DATAGUARD_STATUS where timestamp > sysdate - 1/6;
+
+MESSAGE                                                                                    TIMESTAMP
+------------------------------------------------------------------------------------------ -------------------
+ARC0: Archival started                                                                     23-05-2016:12:12:30
+ARC1: Archival started                                                                     23-05-2016:12:12:30
+ARC2: Archival started                                                                     23-05-2016:12:12:30
+ARC1: Becoming the 'no FAL' ARCH                                                           23-05-2016:12:12:30
+ARC1: Becoming the 'no SRL' ARCH                                                           23-05-2016:12:12:30
+ARC2: Becoming the heartbeat ARCH                                                          23-05-2016:12:12:30
+ARC3: Archival started                                                                     23-05-2016:12:12:30
+RFS[1]: Assigned to RFS process 100209                                                     23-05-2016:12:12:33
+ARC2: Becoming the active heartbeat ARCH                                                   23-05-2016:12:13:30
+Attempt to start background Managed Standby Recovery process                               23-05-2016:12:17:13
+MRP0: Background Managed Standby Recovery process started                                  23-05-2016:12:17:13
+Managed Standby Recovery starting Real Time Apply                                          23-05-2016:12:17:18
+Media Recovery Log +RECO/pblh1_02/archivelog/2016_05_23/thread_1_seq_105406.5089.912600753 23-05-2016:12:17:19
+
+13 rows selected.
+
+Oracle Script to check what standby logs are being used
+set lines 155 pages 9999
+col thread# for 9999990 
+col sequence# for 999999990 
+col grp for 990 
+col fnm for a50 head "File Name" 
+col "Fisrt SCN Number" for 999999999999990 
+break on thread 
+# skip 1 
+select a.thread# 
+,a.sequence# 
+,a.group# grp 
+, a.bytes/1024/1024 Size_MB 
+,a.status 
+,a.archived 
+,a.first_change# "First SCN Number" 
+,to_char(FIRST_TIME,'DD-Mon-RR HH24:MI:SS') "First SCN Time" 
+,to_char(LAST_TIME,'DD-Mon-RR HH24:MI:SS') "Last SCN Time" from 
+v$standby_log a order by 1,2,3,4;
+Comparison:
+
+Check if this is a 'real-time apply standby:
+
+SQLPLUS> select recovery_mode from V$ARCHIVE_DEST_STATUS;
+
+else (non- realtime apply):
+SQLPLUS> alter database recover managed standby database disconnect from session;  
+
+
+Chk_gap.sql
+------------------------
+column applied_time for a30
+column instance_name form a10
+set linesize 140
+select to_char(sysdate,'dd-mm-yyyy hh24:mi:ss') "Current Time" from dual;
+SELECT INSTANCE_NAME,  APPLIED_TIME, LOG_ARCHIVED-LOG_APPLIED LOG_GAP ,
+(case when ((APPLIED_TIME is not null and (LOG_ARCHIVED-LOG_APPLIED) is null) or
+            (APPLIED_TIME is null and (LOG_ARCHIVED-LOG_APPLIED) is not null) or
+            ((LOG_ARCHIVED-LOG_APPLIED) > 5))
+      then 'Error! Log Gap is '
+      else 'OK!'
+ end) Status
+FROM
+(
+SELECT INSTANCE_NAME INSTANCE_NAME
+FROM GV$INSTANCE
+where INST_ID = 1
+),
+(
+SELECT MAX(SEQUENCE#) LOG_ARCHIVED
+FROM V$ARCHIVED_LOG WHERE DEST_ID=1 AND ARCHIVED='YES' and THREAD#=1
+),
+(
+SELECT MAX(SEQUENCE#) LOG_APPLIED
+FROM V$ARCHIVED_LOG WHERE DEST_ID=2 AND APPLIED='YES' and THREAD#=1
+),
+(
+SELECT TO_CHAR(MAX(COMPLETION_TIME),'DD-MON/HH24:MI') APPLIED_TIME
+FROM V$ARCHIVED_LOG WHERE DEST_ID=2 AND APPLIED='YES' and THREAD#=1
+)
+UNION
+SELECT INSTANCE_NAME,  APPLIED_TIME, LOG_ARCHIVED-LOG_APPLIED LOG_GAP,
+(case when ((APPLIED_TIME is not null and (LOG_ARCHIVED-LOG_APPLIED) is null) or
+            (APPLIED_TIME is null and (LOG_ARCHIVED-LOG_APPLIED) is not null) or
+            ((LOG_ARCHIVED-LOG_APPLIED) > 5))
+      then 'Error! Log Gap is '
+      else 'OK!'
+ end) Status
+from (
+SELECT INSTANCE_NAME INSTANCE_NAME
+FROM GV$INSTANCE
+where INST_ID = 2
+),
+(
+SELECT MAX(SEQUENCE#) LOG_ARCHIVED
+FROM V$ARCHIVED_LOG WHERE DEST_ID=1 AND ARCHIVED='YES' and THREAD#=2
+),
+(
+SELECT MAX(SEQUENCE#) LOG_APPLIED
+FROM V$ARCHIVED_LOG WHERE DEST_ID=2 AND APPLIED='YES' and THREAD#=2
+),
+(
+SELECT TO_CHAR(MAX(COMPLETION_TIME),'DD-MON/HH24:MI') APPLIED_TIME
+FROM V$ARCHIVED_LOG WHERE DEST_ID=2 AND APPLIED='YES' and THREAD#=2
+)
+/
+
+SELECT a.thread#
+,      b.last_seq
+,      a.applied_seq
+,      a.last_app_timestamp
+,      b.last_seq-a.applied_seq ARC_DIFF
+FROM (SELECT thread#
+     ,       MAX(sequence#) applied_seq
+     ,       MAX(next_time) last_app_timestamp
+     FROM    gv$archived_log
+     WHERE   applied = 'YES'
+     GROUP BY thread#) a
+,   (SELECT  thread#
+    ,        MAX (sequence#) last_seq
+    FROM gv$archived_log
+    GROUP BY thread#) b
+WHERE a.thread# = b.thread#;
+
+set feed off
+set serveroutput on;
+DECLARE
+   v_diff NUMBER := 0;
+   v_hrs NUMBER := 0;
+   v_min NUMBER := 0;
+   v_sec NUMBER := 0;
+   p_dte1 DATE;
+   p_dte2 DATE;
+   date1 long;
+   date2 long;
+   BEGIN
+   date1 := 'select sysdate from dual';
+   date2 := 'select max(TIMESTAMP) from v$recovery_progress';
+   execute immediate date1 into p_dte1;
+   execute immediate date2 into p_dte2;
+   v_diff := ABS(p_dte2 - p_dte1);
+   v_hrs := TRUNC(v_diff, 0)*24;
+   v_diff := (v_diff - TRUNC(v_diff, 0))*24;
+   v_hrs := v_hrs + TRUNC(v_diff, 0);
+   v_diff := (v_diff - TRUNC(v_diff, 0))*60;
+   v_min := TRUNC(v_diff, 0);
+   v_sec := TRUNC((v_diff - TRUNC(v_diff, 0))*60, 0);
+   DBMS_OUTPUT.put_line(CHR(10)||'The time difference between primary and standby database is '||
+   TO_CHAR(v_hrs,'00') ||':'||
+   TO_CHAR(v_min,'00') ||':'||
+   TO_CHAR(v_sec,'00') ||CHR(10));
+END;
+/
+
