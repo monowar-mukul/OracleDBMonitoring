@@ -1,0 +1,126 @@
+A logical standby database doesn’t have to accept and apply all incoming DML; in fact, these DML can be filtered (and thus ignored) based on either:
+- the specific target of a SQL statement, e.g. a table; or 
+- the result of an error; or even 
+- the transaction ID of a problem transaction. 
+
+To illustrate this feature, I’ll use the DBMS_LOGSTDBY.SKIP procedure to construct and apply a simple SQL Apply filter that prohibits the application of any DML against the OE.SUBCUSTOMERS table I built earlier:
+
+1.Stop SQL Apply:
+
+SQL> ALTER DATABASE STOP LOGICAL STANDBY APPLY;
+2.Register the SKIP rules:
+
+SQL> EXECUTE DBMS_LOGSTDBY.SKIP (stmt => 'DML', schema_name => 'HR', -
+           object_name => 'DEPARTMENTS', proc_name => null);
+
+[
+SET SERVEROUTPUT ON
+BEGIN
+    DBMS_LOGSTDBY.SKIP(
+         stmt => 'DML'
+        ,schema_name => 'HR'
+        ,table_name => 'DEPARTMENTS',
+        ,proc_name => NULL
+    );
+EXCEPTION
+    WHEN OTHERS THEN 
+        DBMS_OUTPUT.PUT_LINE('Failure during setup of DML restrictions on HR.DEPARTMENTS');
+END;
+/
+]
+
+SQL> ALTER DATABASE START LOGICAL STANDBY APPLY IMMEDIATE;
+
+If I now issued DML  on the primary database - for example:
+
+SQL> insert into DEPARTMENTS
+  2   values (444, 'TEST',205,1700);
+
+1 row created.
+
+SQL> commit;
+
+Commit complete.
+
+COMMIT;
+then even though it’s been successfully committed on the primary database, Oracle 11gR1 Data Guard would prohibit the transaction from being propagated to the logical standby database.
+
+----------------------------------------------------------------------------------------------
+Remote Archived Log File Retention
+-----------------------------------------------------------------------------------------------
+Oracle 11g’s DBMS_LOGSTBY package offers two parameters to control archived redo log cleanup for a logical standby. Procedures APPLY_SET and APPLY_UNSET use these parameters to determine when cleanup should occur:
+
+If set to TRUE (the default), then LOG_AUTO_DELETE tells Oracle to delete archived redo logs once more than LOG_AUTO_DEL_RETENTION_TARGET minutes have elapsed since all transactions in the archived redo log were applied. 
+LOG_AUTO_DEL_RETENTION_TARGET specifies how long to wait (in minutes) until archived redo logs can be deleted. It defaults to 1440 minutes (24 hours). 
+
+
+=============================SKIP ====================================
+1. We need to create skip rules for tables and schemas, but first we need to stop SQL
+Apply using the following query:
+SQL> ALTER DATABASE STOP LOGICAL STANDBY APPLY;
+2. Then, the following statement will create a skip rule to skip changes caused by
+DML statements on the EMP table of the SCOTT schema. Execute the following
+statement on the logical standby database:
+SQL> EXECUTE DBMS_LOGSTDBY.SKIP(STMT => 'DML', SCHEMA_NAME => 'SCOTT', OBJECT_NAME => 'EMP');
+PL/SQL procedure successfully completed.
+3. If we also want skip DDL statements encountered for this table, the following
+statement will create another skip rule:
+SQL> EXECUTE DBMS_LOGSTDBY.SKIP(STMT => 'SCHEMA_DDL', SCHEMA_NAME => 'SCOTT', OBJECT_NAME => 'EMP');
+4. The next rule will disable DML replication for a complete schema. Execute the
+following statement to skip all DML changes to the HR schema:
+SQL> EXECUTE DBMS_LOGSTDBY.SKIP(STMT => 'DML', SCHEMA_NAME => 'HR', OBJECT_NAME => '%');
+
+5. The following example is disabling some statements to run on the logical standby
+database. The CREATE/DROP DIRECTORY commands will not be executed by
+SQL Apply:
+SQL> EXECUTE DBMS_LOGSTDBY.SKIP(STMT => 'DIRECTORY');
+6. Specify a procedure for DDL statements. Suppose we have different directory
+structures on primary and logical standby database servers. When we add a new
+datafile on primary under /u01/app/oracle/datafile/ORCL, we want the
+logical standby database to create the datafile under /datafile/ORCL. We can use
+the DBMS_LOGSTDBY.SKIP procedure with the PROC_NAME parameter for this goal.
+Let's create a rule for this purpose. First we'll create a procedure to replace datafile
+names. Run the following create procedure statement on the logical standby with
+sys user:
+SQL> create or replace procedure sys.change_ts_ddl (
+old_stmt in varchar2
+, stmt_typ in varchar2
+, schema in varchar2
+, name in varchar2
+, xidusn in number
+, xidslt in number
+, xidsqn in number
+, action out number
+, new_stmt out varchar2
+) as
+begin
+new_stmt := replace(old_stmt,
+'/u01/app/oracle2/datafile/ORCL','/datafile/ORCL');
+action := dbms_logstdby.skip_action_replace;
+exception
+when others then
+action := dbms_logstdby.skip_action_error;
+new_stmt := null;
+end change_ts_ddl;
+/
+7. Now create a rule to invoke this procedure before running the replicated tablespace
+DDL commands on the logical standby database using the following query:
+SQL> EXECUTE DBMS_LOGSTDBY.SKIP(STMT => 'TABLESPACE', PROC_NAME => 'SYS.CHANGE_TS_DDL');
+PL/SQL procedure successfully completed.
+8. Create and alter the tablespace commands executed on the primary database.
+They will now be modified on the logical standby database before being executed.
+The path of the datafiles in the statements will change from /u01/app/oracle2/
+datafile/ORCL value to /datafile/ORCL. Now let's add a datafile on the
+primary database as follows:
+SQL> ALTER TABLESPACE SYSTEM ADD DATAFILE '/U01/APP/ORACLE/DATAFILE/ORCL/SYSTEM02.DBF' SIZE 1G;
+Tablespace altered.
+9. Start SQL Apply on the logical standby as follows:
+SQL> ALTER DATABASE START LOGICAL STANDBY APPLY IMMEDIATE;
+Database altered.
+10. On the alert logfile of the logical standby database, we'll see the following line,
+which states that the procedure worked as planned:
+Completed: alter tablespace system add datafile '/datafile/ORCL/system02.dbf' size 1G
+
+Check the rule
+------------------------------
+SQL> SELECT OWNER, NAME,STATEMENT_OPT, PROC FROM DBA_LOGSTDBY_SKIP WHERE STATEMENT_OPT <> 'INTERNAL SCHEMA';
