@@ -1,4 +1,10 @@
-## monitor_report_sessions.sql
+```diff
+- NOTE
+! Make sure any Licence requirements from your side. Please do modify based on your own setup. This is purely based on my own lab setup. 
+```
+
+### monitor_report_sessions.sql
+
 
 set head off
 set linesize 200 trimspool on pagesize 0
