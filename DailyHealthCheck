@@ -1,11 +1,10 @@
-monitor_report_sessions.sql
+## monitor_report_sessions.sql
+
 set head off
 set linesize 200 trimspool on pagesize 0
-select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS
-') from dual;
+select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS') from dual;
 
-SELECT 'Status,Serial#,Type,DB User,Client User,Machine,Module,Client Info, Term
-inal,Program,Action'  From Dual;
+SELECT 'Status,Serial#,Type,DB User,Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
 
 SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
          s.username||','||s.osuser||','||
@@ -41,15 +40,7 @@ group by  s.sid || ',' || s.serial#,
           substr(s.osuser||','||s.machine||','||s.module||','||
           s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
 
-monitor_extend.sql
-rem    unable_to_extend.sql
-rem
-rem    Script to list segments unable to extend due to lack of free space
-rem    USAGE:   unable_to_extend <no. of extents>
-rem
-rem             threshold is a numeric value used as a multipler of the next
-
-$ more monitor_max_extent.sql
+monitor_max_extent.sql
 rem             e.g. if you want to report on segments that cannot extend
 rem             by 3 times in the available
 rem             free space (including auto extend), the the multipler would
