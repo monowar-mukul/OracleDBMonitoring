@@ -1,18 +1,6 @@
-undo data lost from database  ------   http://kerryosborne.oracle-guy.com/2009/02/saving-rows-from-corrupt-blocks/
-java.sql.SQLException: 
+## Calculate UNDO_RETENTION  for given UNDO Tabespace
 
-ORA-01157: cannot identify/lock data file 202 - see DBWR trace file
-ORA-01110: data file 202: '+PAMQUA_DATA_01'
-
-create temporary tablespace temp2 tempfile '+PAMQUA_DATA_01' size 100M autoextend on maxsize 30G;
-alter database default temporary tablespace temp2;
-drop tablespace temp including contents and datafiles;
-
-TESTED 11g
-
-Calculate UNDO_RETENTION  for given UNDO Tabespace
-
-SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
+`SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
        SUBSTR(e.value,1,25) "UNDO RETENTION [Sec]",
        ROUND((d.undo_size / (to_number(f.value) *
        g.undo_block_per_sec))) "OPTIMAL UNDO RETENTION [Sec]"
@@ -36,14 +24,14 @@ SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
 WHERE e.name = 'undo_retention'
   AND f.name = 'db_block_size'
 / 
+'
 
 ACTUAL UNDO SIZE [MByte] UNDO RETENTION [Sec]      OPTIMAL UNDO RETENTION [Sec]
 ------------------------ ------------------------- ----------------------------
                    19640 900                                              27342
 
 
-Calculate Needed UNDO Size for given Database Activity 
-=================================================================
+## Calculate Needed UNDO Size for given Database Activity 
 
 SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
        SUBSTR(e.value,1,25) "UNDO RETENTION [Sec]",
@@ -75,9 +63,7 @@ ACTUAL UNDO SIZE [MByte] UNDO RETENTION [Sec]      NEEDED UNDO SIZE [MByte]
 ------------------------ ------------------------- ------------------------
                    19640 900                                     646.488281
 
-
-#####################################################
-Identify active transactions in undo and rollback segments
+## Identify active transactions in undo and rollback segments
 #####################################################
 col o format a10
 col u format a10
