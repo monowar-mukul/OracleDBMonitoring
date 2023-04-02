@@ -5,7 +5,6 @@
 
 ### monitor_report_sessions.sql
 
-
 set head off
 set linesize 200 trimspool on pagesize 0
 select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS') from dual;
@@ -46,7 +45,8 @@ group by  s.sid || ',' || s.serial#,
           substr(s.osuser||','||s.machine||','||s.module||','||
           s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
 
-monitor_max_extent.sql
+# monitor_max_extent.sql
+
 rem             e.g. if you want to report on segments that cannot extend
 rem             by 3 times in the available
 rem             free space (including auto extend), the the multipler would
@@ -60,7 +60,6 @@ rem set feedback off  feedback needed for monitor_extend.sh script to work
 
 
 prompt          ====DB OWNER SEGMENT TABLESPACE======
-
 
 column db_ownr_seg_tblespace format a80
 select  substr(substr(db.name,1,10)||' '|| substr(a.owner,1,12)||'.'||
@@ -88,7 +87,7 @@ select  substr(substr(db.name,1,10)||' '|| substr(a.owner,1,12)||'.'||
 set verify on
 set termout on
 
-monitor_max_extent.sql
+# monitor_max_extent.sql
 rem    monitor_max_exent.sql
 rem
 rem    Script to list segments unable to extend due to reaching max_extents
@@ -252,7 +251,7 @@ spool off
 set verify on
 set termout on
 
-$ more pprod1_monitor_locks.sql
+## monitor_locks.sql
 
 -- |----------------------------------------------------------------------------|
 -- | DATABASE : Oracle                                                          |
@@ -354,7 +353,7 @@ ORDER BY
     lh.sid
 /
 
-$ more monitor_long_sessions.sql
+## monitor_long_sessions.sql
 rem    monitor_long_sessions.sql
 rem
 rem    Script to list session details for active sessions
@@ -407,7 +406,7 @@ where status in ( 'ACTIVE','SNIPED')
 /
 
 
-monitor_dbms_jobs.sql
+## monitor_dbms_jobs.sql
 rem    monitor_dbms_jobs.sql
 rem
 rem    Script to list dbms jobs that are failing/broken
@@ -433,7 +432,7 @@ WHERE  (dj.next_date < (sysdate - 1800/86400) -- allow 30 min for snp latency
 set verify on
 set termout on
 
-monitor_dataguard.sql
+## monitor_dataguard.sql
 rem    monitor_dataguard.sql
 rem
 rem    Script to report status of applied archive logs on standby database
