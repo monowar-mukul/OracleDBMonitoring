@@ -49,6 +49,7 @@ SELECT target_name, blocked_reason_msg, blocked_reason_nls_id, blocked_reason_nl
 ```
 
 [http://cloudcontrol12c.blogspot.com.au/2014/03/em12c-database-data-inventory.html]
+```
 SELECT DISTINCT
              tbl_tar.target_guid,
             tbl_sid.sid AS instance_name,
@@ -200,6 +201,7 @@ SELECT DISTINCT
              tbl_dbplatform.db_platform,
              tbl_dbhostos.db_host_os
     ORDER BY 2;
+```
  
 ## Note: If you are going to use another account other than SYSMAN to select you will need to have the following privilege.
 ```
@@ -208,13 +210,13 @@ grant select on mgmt_target_properties to <username>;
 grant select on mgmt_targets to <username>;
 grant exempt access policy to <username>;
 ```
-
+```
 select target_type,target_name 
 from mgmt_targets_delete d 
 where delete_complete_time is null 
 group by target_type,target_name 
 having count(*) > 1 ; 
-
+```
 ## Report on OEM Alert metrics
 ```
 SQL> SELECT to_char(s.load_timestamp,'yyyy/mm/dd hh24:mi:ss') ts,
@@ -292,7 +294,7 @@ AND home_info.host_name(+) = agt.HOST_NAME
 ```
 
 ### Number of Agent targets which are missing corresponding OH targets 
-
+```
 SELECT TARGET_NAME
 FROM
 (SELECT agt.*,
@@ -311,25 +313,24 @@ WHERE home_info.home_location(+) = agt.AGENT_OH_LOCATION
 AND home_info.host_name(+) = agt.HOST_NAME
 )
 WHERE OH_TARGET_NAME IS NULL
+```
 
-
-3) Number of hosts in the setup 
-
+### Number of hosts in the setup 
+```
 select count(target_guid)
 from 
 mgmt$target
 where target_type='host'
-
-4) Number of agents in the setup 
-
+```
+## Number of agents in the setup 
+```
 select count(target_guid)
 from 
 mgmt$target
 where target_type='oracle_emd'
-
-
-5) Number of Agent targets for which OracleHome property is not yet set 
-
+```
+## Number of Agent targets for which OracleHome property is not yet set 
+```
 SELECT tgt.target_name,
 tgt.host_name,
 tgt.target_type
@@ -341,10 +342,9 @@ WHERE tp.property_name = 'OracleHome'
 AND tp.target_type = 'oracle_emd'
 )
 AND tgt.target_type = 'oracle_emd'
-
-
-6) Number of agents with proper collections and valid ARU ID (the way patching DPs query)
-
+```
+### Number of agents with proper collections and valid ARU ID (the way patching DPs query)
+```
 SELECT 
 oh.aru_id,
 tgt.target_name,
@@ -363,10 +363,11 @@ host_tgt.target_type = 'host' AND
 oh.host_name = host_tgt.target_name AND
 oh.home_location = tgt_prop.PROPERTY_VALUE AND
 tgt_prop.property_name ='OracleHome' ;
+```
 
-7) AGENT TARGETS with problems 
+### AGENT TARGETS with problems 
 a)OH target not yet added
-
+```
 SELECT TARGET_NAME as AGENT_INST_TARGET,
 HOST_NAME,
 AGENT_OH_LOCATION as OH_LOC,
@@ -389,16 +390,14 @@ WHERE home_info.home_location(+) = agt.AGENT_OH_LOCATION
 AND home_info.host_name(+) = agt.HOST_NAME
 )
 WHERE OH_TARGET_NAME IS NULL
-
-b) No OH target because no OracleHome property fot agent instance target
-
-( 
+```
+### No OH target because no OracleHome property fot agent instance target
+``` 
 SELECT tgt.target_name as AGENT_INST_TARGET,
 tgt.host_name as HOST_NAME,
 'NO OH PROPERTY SET' as OH_LOC,
 'NO OH TARGET AS NO OH LOC' as OH_TARGET,
 'NO ARU AS NO OH TARGET'as ARU_ID
-
 FROM mgmt$target tgt
 WHERE tgt.target_guid NOT IN
 (SELECT tp.target_guid
@@ -406,11 +405,12 @@ FROM mgmt$target_properties tp
 WHERE tp.property_name = 'OracleHome'
 AND tp.target_type = 'oracle_emd'
 )
-AND tgt.target_type = 'oracle_emd')
+AND tgt.target_type = 'oracle_emd'
+```
 
-8) Agent targets which are perfect 
-
-(select 
+### Agent targets which are perfect 
+```
+select 
 tgt.target_name as AGENT_INST_TARGET,
 tgt.host_name as HOST_NAME,
 tp.OH_LOC,
@@ -436,29 +436,30 @@ target_name not in ( select distinct target_name from mgmt$oh_home_info ) and ta
 10) query to find the OH targets for which collections haven’t happened yet
 select target_name from mgmt$target where target_type='oracle_home' and 
 target_name not in ( select distinct target_name from mgmt$oh_home_info ) and target_name like 'agent12%'
-
+```
 
 -----
-ASM
+### ASM
 ------------
  bytes with this query: 
-
+```
 select key_value2,trunc(rollup_timestamp) COLL_DAY , to_char(rollup_timestamp,'HH24MI') COLL_TIME ,trunc(sum(to_number(average))) AV_READS 
 from mgmt$metric_hourly where target_guid in ('D426887DFBDBEE5AF6A2F23B59ADBC64' , '39972B08F5E84AD30B79D6B28631B678') 
 and metric_name='Instance_Disk_Performance' and metric_column='bytes_read' 
 and key_value2='DATA' 
 group by key_value2,trunc(rollup_timestamp) , to_char(rollup_timestamp,'HH24MI') 
 order by 1,2,3; 
-
+```
 I get the read counts with this query: 
-
+```
 select key_value2,trunc(rollup_timestamp) COLL_DAY , to_char(rollup_timestamp,'HH24MI') COLL_TIME ,trunc(sum(to_number(average))) AV_READS 
 from mgmt$metric_hourly where target_guid in ('D426887DFBDBEE5AF6A2F23B59ADBC64' , '39972B08F5E84AD30B79D6B28631B678') 
 and metric_name='Instance_Disk_Performance' and metric_column='reads' 
 and key_value2='DATA' 
 group by key_value2,trunc(rollup_timestamp) , to_char(rollup_timestamp,'HH24MI') 
 order by 1,2,3; 
-
+```
+```
 TTITLE CENTER BOLD 'Missing EM12c Target Properties' SKIP 2 CENTER ''
 
 select tar.target_name "Target Name"
@@ -483,7 +484,8 @@ and    (not exists   (select 1
                       )
         )
 ;
-
+```
+```
 TTITLE CENTER BOLD 'Incorrect EM12c Target Properties' SKIP 2 CENTER ''
 
 select prop.target_name "Target Name"
@@ -500,25 +502,15 @@ and    (( prop.property_name = 'orcl_gtp_cost_center' and prop.property_value <>
         or     ( prop.property_name = 'orcl_gtp_lifecycle_status' and prop.property_value not in ('Production','Stage','Test','Development','MissionCritical'))
         )
 ;
+```
 
-
-To determine the platform id of the target host use emcli with the list_add_host_platforms verb. 
+## To determine the platform id of the target host use emcli with the list_add_host_platforms verb. 
+```
 emcli list_add_host_platforms -all
-Platform ID Platform Name
-226 Linux x86-64
-23 Oracle Solaris on SPARC (64-bit) [Agent Software Unavailable]
-46 Linux x86 [Agent Software Unavailable]
-59 HP-UX PA-RISC (64-bit) [Agent Software Unavailable]
-197 HP-UX Itanium [Agent Software Unavailable]
-211 IBM S/390 Based Linux (31-bit) [Agent Software Unavailable]
-212 IBM AIX on POWER Systems (64-bit) [Agent Software Unavailable]
-227 IBM: Linux on POWER Systems [Agent Software Unavailable]
-233 Microsoft Windows x64 (64-bit) [Agent Software Unavailable]
-267 Oracle Solaris on x86-64 (64-bit) [Agent Software Unavailable]
-912 Microsoft Windows (32-bit) [Agent Software Unavailable]
-209 IBM: Linux on System z [Agent Software Unavailable]
+```
 
-I like to also check which named credentials are available. You can do so using the list_named_credentials verb. 
+### I like to also check which named credentials are available. You can do so using the list_named_credentials verb. 
+```
 $ ./emcli list_named_credentials
 Credential Name  Credential Owner  Authenticating target type.  Cred Type Name  Target Name   Target Username
 NC_ASMCLUS_SASM  OEM_SEC_USER      osm_cluster                  ASMCreds                      sys
@@ -530,9 +522,11 @@ NC_DBS_SDBA      OEM_SEC_USER      oracle_database              DBCreds         
 NC_HOST_GRID     OEM_SEC_USER      host                         HostCreds                     grid
 NC_HOST_ORACLE   OEM_SEC_USER      host                         HostCreds                     oracle
 NC_HOST_PRIV     OEM_SEC_USER      host                         HostCreds                     root
+```
 
-Generate SQL to remove alerts from specific targets
+### Generate SQL to remove alerts from specific targets
 -----------------------------------------------------------------------------------
+```
 select t.target_name
 ,      t.target_type
 ,      collection_timestamp
@@ -548,3 +542,4 @@ on
        t.target_guid = s.target_guid
 where
        target_name like '&TARGET'
+```
