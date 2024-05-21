@@ -7958,8 +7958,8 @@ Preconnect: The same as the Basic method but in this case Oracle anticipates con
 
 [oracle@racnode1 ~]$ srvctl modify service -s servicetest -d RACDB -P BASIC
 
-Creating new services.
-++++++++++++++++++++++++
+### Creating new services.
+```
 The following command creates a service called TEST that defines RACDB1 as the preferred instance, RACDB2 as available instance, and BASIC TAF policy, also configures the service to start automatically using automatic management policy.
 
 [oracle@rac1 bin]$ srvctl add service -d RACTDB -s TEST -r RACTDB_1 -a RACTDB_2 -P basic -y AUTOMATIC
@@ -8101,87 +8101,10 @@ DATABASE_ROLE                                    OPEN_MODE
 PHYSICAL STANDBY                                 READ ONLY WITH APPLY
 
 $ srvctl start service -d PAWR1_02 -s SRV0PAWR102
-PRCD-1084 : Failed to start service SRV0PAWR102
-PRCR-1079 : Failed to start resource ora.pawr1_02.srv0pawr102.svc
-CRS-5017: The resource action "ora.pawr1_02.srv0pawr102.svc start" encountered the following error:
-ORA-44317: database open read-only
-ORA-06512: at "SYS.DBMS_SERVICE_ERR", line 53
-ORA-06512: at "SYS.DBMS_SERVICE", line 192
-ORA-06512: at line 1
-. For details refer to "(:CLSN00107:)" in "/u01/app/grid/diag/crs/iorsdb02-adm/crs/trace/crsd_oraagent_oracle.trc".
 
-CRS-2674: Start of 'ora.pawr1_02.srv0pawr102.svc' on 'iorsdb02-adm' failed
-CRS-2632: There are no more servers to try to place resource 'ora.pawr1_02.srv0pawr102.svc' on that would satisfy its placement policy
-CRS-5017: The resource action "ora.pawr1_02.srv0pawr102.svc start" encountered the following error:
-ORA-44317: database open read-only
-ORA-06512: at "SYS.DBMS_SERVICE_ERR", line 53
-ORA-06512: at "SYS.DBMS_SERVICE", line 192
-ORA-06512: at line 1
-. For details refer to "(:CLSN00107:)" in "/u01/app/grid/diag/crs/iorsdb01-adm/crs/trace/crsd_oraagent_oracle.trc".
+### SSH setup4user Equ 
 
-CRS-2674: Start of 'ora.pawr1_02.srv0pawr102.svc' on 'iorsdb01-adm' failed
-
-
-
-DW reports use against the standby instances
-service per open readonly standby instance (PBDR13, PBDR14).
-ODR already has a service per instance (PBDR11, PBDR12) called SRV0PBDR111 and SRV0PBDR112
-
-added services SRV0PBDR113 and SRV0PBDR114 to the PBDR1 databases. These services will only start on the standby database.
-To be completely clear: The SRV0PBDR111 and SRV0PBDR112 are available when the database is primary and SRV0PBDR113 and SRV0PBDR114 when the database is standby.
-
-You can use the following connect strings to connect to the standby database.
-
-SRV0PBDR113 =
-  (DESCRIPTION_LIST=
-    (LOAD_BALANCE=off)
-                (FAILOVER=on)
-                (DESCRIPTION=
-                  (CONNECT_TIMEOUT=5)
-                  (TRANSPORT_CONNECT_TIMEOUT=3)
-                  (RETRY_COUNT=3)
-                  (ADDRESS_LIST=
-                    (LOAD_BALANCE=on)
-                                (ADDRESS=(PROTOCOL=TCP)(HOST=iormcl01-scan.apac.ent.bhpbilliton.net)(PORT=39000)))
-                                (CONNECT_DATA=(SERVICE_NAME=SRV0PBDR113)))
-                (DESCRIPTION=
-                  (CONNECT_TIMEOUT=5)
-                  (TRANSPORT_CONNECT_TIMEOUT=3)
-                  (RETRY_COUNT=3)
-                  (ADDRESS_LIST=
-                    (LOAD_BALANCE=on)
-                                (ADDRESS=(PROTOCOL=TCP)(HOST=iorscl01-scan.apac.ent.bhpbilliton.net)(PORT=39000)))
-                                (CONNECT_DATA=(SERVICE_NAME=SRV0PBDR113)))
-  )
-
-SRV0PBDR114 =
-  (DESCRIPTION_LIST=
-    (LOAD_BALANCE=off)
-                (FAILOVER=on)
-                (DESCRIPTION=
-                  (CONNECT_TIMEOUT=5)
-                  (TRANSPORT_CONNECT_TIMEOUT=3)
-                  (RETRY_COUNT=3)
-                  (ADDRESS_LIST=
-                    (LOAD_BALANCE=on)
-                                (ADDRESS=(PROTOCOL=TCP)(HOST=iormcl01-scan.apac.ent.bhpbilliton.net)(PORT=39000)))
-                                (CONNECT_DATA=(SERVICE_NAME=SRV0PBDR114)))
-                (DESCRIPTION=
-                  (CONNECT_TIMEOUT=5)
-                  (TRANSPORT_CONNECT_TIMEOUT=3)
-                  (RETRY_COUNT=3)
-                  (ADDRESS_LIST=
-                    (LOAD_BALANCE=on)
-                                (ADDRESS=(PROTOCOL=TCP)(HOST=iorscl01-scan.apac.ent.bhpbilliton.net)(PORT=39000)))
-                                (CONNECT_DATA=(SERVICE_NAME=SRV0PBDR114)))
-  )
-  
-
-
-
-SSH setup4user Equ 
-
-
+```
 
 On NODE1: Login as oracle user.
 
@@ -8212,9 +8135,7 @@ The key fingerprint is:
 
 Repeat the same steps on NODE2 after logging in as oracle user. 
 
-
 Now you have /home/oracle/.ssh/authorized_keys file on both nodes that contains rsa and dsa keys for that node.
-
 
 Issuing the following command on NODE1 will add NODE2's credentials to NODE1's authorized_keys file. By doing so you will be able to SSH NODE1 from NODE2 without specifying any password, but not vice versa.
 
@@ -8224,7 +8145,6 @@ RSA key fingerprint is 0e:3c:2f:02:9b:44:e5:92:4f:21:72:18:a8:64:ff:d7.
 Are you sure you want to continue connecting (yes/no)? yes
 Warning: Permanently added 'node2,10.140.3.56' (RSA) to the list of known hosts.
 oracle@node2's password: [Enter oracle's password]
-
 
 To make it two way repeat the above step on NODE2 as well.
 
@@ -8244,7 +8164,6 @@ Tue Nov 18 13:50:46 AST 2008
 [oracle@node1 ~]$ ssh node2 date
 Enter passphrase for key '/home/oracle/.ssh/id_rsa': [Enter oracle]
 Tue Nov 18 13:51:16 AST 2008
-
 
 As you can see it is not asking for oracle's password any more, but now it is asking for the passphrase that you entered while configuring the SSH. To avoid this you have two solutions: (1) During the configuration when asked for passphrase key just press Enter and do not specify any passphrase key. This way it will not ask for any password or passphrase key. (2) With the current configuration, for every new session, execute the following on the node from where you will SSH other nodes.
 
@@ -8291,17 +8210,12 @@ And of course for RAC.
 References: 
 Metalink Note ID: 300548.1 - How To Configure SSH for a RAC Installation
 Metalink Note ID: 372795.1 - How to Configure SSH for User Equivalence
-
+```
   
-
-
-
-TempSpaceUsage 
-
-
+### TempSpaceUsage 
 
 Monitor the temp space allocation to make sure each instance has enough temp space available and that the temp space is allocated evenly among the instances. The following SQL is used:
-
+```
 select inst_id, tablespace_name, segment_file, total_blocks, 
 used_blocks, free_blocks, max_used_blocks, max_sort_blocks 
 from gv$sort_segment;
@@ -8314,20 +8228,14 @@ from gv$temp_space_header;
 
 select inst_id,free_requests,freed_extents 
 from gv$sort_segment;
-
+```
 If temp space allocation between instances has become imbalanced, it might be necessary to manually drop temporary segments from an instance. The following command is used for this:alter session set events 'immediate trace name drop_segments level <TS number + 1>';See Bug 4882834 for details.
 
 For each temporary tablespace, allocate at least as many temp files as there are instances in the cluster.
 
-  
-
-
-
-ArchivelogMode 
-
-
-
-Convert Archivelog Mode to NoArchivelog Mode in RAC
+ 
+### Convert Archivelog Mode to NoArchivelog Mode in RAC
+```
 Step 1: Set the Environment Variable
 TRAH1_1
 $ srvctl status database -d TRAH1_01
@@ -8378,3 +8286,4 @@ Automatic archival             Disabled
 Archive destination            USE_DB_RECOVERY_FILE_DEST
 Oldest online log sequence     45864
 Current log sequence           45866 
+```
