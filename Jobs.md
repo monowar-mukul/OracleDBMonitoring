@@ -1,4 +1,5 @@
-JOB STATUS
+### JOB STATUS
+```
 set lines 200
 set pages 60
 col job format 99999
@@ -17,11 +18,10 @@ where failures <> 0;
 select what, broken, next_date, interval, job
 from dba_jobs
 where broken='Y';
+```
 
-P'RMAN_BACKUP';
-
-What scheduled tasks failed during execution, and why?
-
+###  scheduled tasks failed during execution, and why?
+```
 COL log_id              FORMAT 9999   HEADING 'Log#'
 COL log_date            FORMAT A32    HEADING 'Log Date'
 COL owner               FORMAT A06    HEADING 'Owner'
@@ -43,26 +43,9 @@ SELECT
  WHERE status <> 'SUCCEEDED'
  ORDER BY actual_start_date;
 
-                                                                              Start                              Error
- Log# Log Date                         Owner  Job                  Status     Date                                 Nbr
------ -------------------------------- ------ -------------------- ---------- -------------------------------- -------
-##### 14-SEP-15 04.05.05.267107 PM +08 DBAMON JOB_AWR_REPORTS_MAIL FAILED     14-SEP-15 04.05.00.815738 PM +08   24247
-      :00                                     ER                              :00
-
-##### 15-SEP-15 12.05.05.550073 AM +08 DBAMON JOB_BACKUP_CHECK     FAILED     15-SEP-15 12.05.00.614656 AM +08   24247
-      :00                                                                     :00
-
-##### 15-SEP-15 12.05.01.188220 AM +08 DBAMON JOB_AWR_REPORTS_MAIL FAILED     15-SEP-15 12.05.00.893798 AM +08   24247
-      :00                                     ER                              :00
-
-##### 15-SEP-15 08.05.01.243191 AM +08 DBAMON JOB_AWR_REPORTS_MAIL FAILED     15-SEP-15 08.05.01.015669 AM +08   24247
-      :00                                     ER                              :00
-
----
---
-
-===============11g=======================
-
+```
+### ===============11g=======================
+```
 SELECT j.LOG_ID, j.LOG_DATE, e.OWNER,
 DECODE(instr(e.NAME,'"'),0, e.NAME,substr(e.NAME,1,instr(e.NAME,'"')-1)),
 DECODE(instr(e.NAME,'"'),0,NULL,substr(e.NAME,instr(e.NAME,'"')+1)),
@@ -72,7 +55,7 @@ j.ADDITIONAL_INFO
 FROM scheduler$_job_run_details j, scheduler$_event_log e
 WHERE j.log_id = e.log_id and e.dbid is null
 AND e.type# = 66
-
+```
 The SCHEDULER$_EVENT_LOG table is the underlying table for dba_scheduler_job_log and dba_scheduler_window_log views .
 
 The SCHEDULER$_JOB_RUN_DETAILS table is the underlying table for *_scheduler_job_run_details views.
@@ -80,15 +63,17 @@ The SCHEDULER$_JOB_RUN_DETAILS table is the underlying table for *_scheduler_job
 The job_log views give an overview of the job history (if logging is on). The job_run_details views give more detailed information about individual runs of a job (cpu_used etc) again if logging is on.
 
 Before purge :
-
+``
 select * from all_scheduler_running_chains; --- should be zero
-
-RUN THE JOB:
+``
+#### RUN THE JOB:
 ##########################################
+```
 exec dbms_ijob.run ( 7 );
-
-Create The JOB
+```
+#### Create The JOB
 #################################################
+```
 Declare
 job_id number;
 begin
@@ -99,20 +84,12 @@ interval=> 'sysdate + 7 '
 );
 end;
 /
+```
 
-Viewing scheduled dbms_jobs
+#### Viewing scheduled dbms_jobs
 ##################################################
-
-
-ORA-12012: error on auto execute of job 84
-ORA-04029: error ORA-7445 occurred when querying Fixed Table/View
-ORA-06512: at "ODR_PHD.C_MT_CLEAN_PHDSQL_PIPES", line 19
-ORA-06512: at line 1
-Wed Mar 02 14:01:43 2016
-
-
 scheduled_dbms_jobs.sql
-
+```
 set linesize 250
 col log_user       for a10
 col job            for 9999999  head 'Job'
@@ -138,37 +115,11 @@ from (select dj.LOG_USER, dj.JOB, dj.BROKEN, dj.FAILURES,
              dj.NEXT_DATE, dj.NEXT_SEC, dj.INTERVAL, dj.WHAT
         from dba_jobs dj) j;
 
-
-Wed Mar 02                                                                                                                                                  page     1
-                                                                                                               Scheduled Tasks That Failed:
-
-                           Last               This               Next                     Run
-LOG_USER        Job B fail Date               Date               Date                Interval WHAT
----------- -------- - ---- ------------------ ------------------ ------------------ --------- ------------------------------------------------------------
-ODR_MT           63 N    0 02-03-2016:14:20:2 :                  02-03-2016:14:25:2      .003 dbms_refresh.refresh('"ODR_MT"."PI_DETAILS"');
-                           9:14:20:29                            9:14:25:29
-
-ODR_PHD          83 N    0 02-03-2016:14:07:2 :                  02-03-2016:15:07:2      .042 ODR_PHD.C_MT_CLEAN_PHDSQL_PIPES;
-                           8:14:07:28                            8:15:07:28
-
-ODR_DAS           3 N    0 02-03-2016:14:19:0 :                  02-03-2016:14:34:0      .010 dbms_refresh.refresh('"ODR_DAS"."MV_DOWNTIMEHIST_LOC_LEVEL"'
-                           9:14:19:09                            9:14:34:09                   );
-
-ODR_DAS           4 N    0 02-03-2016:14:19:0 :                  02-03-2016:14:34:0      .010 dbms_refresh.refresh('"ODR_DAS"."MV_MINES_DOWNTIME_LOC_LEVEL
-                           9:14:19:09                            9:14:34:09                   "');
-
-ODR_DAS           5 N    0 02-03-2016:14:17:2 :                  02-03-2016:14:32:2      .010 dbms_refresh.refresh('"ODR_DAS"."MV_DOWNTIMEHIST_CLOC_LEVEL"
-                           4:14:17:24                            4:14:32:24                   ');
-
-ODR_DAS           6 N    0 02-03-2016:14:17:2 :                  02-03-2016:14:32:2      .010 dbms_refresh.refresh('"ODR_DAS"."MV_MINES_DOWNTIME_CLOC_LEVE
-                           4:14:17:24                            4:14:32:24                   L"');
-
-ODR_PHD          84 N    7 02-03-2016:10:59:2 :                  02-03-2016:15:01:3      .168 ODR_PHD.C_MT_CLEAN_PHDSQL_PIPES;
-                           4:10:59:24                            3:15:01:33
-
-
-What Jobs are Actually Running
+```
+#### What Jobs are Actually Running
 ##################################################
+
+```
 set linesize 250
 col sid            for 9999     head 'Session|ID'
 col log_user       for a10
@@ -196,9 +147,11 @@ from (select djr.SID,
              dj.NEXT_DATE, dj.NEXT_SEC, dj.INTERVAL, dj.WHAT
         from dba_jobs dj, dba_jobs_running djr
        where dj.job = djr.job ) j;
+```
 
-What Sessions are Running the Jobs
+#### What Sessions are Running the Jobs
 ##################################################
+```
 set linesize 250
 col sid            for 9999     head 'Session|ID'
 col spid                        head 'O/S|Process|ID'
@@ -234,12 +187,15 @@ from (select djr.SID,
           from v$process p, v$session s
          where p.addr  = s.paddr ) s
  where j.sid = s.sid;
-
-Change job schedule
+```
+#### Change job schedule
+```
 exec dbms_job.change(42,'SUMM_REFRESH.PROC_REFRESH;',trunc(sysdate+1) + 5.5/24,'trunc(sysdate+1) +5.5/24');
+```
 
-Check long running queries :
+### Check long running queries :
 -----------------------------
+```
 col sql_text format a100
 set linesize 400
 SELECT l.sid, l.start_time, l.username, l.elapsed_seconds, a.sql_text, a.elapsed_time
@@ -247,15 +203,18 @@ FROM v$session_longops l, v$sqlarea a
 WHERE a.elapsed_time = l. elapsed_seconds
 AND l.elapsed_seconds > 1
 /
-
-Check long running process for particular session  and sid :
+```
+### Check long running process for particular session  and sid :
+```
 select * from (  select opname, target, sofar, totalwork,units, elapsed_seconds, message  
 		from v$session_longops  
 		where sid = <sid> and serial# = <serial#>  
 		order by start_time desc)
 where rownum <=1;
+```
 
-Check the time remaining :
+### Check the time remaining :
+```
 SELECT opname, target,
 ROUND((sofar/totalwork),4)*100 Percentage_Complete,
 start_time,
@@ -263,8 +222,9 @@ CEIL(time_remaining/60) Max_Time_Remaining_In_Min,
 FLOOR(elapsed_seconds/60) Time_Spent_In_Min
 FROM v$session_longops
 WHERE sofar != totalwork;
-
-DEFAULT JOBS
+```
+#### DEFAULT JOBS
+```
 SQL> select log_date,status
 from dba_scheduler_job_run_details
 where job_name='BSLN_MAINTAIN_STATS_JOB'
@@ -273,9 +233,11 @@ order by log_date desc;
 SQL> select owner, job_name, enabled, LAST_START_DATE, NEXT_RUN_DATE from DBA_SCHEDULER_JOBS WHERE job_name like '%PURGE%';
 
 SQL> exec dbms_scheduler.disable('CDC_STG_PUB.CDC$_DEFAULT_PURGE_JOB');
+```
 
-ENABLE:
+### ENABLE:
 ---------------------------
+```
 BEGIN
   DBMS_AUTO_TASK_ADMIN.ENABLE(
     client_name => 'auto optimizer stats collection',
@@ -283,9 +245,10 @@ BEGIN
     window_name => NULL);
 END;
 /
-
-DISABLE:
+```
+### DISABLE:
 ----------------------------------
+```
 BEGIN
   DBMS_AUTO_TASK_ADMIN.DISABLE(
     client_name => 'auto optimizer stats collection', 
@@ -293,21 +256,19 @@ BEGIN
     window_name => NULL);
 END;
 /
-
+```
+```
 SELECT client_name, window_name, jobs_created, jobs_started, jobs_completed FROM dba_autotask_client_history WHERE client_name like '%stats%';
 
-SQL> SELECT client_name, status FROM dba_autotask_operation;
-
-auto optimizer stats collection                                  ENABLED
-auto space advisor                                               ENABLED
-sql tuning advisor                                               ENABLED
-
+SELECT client_name, status FROM dba_autotask_operation;
+```
 The tasks that run for these autotask ‘clients’ are named as follows:
 
 ORA$AT_SA_SPC_SY_nnn for Space advisor tasks
 ORA$AT_OS_OPT_SY_nnn for Optimiser stats collection tasks
 ORA$AT_SQ_SQL_SW_nnn for Space advisor tasks
 
+```
 set linesize 300
 col JOB_DURATION format a13
 col JOB_ERROR format 999
@@ -318,49 +279,42 @@ from DBA_AUTOTASK_JOB_HISTORY
 where client_name='auto space advisor'
 order by window_start_time desc;
 
-
 select distinct client_name, window_name, job_status, job_info
 from dba_autotask_job_history
 where client_name ='auto space advisor '
 order by 1,2;
 
 SELECT * FROM dba_autotask_schedule;
-
+```
 disable all the automated tasks, issue the following command::
 
 SQL> EXEC dbms_auto_task_admin.disable;
 SQL> SELECT client_name, status FROM dba_autotask_operation;
 SQL> EXEC dbms_auto_task_admin.disable( 'auto optimizer stats collection', NULL, NULL );
 
-BROKEN JOBS
+### BROKEN JOBS
+```
 select 'exec dbms_job.broken(job =>'||job||', next_date=>'||interval||', broken =>false)' 
 from dba_jobs where schema_user ='PRODOWNER' and broken='Y';
-
-'EXECDBMS_JOB.BROKEN(JOB=>'||JOB||',NEXT_DATE=>'||INTERVAL||',BROKEN=>FALSE)'
-----------------------------------------------------------------------------------------------------
-exec dbms_job.broken(job =>121, next_date=>SYSDATE + 1/24, broken =>false)
-exec dbms_ijob.broken(job =>121, next_date=>SYSDATE + 1/24, broken =>false)
-
-sys@vrpuxbne02.vicprd> exec dbms_ijob.broken(job =>121, next_date=>SYSDATE + 1/24, broken =>false)
-
-PL/SQL procedure successfully completed.
-
+```
+```
 select 'exec dbms_job.run(job =>'||job||')' from dba_jobs where schema_user ='REPORTS' and broken='Y';
-
-Output:
-exec dbms_job.run(job =>121)
-exec dbms_ijob.run(job =>121)
-
+```
+```
 set echo off verify off feedback off head off pagesize 0
 select 'execute dbms_job.broken(job=>' || job || ', broken=>FALSE);' 
 from dba_jobs
 where broken = 'Y'
 and schema_user = 'USERNAME'
 /
+```
+> exec dbms_ijob.broken(job =>121, next_date=>SYSDATE + 1/24, broken =>false)
 
-Create an Oracle job to run a stored procedure every hour
+### Create an Oracle job to run a stored procedure every hour
 If you need to run an Oracle Stored Procedure every hour you can either setup a job via the Cron tab or you can create a an Oracle Job to do this for you.
 Here is a simple example, you can use the different parameters to cater for your needs:
+
+```
 BEGIN
 SYS.DBMS_JOB.SUBMIT
 ( job => X
@@ -373,9 +327,11 @@ SYS.DBMS_OUTPUT.PUT_LINE('Job Number is: ' || to_char(x));
 COMMIT;
 END;
 /
+```
 
-Procedure:
-CREATE OR REPLACE PROCEDURE ICCSYSDB.proc_update_message_flow
+### Procedure:
+```
+CREATE OR REPLACE PROCEDURE Schema.proc_update_message_flow
 IS
 cursor flow_cur is
 SELECT source,target,business_event,segment,service,last_24hour_count,last_hour_count FROM "Message_Volume_View1";
@@ -389,9 +345,10 @@ commit;
 end LOOP;
 END proc_update_message_flow;
 /
+```
 
-JOB
-=======
+### JOB
+```
 BEGIN
   DBMS_SCHEDULER.CREATE_JOB (
    job_name        =>  'UpdateFlow',
@@ -402,18 +359,18 @@ BEGIN
    enabled         => true);
 END;
 /
-
-
+```
+```
 BEGIN 
 --remove job
 SYS.DBMS_SCHEDULER.DROP_JOB (job_name => 'BusinessSum');
 END; 
 /
+```
 
+### PARTITION:
 
-
-PARTITION:
-
+```
 CREATE OR REPLACE PROCEDURE ICCSYSDB."DELETE_OLD_PARTITION" (
     TABLE_NAME IN VARCHAR,
     DAYS_OLD IN NUMBER,
@@ -450,10 +407,10 @@ OPEN  c1 for psql;
   --DBMS_OUTPUT.PUT_LINE ('executed  : ' || STATUS );
 END;
 /
+```
 
-
----> another procedure to call the DELETE_OLD_PARTITION
-
+### ---> another procedure to call the DELETE_OLD_PARTITION
+```
 CREATE OR REPLACE PROCEDURE ICCSYSDB."DELETE_OLD_EVENT_DATA" 
 IS
 status_msg              varchar(10);
@@ -465,8 +422,8 @@ BEGIN
  DBMS_OUTPUT.PUT_LINE ('executed STATUS_BINARY_DATA : ' || status_payload );
 END;
 /
-
-
+```
+```
 BEGIN
   DBMS_SCHEDULER.CREATE_JOB (
    job_name        =>  'Drop_Old_Partition',
@@ -478,9 +435,10 @@ BEGIN
 END;
 /
 
+```
+### Long Running Jobs
 
-Long Running Jobs
-RAC Long Running Session
+```
 --------------------------------
 --
 --  List long operations for RAC.
@@ -516,7 +474,8 @@ AND    s.inst_id = sl.inst_id
 AND    s.serial# = sl.serial#
 ORDER BY progress_pct
 /
-
+```
+```
 set lines 132
 set pages 60
 col opname format a35
@@ -534,14 +493,8 @@ WHERE
   totalwork != 0
   and sofar <> totalwork
 /
-
-SQL> /
-
-OPNAME                                     SID    SERIAL#    CONTEXT      SOFAR  TOTALWORK % Complete Minutes Remaining
------------------------------------ ---------- ---------- ---------- ---------- ---------- ---------- -----------------
-Table Scan                                1202      22123          0      23023    2015819       1.14        122333.533
-
-
+```
+```
 set lines 200
 col OPNAME for a25
 Select
@@ -558,8 +511,9 @@ From v$session_longops a, v$session b
 where a.sid = b.sid
 and a.sid =&sid
 And time_remaining > 0;
-
+```
 OR
+```
 set pages 50000 lines 32767
 col OPNAME for a10
 col SID form 9999
@@ -579,8 +533,8 @@ FROM gv$session_longops l
 LEFT OUTER JOIN v$sql s on s.hash_value=l.sql_hash_value and s.address=l.sql_address and s.child_number=0
 WHERE l.OPNAME NOT LIKE 'RMAN%' AND l.OPNAME NOT LIKE '%aggregate%' AND l.TOTALWORK != 0 AND l.sofar<>l.totalwork AND l.time_remaining > 0
 /
-
-
+```
+```
 column  sid         format   a10    heading 'Sid/Serial'
 column  operation   format   a11    heading 'Acao'
 column  object      format   a35    heading 'Objeto'
@@ -618,3 +572,4 @@ from v$session_longops
 where time_remaining > 0
   and sid like nvl('&sesid','%')
 ;
+```
