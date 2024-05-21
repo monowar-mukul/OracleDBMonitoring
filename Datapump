@@ -1,18 +1,17 @@
-
-Export Import 
-
-Oracle Application Express is installed in the FLOWS_030000 schema. 
-
+### Export Import 
+```
 grant imp_full_database to system;
 grant exp_full_database to system;
 create database link EXA_MIG connect to SYSTEM identified by tiger using 'IIBDEV';
-
+x.par file
  /******** AS SYSDBA network_link=EXA_MIG directory=EXA_MIG logfile=exp_iibuat.log dumpfile=exp_iibuat_%U.dmp full=y parallel=3 reuse_dumpfiles=true
 
- /******** AS SYSDBA parfile=imp_QIIB.par
+ /******** AS SYSDBA parfile=x.par
+```
 
-For export on 9i with Flashback_SCN -    $ORACLE_HOME/rdbms/admin/catmeta.sql
+## For export on 9i with Flashback_SCN -    $ORACLE_HOME/rdbms/admin/catmeta.sql
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+```
 Error Message:
 ORA-39083: Object type PROCACT_SCHEMA failed to create with error:
 ORA-06550: line 2, column 1:
@@ -46,6 +45,7 @@ TRANSFORM=oid:n
 ------------------------------------------------------------------------------------------------------------------------------------------
 ERROR at line 1: ORA-00054: resource busy and acquire with NOWAIT specified
 -----------------------------------------------------------------------------------------------------------------------------------------
+```
 execute the below query to find out the session which locked the target table
 
 select
@@ -86,7 +86,8 @@ Export> CONTINUE_CLIENT
 . . exported "DW_LND"."ICC_DELAY"                        963.0 MB 7355408 rows
 . . exported "ODR_LEICA"."SHIFT_HAULS"                   887.5 MB 8099096 rows
 
-============================================================
+## ==========================ISSUE ==================================
+```
 Processing object type SCHEMA_EXPORT/TABLE/TABLE
 ORA-39121: Table "BH_OWNER"."BH_ASSAY_RESULT_2" can't be replaced, data will be skipped. Failing error is:
 ORA-00054: resource busy and acquire with NOWAIT specified or timeout expired
@@ -110,8 +111,9 @@ SYS@BHQA1 SQL> select session_id, locked_mode, object_id from v$locked_object wh
 SESSION_ID LOCKED_MODE  OBJECT_ID
 ---------- ----------- ----------
        166           6      86219
+```
 
-UDE-00010: multiple job modes requested, schema and tables. 
+### UDE-00010: multiple job modes requested, schema and tables. 
 Remove SCHEMA parameter and change tables as tables=HRI.TBL_BATCH,HRI.TBL_BATCHDATA,HRI.TBL_FILEHANDLER
 EXPORT DUMP is corrupted
 +++++++++++++++++++++++++++++
@@ -182,9 +184,7 @@ SQL> purge table system.SYS_EXPORT_SCHEMA_03;
 Table purged  
 
 
-
 export a package and a procedure (Metadata) 
-
 
 
 SET lines 100 
@@ -252,15 +252,7 @@ set heading on
 set termout on
 set linesize 100
 
-  
-
-
-
 Information 
-
-
-
-
 	EXP/IMP	Datapump
 	owner	schema
 	file	dumpfile
