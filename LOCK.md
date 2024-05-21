@@ -367,13 +367,6 @@ SELECT DECODE(request,0,'Holder: ','Waiter: ')||sid sess,
   ORDER BY id1, request;
 ```
 
-Example:
-Output:
-SESS                                                    ID1        ID2      LMODE    REQUEST TY
------------------------------------------------- ---------- ---------- ---------- ---------- --
-Holder: 410                                           65539     223357          6          0 TX
-Waiter: 460                                           65539     223357          0          6 TX
-Waiter: 488                                           65539     223357          0          6 TX
 ```
 SELECT sid, sql_hash_value
 FROM V$SESSION
@@ -383,123 +376,32 @@ and then use the hash value
 ```
 select sql_text from V$SQLTEXT a  where hash_value = &HASHVALUE;
 ```
-rem NAME: blockers.sql
-rem FUNCTION: Show all processes causing a dead lock [Not for 8.1.]
-rem HISTORY: MRA 1/15/96 Created
-rem
-COLUMN username         FORMAT a10 HEADING 'Holding|User'
-COLUMN session_id                         HEADING 'SID'
-COLUMN mode_held        FORMAT a20 HEADING 'Mode|Held'
-COLUMN mode_requested   FORMAT a20 HEADING 'Mode|Requested'
-COLUMN lock_id1         FORMAT a20 HEADING 'Lock|ID1'
-COLUMN lock_id2         FORMAT a20 HEADING 'Lock|ID2'
-COLUMN type                               HEADING 'Lock|Type'
-SET LINES 132 PAGES 59 FEEDBACK OFF ECHO OFF
-START title132 'Sessions Blocking Other Sessions Report'
-SPOOL rep_out\&db\blockers
-SELECT 
-      a.session_id, 
-      b.username, 
-      b.type, 
-      a.mode_held, 
-      a.mode_requested,
-      a.lock_id1, 
-      a.lock_id2 
-FROM
-      sys.v_$session b, 
-      sys.dba_blockers c, 
-      sys.dba_lock a
-WHERE
-      c.holding_session=a.session_id and
-      c.holding_session=b.sid
-/
 
-NOTE: if not works then run catblock.sql ---it will create those required views.
 
-[can try v$LOCK for 10.2.0.3]
-
-SPOOL OFF
-PAUSE press enter/return to continue
-CLEAR COLUMNS
-SET LINES 80 PAGES 22 FEEDBACK ON ECHO ON
-
-rem
-rem FUNCTION: Report on sessions waiting for locks
-rem
-COLUMN busername FORMAT A10 HEADING 'Holding|User'
-COLUMN wusername FORMAT A10 HEADING 'Waiting|User'
-COLUMN bsession_id HEADING 'Holding|Sid'
-COLUMN wsession_id HEADING 'Waiting|Sid'
-COLUMN mode_held FORMAT A20 HEADING 'Mode|Held'
-COLUMN mode_requested FORMAT A20 HEADING 'Mode|Requested'
-COLUMN lock_id1 FORMAT A20 HEADING 'Lock|Id1'
-COLUMN lock_id2 FORMAT A20 HEADING 'Lock|Id2'
-COLUMN type HEADING 'LOCK|TYPE'
-SET LINES 132 PAGES 59 FEEDBACK OFF ECHO OFF
-START TITLE132 'Processes Waiting on Locks Report'
-SPOOL rep_out/&db/waiters
-SELECT 
-      holding_session bsession_id, 
-      waiting_session wsession_id, 
-      b.username busername, 
-      a.username wusername, 
-      c.lock_type type, 
-      mode_held, mode_requested,
-      lock_id1, lock_id2 
-FROM
-sys.v_$session b, sys.dba_waiters c, sys.v_$session a 
-WHERE
-c.holding_session=b.sid and
-c.waiting_session=a.sid
-/
-SPOOL OFF
-PAUSE press enter/return to continue
-CLEAR COLUMNS
-SET LINES 80 PAGES 22 FEEDBACK ON ECHO ON
-TTITLE OFF
-
-==========================================================================================================
---SHOW BLOCKING LOCKS. ALSO SEE SQL HERE
-
-select SID,ADDR,KADDR,type,LMODE,round(CTIME/60) "Time(Min)" from V$LOCK where block=1;
-
-       SID ADDR             KADDR            TYPE          LMODE  Time(Min)
----------- ---------------- ---------------- -------- ---------- ----------
-       506 00000006D92DC9D0 00000006D92DC9F8 TM                3         46
-       867 00000006D93654C8 00000006D9365640 TX                6         23
-      1010 00000006D9342608 00000006D9342780 TX                6          5
-      2075 00000006D82A0188 00000006D82A0300 TX                6         13
-
---SHOW BLOCKING LOCKS.
-
-select sid,username from V$SESSION where sid in (select sid from V$LOCK where block=1);
-
-       SID USERNAME
----------- --------------------
-       506 LBRAUN
-       867 DKANE
-      1010 WWW_USER1
-      2075 WWW_USER1
-
---GENERATE SQL TO DISCONNECT BLOCKING USERS.
-
+### GENERATE SQL TO DISCONNECT BLOCKING USERS.
+```
 select 'alter system disconnect session '''||sid||','||serial#||'''immediate;' from V$SESSION where sid in (select sid from V$LOCK where block=1);
+```
 
---SHOW LOCKS.
+### SHOW LOCKS.
+```
 select b.sid,b.username,d.id1,a.sql_text from V$SESSION b,V$LOCK d,V$SQLTEXT a
 where b.lockwait = d.kaddr and   a.address = b.sql_address and   a.hash_value = b.sql_hash_value;
-
---SHOW LOCKING USERS.
+```
+### SHOW LOCKING USERS.
+```
 select a.sid,a.username,b.id1,c.sql_text from V$SESSION a,V$LOCK b,V$SQLTEXT c
 where b.id1 in (select distinct e.id1 from V$SESSION d, V$LOCK e where d.lockwait = e.kaddr) 
 and a.sid = b.sid and c.hash_value = a.sql_hash_value and b.request = 0;
-
+```
 ====================================================
-SHOW LONG OPERATIONS STILL IN PROGRESS
+### SHOW LONG OPERATIONS STILL IN PROGRESS
 ====================================================
+```
 select b.sid,b.username,d.id1,a.sql_text from V$SESSION b,V$LOCK d,V$SQLTEXT a where b.lockwait = d.kaddr
 and a.address = b.sql_address and a.hash_value = b.sql_hash_value;
-
+```
+```
 select 
    sql_text 
 from 
@@ -508,19 +410,21 @@ where
   hash_value = 1605085473
 order by 
    piece;
-
+```
+```
 select a.sql_text
 from v$SQLAREA a , v$SESSION b
 where a.ADDRESS=b.SADDR
-and b.SID='64'
-
+and b.SID='&SID'
+```
 or
-
+```
 select s.sid, q.sql_text from v$sqltext q, v$session s
 where q.address = s.sql_address
 and s.sid = &sid
 order by piece;
-
+```
+```
 SPOOL v_lock.log;
 set linesize 200
 column SID format 9999 
@@ -534,7 +438,6 @@ from v$session_wait
 where sid in (&SIDLIST);
 --example sidlist entry: 100,118,125
 
-set linesize 80
 select s.username, s.sid, s.module, t.sql_text
 from v$session s, v$sql t 
 where s.sql_address =t.address and s.sql_hash_value =t.hash_value 
@@ -542,11 +445,11 @@ and s.sid in (&SIDLIST);
 --example sidlist entry: 100,118,125
 
 SPOOL OFF; 
-
+```
 #######################################
-Find SQL being executed by a OS Process ID (PID)
+### Find SQL being executed by a OS Process ID (PID)
 #######################################
-
+```
 prompt "Please Enter The UNIX Process ID"
 set pagesize 50000
 set linesize 30000
@@ -563,11 +466,11 @@ and s.username is not null
 and s.sql_address=sa.address(+)
 and s.sql_hash_value=sa.hash_value(+)
 and spid=&SPID;
-
+```
 ###############################
-List SQL being executed by a particular SID
+### List SQL being executed by a particular SID
 ###############################
-
+```
 col sql_text format a100 heading "Current SQL"
 select q.sql_text
 from v$session s
@@ -576,10 +479,11 @@ WHERE s.sql_address = q.address
 and s.sql_hash_value + DECODE
 (SIGN(s.sql_hash_value), -1, POWER( 2, 32), 0) = q.hash_value
 AND s.sid=&1;
-
+```
 ============================================
-SQL text for locked session
+### SQL text for locked session
 =============================================
+```
 set pagesize 60 
 set linesize 132 
 select s.username username,  
@@ -596,7 +500,8 @@ and    s.sid = a.sid
 and    a.owner != 'SYS' 
 and    upper(substr(a.object,1,2)) != 'V$' 
 / 
-=========
+```
+```
 select s1.username as blocker,s1.machine b_machine,
 s2.username h_username,s2.machine h_machine,s3.sql_text
 from v$lock l1, v$session s1, v$lock l2, v$session s2,v$sqltext s3
@@ -606,25 +511,23 @@ and l1.id1 = l2.id1
 and l2.id2 = l2.id2
 AND s1.PREV_SQL_ADDR =s3.address
 and s1.PREV_HASH_VALUE=s3.HASH_VALUE;
+```
 
-TO SEE IF STILL PENDING TRANSACTIONS 
-
+### TO SEE IF STILL PENDING TRANSACTIONS 
+```
 SQL> Select a.username,a.Machine,a.Process,a.Logon_time,a.sid,a.status,b.used_ublk
 from v$session a , v$transaction b
                         where username = '&User'
-                        and a.saddr=b.ses_addr;  
-Enter value for user: QWICBATCH
-old   3:                        where username = '&User'
-new   3:                        where username = 'QWICBATCH'
+                        and a.saddr=b.ses_addr;
+```
 
-no rows selected
 
 In 11g R2, the blocking session can be found directly using the following sql: 
 SQL> select sid,serial#,SQL_ID,BLOCKING_SESSION,BLOCKING_SESSION_STATUS,EVENT 
 from v$session where event ='cursor: pin S wait on X' 
 
-Hanged Session
-
+### Hanged Session
+```
 select p.spid,s.sid,s.serial# serial_num,s.username user_name,
 a.type object_type,s.osuser os_user_name,a.owner,a.object object_name,decode(sign(48 - command),1,
 to_char(command), 'Action Code #' || to_char(command) ) action,
@@ -634,10 +537,10 @@ where s.paddr = p.addr and s.type = 'USER'
 and a.sid = s.sid 
 and a.object='&table_name' 
 order by s.username, s.osuser;
-
+```
 Suppose session hangs during execute the procedure.
 To pass the procedure name in below query.
-
+```
 select
 V$S.LOGON_TIME,
 V$S.SID,
@@ -656,8 +559,8 @@ and V$S.SID in
 order by
 V$S.PROCESS,
 V$S.SID;
-
-
+```
+```
 Column host     format a6;
 Column username format a10;
 Column os_user  format a8;
@@ -686,30 +589,31 @@ and row_wait_block#  between c.block_id and c.block_id + c.blocks - 1
 and row_wait_file# <> 0
 and type='USER'
 ;
-
+```
 The username will tell you the user who is waiting for a lock to be released at the block number. 
 
-To find out the what is blocking use the code snippet below, 
-
+### To find out the what is blocking use the code snippet below, 
+```
 Select blocking_session, sid, serial#, wait_class,seconds_in_wait From v$session  
 where blocking_session is not NULL
 order by blocking_session;
+```
 
-HOW LONG INACTIVE
+### HOW LONG INACTIVE
+```
 SQL> set lines 100 pages 999
 select username
 ,      floor(last_call_et / 60) "Minutes"
 ,      status
 from   v$session;
+```
+```
 SQL> 
 select username, floor(last_call_et / 60) "Minutes", status
 from   v$session
 where SID=393
 order by last_call_et;
-
-USERNAME                          Minutes STATUS
------------------------------- ---------- --------
-BATCHUSER                             937 ACTIVE
+```
 
 SQL> alter session set nls_date_format = 'YYYY-MM-DD:HH24:MI:SS';
 SQL> select to_char(sysdate - last_call_et / 86400,'HH24:MI') from v$session where SID=393;
