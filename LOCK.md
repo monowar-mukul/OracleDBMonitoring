@@ -1,7 +1,6 @@
---
--- Lists all locked objects for whole RAC.
---
- 
+
+### Lists all locked objects for whole RAC.
+``` 
 SET PAUSE ON
 SET PAUSE 'Press Return to Continue'
 SET PAGESIZE 60
@@ -33,6 +32,10 @@ WHERE  a.object_id = b.object_id
 ORDER BY 1, 2, 3, 4
 /
 
+```
+
+### LOCKED OBJECTS
+```
 prompt 
 prompt +----------------------------------------------------------------------------+
 prompt | LOCKED OBJECTS                                                             |
@@ -204,19 +207,21 @@ order by decode(l.id2,0,l.id1,l.id2)
     , 8
     , 9
 /
+```
 
 -----------------------------------------------------------------------------------------
-Find out which sessions are waiting for each other
+### Find out which sessions are waiting for each other
 -------------------------------------------------------------------------------------------
+```
 SELECT DECODE(request,0,'Holder: ','Waiter: ')||sid sess, 
         id1, id2, lmode, request, type
    FROM V$LOCK
   WHERE (id1, id2, type) IN
             (SELECT id1, id2, type FROM V$LOCK WHERE request>0)
   ORDER BY id1, request;
-
-Get the holder Session ID -- find out SID and serial
-
+```
+### Get the holder Session ID -- find out SID and serial
+```
 select OSUSER, USERNAME, sid, serial#  from v$session where USERNAME='&usr';
 
  SELECT s.sid, s.serial#, s.username, s.osuser, p.spid, s.machine, p.terminal, s.program
@@ -235,45 +240,48 @@ SELECT USERNAME,
      WHERE STATUS='ACTIVE'
       AND USERNAME in ('MSGIS','MSHIST')
    ORDER BY MINUTES_LOGGED_ON DESC;
-
-IF YOU NEED TO KILL THE SESSION AFTER CONFIRMING FROM THE RESPECTIVE TEAM / USER - 
-
+```
+### IF YOU NEED TO KILL THE SESSION AFTER CONFIRMING FROM THE RESPECTIVE TEAM / USER - 
+```
 select sid, serial#  from v$session where SID=&SID;
-
+```
 then run the following:[Grep SID and Serial from above output]
-
+```
 alter system kill session '&SID,&SERIAL' immediate;
-
+```
 If it takes time -- 2minutes then Check the process ID 
 ======================
 TO GET PROCESS ID
 ======================
+```
 SELECT s.sid, s.serial#, s.username, s.osuser, p.spid, s.machine, p.terminal, s.program
 FROM v$session s, v$process p
 WHERE s.paddr = p.addr
 and s.sid=&SID ;
-
+```
+```
 SELECT s.sid, s.serial#, s.username, s.osuser, p.spid, s.machine, p.terminal, s.program
 FROM v$session s, v$process p
 WHERE s.paddr = p.addr
 and p.spid=&SPID ;
-
+```
+```
 select s.sid, s.serial#, s.status, p.spid 
 from v$session s, v$process p 
 where s.username = '&usr' 
 and p.addr (+) = s.paddr; 
-
-Then kill from Unix prompt
-=================================
+```
+### Then kill from Unix prompt
+```
 kill -9 <PID>
-
+```
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-You need to find out which user is waiting and which user is holding and then find out which SQL is being run. Do the following:
+### You need to find out which user is waiting and which user is holding and then find out which SQL is being run. Do the following:
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Run the "wait.sql" script and determine who is waiting for     which holding process.
 
 wait.sql
-
+```
 SELECT substr(s1.username,1,12)    "WAITING User",
        substr(s1.osuser,1,8)            "OS User",
        substr(to_char(w.session_id),1,5)    "Sid",
@@ -298,12 +306,12 @@ WHERE
   and h.session_id       = S2.sid
   AND    S1.paddr           = P1.addr
   AND    S2.paddr           = P2.addr;
+```
 
----------------------------------------------------------------------
-Run the "whatsql.sql" script to determine which SQL is being run     by the holding process.
+### Run the "whatsql.sql" script to determine which SQL is being run     by the holding process.
 
 whatsql.sql
-=================================================================
+```
 SELECT /*+ ORDERED */
        s.sid, s.username, s.osuser, 
        nvl(s.machine, '?') machine, 
@@ -331,8 +339,8 @@ select a.object_name,logon_time,
 		where o.object_id = a.object_id and 
 		o.process = s.process and 
 		o.session_id = s.sid; 
-
-
+```
+```
 select s1.username as blocker,s1.machine b_machine,
 s2.username h_username,s2.machine h_machine,s3.sql_text
 from v$lock l1, v$session s1, v$lock l2, v$session s2,v$sqltext s3
@@ -342,22 +350,22 @@ and l1.id1 = l2.id1
 and l2.id2 = l2.id2
 AND s1.PREV_SQL_ADDR =s3.address
 and s1.PREV_HASH_VALUE=s3.HASH_VALUE;
-
------------------- DeadLock ---------------------------
+```
+### ------------------ DeadLock ---------------------------
 ORA-000060: Deadlock detected. More info in file /oracle/admin/<>/udump/<>_ora_24409.trc.
 
 If you are, one session automatically gets rolled back - so there is nothing to check and you will have a trace file with deadlock detected in it.
 For staying long period deadlock you can check the following:
 
 To find out which sessions are waiting for each other, you can execute :
-
+```
 SELECT DECODE(request,0,'Holder: ','Waiter: ')||sid sess, 
         id1, id2, lmode, request, type
    FROM V$LOCK
   WHERE (id1, id2, type) IN
             (SELECT id1, id2, type FROM V$LOCK WHERE request>0)
   ORDER BY id1, request;
-
+```
 
 Example:
 Output:
@@ -366,50 +374,15 @@ SESS                                                    ID1        ID2      LMOD
 Holder: 410                                           65539     223357          6          0 TX
 Waiter: 460                                           65539     223357          0          6 TX
 Waiter: 488                                           65539     223357          0          6 TX
-
+```
 SELECT sid, sql_hash_value
 FROM V$SESSION
 WHERE SID =&HolderSID;
-
+```
 and then use the hash value
-
+```
 select sql_text from V$SQLTEXT a  where hash_value = &HASHVALUE;
-
-sys@tecprd6> 
-select round(ctime/60) "time (min)", sid from v$lock where sid in (415, 444, 465);
-     CTIME        SID
----------- ----------
-      2236        444
-       638        465
-      2290        415
-      2237        444
-       638        465
-      2290        415
-      2237        444
-sys@tecprd6> 
-select sid, serial#  from v$session where SID=&SID;
-Sess
- ID     SERIAL#
----- ----------
- 410      18132
-
-> 
-select ctime, sid  
-from v$lock
-where SID in (45, 118);
-
-           Sess
-     CTIME  ID
----------- ----
-      2527   45
-      2527
-      2527
-     12653  118
-     12653
-Then notify to  
-
-It being blocking for (2527/60) 42 minutes and SQL is being running for  (12653/60/60) 3.5 hours. Reassign to respective team.
-
+```
 rem NAME: blockers.sql
 rem FUNCTION: Show all processes causing a dead lock [Not for 8.1.]
 rem HISTORY: MRA 1/15/96 Created
