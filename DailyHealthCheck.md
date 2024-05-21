@@ -4,7 +4,7 @@
 ```
 
 ### monitor_report_sessions.sql
-
+```
 set head off
 set linesize 200 trimspool on pagesize 0
 select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS') from dual;
@@ -17,9 +17,11 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
          s.terminal||','||s.program||','||s.action
     FROM v$session s, v$process p, SYS.v_$sess_io si
    WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
-
+```
+```
 SELECT 'Sid,Serial#,User,Temp(Mb),Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
-
+```
+```
 col size_mb format 999 head "size_mb"
 COMPUTE SUM of size_mb ON REPORT
 
@@ -44,9 +46,9 @@ group by  s.sid || ',' || s.serial#,
           substr(round(((u.blocks*p.value)/1024/1024),2),1,7),
           substr(s.osuser||','||s.machine||','||s.module||','||
           s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
-
+```
 # monitor_max_extent.sql
-
+```
 rem             e.g. if you want to report on segments that cannot extend
 rem             by 3 times in the available
 rem             free space (including auto extend), the the multipler would
@@ -81,9 +83,9 @@ select  substr(substr(db.name,1,10)||' '|| substr(a.owner,1,12)||'.'||
  where  a.tablespace_name = b.tablespace_name
    and  a.tablespace_name = c.tablespace_name
    and  a.segment_type != 'ROLLBACK'
-
    and  a.next_extent * nvl('&1',1) > b.free;
-
+```
+```
 set verify on
 set termout on
 
@@ -120,7 +122,8 @@ WHERE ds.extents >= ds.max_extents - nvl('&1',1)
   AND ds.segment_type IN ('TABLE','INDEX','LOBINDEX','LOBSEGMENT','TABLE PARTITION','INDEX PARTITION','ROLLBACK','CLU
 STER')
 ORDER BY 1;
-
+```
+```
 set verify on
 set termout on
 
@@ -154,8 +157,10 @@ ORDER BY 1;
 spool off
 set verify on
 /
+```
 
-monitor_tablespace.sql
+### monitor_tablespace.sql
+```
 rem    monitor_tablespace.sql
 rem
 rem    Script to report when the free space for a tablespace breaches
@@ -196,8 +201,10 @@ where fs.tablespace_name = df.tablespace_name
 and   fs.tablespace_name not in ('TEMP','ROLLBACK','UNDOTBS1','UNDOTBS2','UNDOTBS3')
 and ((df.bytes - (df.allocated - fs.free_space))/df.bytes) * 100 < &1
 /
+```
 
-monitor_tablespace_status.sql
+### monitor_tablespace_status.sql
+```
 rem    monitor_tablespace_status.sql
 rem
 rem    Script to list OFFLINE tablespaces and/or INVALID files
@@ -225,7 +232,8 @@ union
 select vi.instance_name||' '||dt.tablespace_name||'        '||dt.status instnce_tblspce_filnm_status
 from dba_tablespaces dt, v$instance vi
 where dt.status <> 'ONLINE';
-
+```
+```
 set verify on
 set termout on
 
@@ -250,9 +258,10 @@ having  sum(u.blocks)  > (select (sum(decode(autoextensible,'NO',blocks,maxblock
 spool off
 set verify on
 set termout on
+```
+### monitor_locks.sql
 
-## monitor_locks.sql
-
+```
 -- |----------------------------------------------------------------------------|
 -- | DATABASE : Oracle                                                          |
 -- | FILE     : rac_locks_blocking.sql                                          |
@@ -352,8 +361,9 @@ WHERE
 ORDER BY
     lh.sid
 /
-
-## monitor_long_sessions.sql
+```
+### monitor_long_sessions.sql
+```
 rem    monitor_long_sessions.sql
 rem
 rem    Script to list session details for active sessions
@@ -404,9 +414,10 @@ where status in ( 'ACTIVE','SNIPED')
    and s.sql_hash_value = t.hash_value
  order by s.last_call_et, s.sid, t.piece
 /
+```
 
-
-## monitor_dbms_jobs.sql
+### monitor_dbms_jobs.sql
+```
 rem    monitor_dbms_jobs.sql
 rem
 rem    Script to list dbms jobs that are failing/broken
@@ -431,8 +442,9 @@ WHERE  (dj.next_date < (sysdate - 1800/86400) -- allow 30 min for snp latency
 
 set verify on
 set termout on
-
-## monitor_dataguard.sql
+```
+### monitor_dataguard.sql
+```
 rem    monitor_dataguard.sql
 rem
 rem    Script to report status of applied archive logs on standby database
@@ -498,39 +510,28 @@ where process like 'MRP%';
 spool off
 set verify on
 set termout on
+```
 
-
-
-
-
-
-
-
-
-USER INFORMATION
----------------------
+### USER INFORMATION
+```
 SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
          s.username||','||s.osuser||','||
          s.machine||','||s.module||','||s.client_info||','||
          s.terminal||','||s.program||','||s.action
     FROM v$session s, v$process p, SYS.v_$sess_io si
    WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
+```
 
-ACTIVE,5,BACKGROUND,,oracle,csmper-cls09,,,UNKNOWN ,oracle@csmper-cls09 (EMN0),
-INACTIVE,10082,USER,RSB_USER,CSMSDC-VROST02$,APAC\CSMSDC-VROST02,w3wp.exe,,CSMSDC-VROST02,w3wp.exe,
-ACTIVE,4,BACKGROUND,,oracle,csmper-cls09,,,UNKNOWN ,oracle@csmper-cls09 (q001),
-INACTIVE,41530,USER,RSB_USER,CSMSDC-VROST02$,APAC\CSMSDC-VROST02,,,CSMSDC-VROST02,w3wp.exe,
-
-
-cat session.sql
+### ToKillsession -- collect the information first and confirm from the respective team first
+```
 alter system kill session '''||sid||','||serial#||''' immediate;' 
 from gv$session 
 where INST_ID=1 and status='INACTIVE' 
 and LOGON_TIME between '22-OCT-12' and '27-NOV-12' 
 group by inst_id,sid,serial#,username,osuser,machine,status,LOGON_TIME 
 order by LOGON_TIME desc;
-
-
+```
+```
 rem    monitor_resource_limit.sql
 rem
 rem    Script to list any resource withing 5% of capacity
@@ -559,11 +560,11 @@ ORDER BY 1;
 spool off
 set verify on
 /
+```
 
 
-
-icc_monitor_max_extent.sql
-----------------------------
+### monitor_max_extent.sql
+```
 rem    monitor_max_exent.sql
 rem
 rem    Script to list segments unable to extend due to reaching max_extents
@@ -574,8 +575,7 @@ rem      to test when an object is close to max extents
 rem      e.g. if you want to report on segments that are within 10 extents
 rem      of max extents, then the the threshold would be set to 3.
 rem
-rem    Author   A. Johnston (CSC)  Dec 2003
-rem             based on script supplied by T. Tan
+
 set verify off
 set termout off
 set linesize 80
@@ -598,8 +598,10 @@ ORDER BY 1;
 
 set verify on
 set termout on
+```
+### monitor_extend.sql
 
-more monitor_extend.sql
+```
 rem    unable_to_extend.sql
 rem
 rem    Script to list segments unable to extend due to lack of free space
@@ -612,8 +614,6 @@ rem             by 3 times in the available
 rem             free space (including auto extend), the the multipler would
 rem             be set to 3.
 rem
-rem    Author   A. Johnston (CSC)  Dec 2003
-rem             based on script supplied by T. Tan
 set verify off
 set termout off
 set linesize 80
@@ -650,10 +650,10 @@ c.morebytes)))
 
 set verify on
 set termout on
+```
 
-
-more icc_monitor_locks.sql
------------------------------
+### monitor_locks.sql
+```
 rem    monitor_locks.sql
 rem
 rem    Script to list session details for blocking and blocked sessions
@@ -728,8 +728,9 @@ select 'INFO : Blocking Session Details ' from dual ;
      or (s.prev_sql_addr = t.address and s.prev_hash_value = t.hash_value))
  order by s.sid, t.piece
 /
-
- more icc_monitor_resource_limit.sql
+```
+### monitor_resource_limit.sql
+```
 rem    monitor_resource_limit.sql
 rem
 rem    Script to list any resource withing 5% of capacity
@@ -757,9 +758,10 @@ ORDER BY 1;
 spool off
 set verify on
 /
+```
 
-
-[oracle@csmper-cls09 monitor]$ more monitor_long_sessions.sql
+### monitor_long_sessions.sql
+```
 rem    monitor_long_sessions.sql
 rem
 rem    Script to list session details for active sessions
@@ -810,9 +812,10 @@ where status in ( 'ACTIVE','SNIPED')
    and s.sql_hash_value = t.hash_value
  order by s.last_call_et, s.sid, t.piece
 /
+```
 
-
-[oracle@csmper-cls09 monitor]$ vi icc_monitor_tablespace.sql
+### monitor_tablespace.sql
+```
 rem    monitor_tablespace.sql
 rem
 rem    Script to report when the free space for a tablespace breaches
@@ -830,7 +833,7 @@ rem             free space left in a tablespace
 rem             the threshold would be set to 20.
 rem
 rem
-rem    Author   A. Johnston (CSC)  Feb 2004
+
 rem
 set verify off
 set termout off
@@ -859,9 +862,10 @@ where fs.tablespace_name = df.tablespace_name
 and   fs.tablespace_name not in ('TEMP','ROLLBACK','UNDOTBS1','UNDOTBS2','UNDOTBS3')
 and ((df.bytes - (df.allocated - fs.free_space))/df.bytes) * 100 < &1
 /
-~
+```
 
-[oracle@csmper-cls09 monitor]$ more monitor_dataguard.sql
+### monitor_dataguard.sql
+```
 rem    monitor_dataguard.sql
 rem
 rem    Script to report status of applied archive logs on standby database
@@ -953,8 +957,9 @@ WHERE  (dj.next_date < (sysdate - 1800/86400) -- allow 30 min for snp latency
 
 set verify on
 set termout on
-
-[oracle@csmper-cls09 monitor]$ more monitor_resource_limit.sql
+```
+### monitor_resource_limit.sql
+```
 rem    monitor_resource_limit.sql
 rem
 rem    Script to list any resource withing 5% of capacity
@@ -982,9 +987,10 @@ ORDER BY 1;
 spool off
 set verify on
 /
+```
 
-
-[oracle@csmper-cls09 monitor]$ more monitor_report_sessions.sql
+### monitor_report_sessions.sql
+```
 set head off
 set linesize 200 trimspool on pagesize 0
 select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS
@@ -1026,8 +1032,10 @@ group by  s.sid || ',' || s.serial#,
           substr(round(((u.blocks*p.value)/1024/1024),2),1,7),
           substr(s.osuser||','||s.machine||','||s.module||','||
           s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
+```
 
-[oracle@csmper-cls09 monitor]$ more monitor_resource_limit.sql
+### monitor_resource_limit.sql
+```
 rem    monitor_resource_limit.sql
 rem
 rem    Script to list any resource withing 5% of capacity
@@ -1055,9 +1063,9 @@ ORDER BY 1;
 spool off
 set verify on
 /
+```
 
-ADDM REport
-------------
+### ADDM REport
 
 #!/usr/bin/ksh
 
