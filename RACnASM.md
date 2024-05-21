@@ -1,52 +1,26 @@
-
-RAC&ASM 
-
-RAC, RAC ONE node, Single Instance RAC
-
-RAC buffer states: XCUR, SCUR, PI, CI
-http://blog.dbi-services.com/rac-buffer-states-xcur-scur-pi-ci/
-
-$ srvctl status database -d TMQ23_01
-shell-init: error retrieving current directory: getcwd: cannot access parent directories: No such file or directory
-Error occurred during initialization of VM
-java.lang.Error: Properties init: Could not determine current working directory.
-[oracle@iorsdb02-adm (09:20:51) TMQ23_1:/iorscl01_backup/duplicate/TMQ23_01]
-$ cd
-[oracle@iorsdb02-adm (09:22:58) TMQ23_1:~]
-$ srvctl status database -d TMQ23_01
-Instance TMQ23_1 is running on node iorsdb02-adm
-Online relocation: INACTIVE
-
-
-Clean OLD Logs
----------------------------
-
-Clean Old Logs
-----------------
+## Clean OLD Logs
+```
 du -a | sort -n | tail -15
 find /opt/oraarch/PLANNING/1_3*.dbf -mtime +3 -exec rm {} \;
-find /opt/oracle/11.2.0.2_grid/grid/rdbms/audit/*.aud* -mtime +130 -exec rm {} \;
-find /opt/oracle/product/10.2.0/db_1/admin/pprod25/bdump -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
-find /opt/oracle/product/10.2.0/db_1/admin/pprod25/udump -name "*.trc" -a -mtime +30 -exec rm -rf {} \;
-find /opt/oracle/product/10.2.0/db_1/admin/pprod25/adump -name "*.aud" -a -mtime +30 -exec rm -rf {} \;
-find /app/wspsp/product/diag/rdbms/wspsp/wspsp3/trace  -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
-find /app/wspsp/product/admin/wspsp/adump  -name "*.aud" -a -mtime +30 -exec rm  -rf {} \;
-
-Listener_Log
---------------
-[grid@csmper-cls18 csmper-cls18]$ pwd
-/opt/oracle/11.2.0.2_grid/grid/log/diag/tnslsnr/csmper-cls18
-[grid@csmper-cls18 csmper-cls18]$ du -sh *
+find <grid_home>/grid/rdbms/audit/*.aud* -mtime +130 -exec rm {} \;
+find <db_home>/admin/pprod25/bdump -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
+find <db_home>/admin/pprod25/udump -name "*.trc" -a -mtime +30 -exec rm -rf {} \;
+find <db_home>/admin/pprod25/adump -name "*.aud" -a -mtime +30 -exec rm -rf {} \;
+find <oracle_base>/diag/rdbms/wspsp/wspsp3/trace  -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
+find <audit_directory(adump)>  -name "*.aud" -a -mtime +30 -exec rm  -rf {} \;
+```
+### Listener_Log
+```
+<grid_home>/grid/log/diag/tnslsnr/<clustername>
+$ du -sh *
 332K    listener_scan1
 1.6G    listener_scan2
 332K    listener_scan3
 
---
-srvctl modify service -d QICP1_01 -s SRV0QICP101 -n -i QICP11 -a QICP12
-srvctl modify service -d QICP1_01 -s SRV0QICP101 -x true[grid@csmper-cls07 ~]$ find /opt/oracle/product/diag/tnslsnr/csmper-cls07/listener/alert/*.xml* -mtime +20 -exec rm {} \;
-
---  List long operations for RAC.
--- 
+example: $ find /opt/oracle/product/diag/tnslsnr/<cls07>/listener/alert/*.xml* -mtime +20 -exec rm {} \;
+```
+### List long operations for RAC.
+```
 SET PAUSE ON
 SET PAUSE 'Press Return to Continue'
 SET PAGESIZE 60
@@ -77,11 +51,12 @@ AND    s.inst_id = sl.inst_id
 AND    s.serial# = sl.serial#
 ORDER BY progress_pct
 /
+```
 
---
--- List session waits for RAC.
---
- 
+
+### List session waits for RAC.
+
+``` 
 SET PAUSE ON
 SET PAUSE 'Press Return to Continue'
 SET PAGESIZE 60
@@ -109,11 +84,10 @@ WHERE  s.sid     = sw.sid
 AND    s.inst_id = sw.inst_id
 ORDER BY sw.seconds_in_wait DESC
 /
+```
 
---
--- List memory allocations RAC Sessions.
---
- 
+### List memory allocations RAC Sessions.
+``` 
 SET PAUSE ON
 SET PAUSE 'Press Return to Continue'
 SET PAGESIZE 60
@@ -140,10 +114,10 @@ AND    c.name = 'session pga memory'
 AND    a.program IS NOT NULL
 ORDER BY b.value DESC
 /
+```
 
--- List all sessions for RAC.
---
- 
+### List all sessions for RAC.
+``` 
 SET PAUSE ON
 SET PAUSE 'Press Return to Continue'
 SET PAGESIZE 60
@@ -178,106 +152,88 @@ WHERE  s.paddr   = p.addr
 AND    s.inst_id = p.inst_id
 ORDER BY s.username, s.osuser
 /
+```
+ 
+### Determine the clustername and clusternodes:
+```
+[oraclecls06 ~]$ olsnodes
+cls06
+cls07
+cls08
+```
 
-  
-
-
-
-Clusterware 
-
-
-
-
-Determine the clustername and clusternodes:
-
-[oracle@csmper-cls06 ~]$ olsnodes
-csmper-cls06
-csmper-cls07
-csmper-cls08
-
-No. Of Nodes configured in Cluster:
+### No. Of Nodes configured in Cluster:
 -----------------------------------------
 The below command can be used to find out the number of nodes registered into the cluster. It also displays the node’s Public name, Private name and Virtual name along with their numbers.
-
+```
 olsnodes -n -p -i
+```
 
-[grid@iorsdb01-adm (11:18:25) +ASM1:~]
-$ olsnodes -n -i
-iorsdb01-adm    1       iorsdb01-vip.apac.ent.bhpbilliton.net
-iorsdb02-adm    2       iorsdb02-vip.apac.ent.bhpbilliton.net
-
-
-Viewing Votedisk Information:
----------------------------------
-[grid@csmper-cls06 admin]$ crsctl query css votedisk
+### Viewing Votedisk Information:
+```
+$ crsctl query css votedisk
 ##  STATE    File Universal Id                File Name Disk group
 --  -----    -----------------                --------- ---------
  1. ONLINE   abece3ad7bfa4f2fbf910c494c5629e4 (ORCL:OCR_VOTE01) [OCR_VOTE]
  2. ONLINE   96e3c933f6384febbf7f1d7f6d7cfdcc (ORCL:OCR_VOTE02) [OCR_VOTE]
  3. ONLINE   85147357c65c4fd4bfda0e417985c4ee (ORCL:OCR_VOTE03) [OCR_VOTE]
 Located 3 voting disk(s).
-
-Viewing OCR Information:
+```
+### Viewing OCR Information:
 -------------------------------
 It is primarily used to chck the integrity of the OCR files. 
 It also displays the version of OCR as well as storage space information. 
 You can only have 2 OCR files at max.
-
-[grid@csmper-cls06 admin]$ ocrcheck
-
-check node status
-------------------
-[grid@csmper-cls06 ~]$ srvctl status nodeapps
-
-chk the status on cluster registry
-------------------------------------
+```
+[grid@cls06 admin]$ ocrcheck
+```
+### check node status
+```
+[grid@cls06 ~]$ srvctl status nodeapps
+```
+### check the status on cluster registry
+```
 $crs_stat -t | grep vip
 
 ipconfig -a 
+```
 
-10g--- crsctl status resource -t
-
-HAS
------------
-$ cat /etc/oracle/scls_scr/csmper-cls16/root/ohasdstr
-disable
-
-[grid@csmper-cls06 ~]$ srvctl status asm
-ASM is running on csmper-cls06,csmper-cls08,csmper-cls07
-
-[grid@csmper-cls06 ~]$ srvctl config vip -n csmper-cls06
-$ srvctl config vip -n iorsdb01-adm
-VIP exists: network number 1, hosting node iorsdb01-adm
-VIP Name: iorsdb01-vip.apac.ent.bhpbilliton.net
-VIP IPv4 Address: 10.241.148.22
-VIP IPv6 Address:
-VIP is enabled.
-VIP is individually enabled on nodes:
-VIP is individually disabled on nodes:
-
-[grid@csmper-cls06 ~]$ srvctl config nodeapps -a
-[grid@csmper-cls06 ~]$ srvctl config asm
+## 10g
+```
+crsctl status resource -t
+```
+### HAS Status
+```
+$ cat /etc/oracle/scls_scr/cls16/root/ohasdstr
+```
+```
+$ srvctl status asm
+$ srvctl config vip -n <iorsdb01-adm>
+$ srvctl config nodeapps -a
+$ srvctl config asm
+```
 
 OIFCFG: -- Oracle Interface Configuration tool
 A command line tool for both single instance Oracle databases and RAC databases that enables us 
 to allocate and deallocate network interfaces to components, direct components to use specific 
 network interfaces, and retrieve component configuration information.
 
-NETWORE
-----------------------
-[grid@csmper-cls06 ~]$ srvctl config listener
-[grid@csmper-cls06 admin]$ srvctl config scan_listener
-[grid@csmper-cls06 ~]$ oifcfg iflist [-- display a list of current subnets]
+### NETWORE
+```
+$ srvctl config listener
+$ srvctl config scan_listener
+$ oifcfg iflist [-- display a list of current subnets]
 bond0  10.240.26.0
 bond1  10.240.27.0
 bond2  10.240.54.0
 bond2  169.254.0.0
 
-[grid@csmper-cls06 ~]$ oifcfg getif  [-- To display a list of networks]
+$ oifcfg getif  [-- To display a list of networks]
 bond0  10.240.26.0  global  public
 bond2  10.240.54.0  global  cluster_interconnect
-
-ExaData: 
+```
+### ExaData: 
+```
 $ oifcfg getif
 bondeth0  10.241.148.0  global  public
 ib0  172.16.108.0  global  cluster_interconnect
@@ -285,7 +241,7 @@ ib1  172.16.108.0  global  cluster_interconnect
 
 [grid@csmper-cls06 ~]$ cat /etc/hosts
 [grid@csmper-cls06 ~]$ cat /etc/resolv.conf
-search apac.ent.bhpbilliton.net
+search apac.ent.xxxx.net
 nameserver 10.27.40.20
 nameserver 10.27.12.32
 
@@ -295,59 +251,10 @@ ping -i 10.27.40.20
 ping -i 10.27.12.32
 
 Servers effected: CSMPER-CLS06/07/08
+```
 
-[grid@csmper-cls06 admin]$ cat listener.ora
-# listener.ora.csmper-cls06 Network Configuration File: /opt/oracle/11.2.0.2_grid/grid/network/admin/listener.ora.csmper-cls06
-# Generated by Oracle configuration tools.
-
-ENABLE_GLOBAL_DYNAMIC_ENDPOINT_LISTENER_SCAN3 = ON
-ENABLE_GLOBAL_DYNAMIC_ENDPOINT_LISTENER_SCAN2 = ON
-ENABLE_GLOBAL_DYNAMIC_ENDPOINT_LISTENER_SCAN1 = ON
-
-LOG_DIRECTORY_LISTENER = /opt/oracle/product/diag/tnslsnr/csmper-cls06/listener/trace/
-TRACE_DIRECTORY = /opt/oracle/product/diag/tnslsnr/csmper-cls06/listener/alert
-LOG_FILE_LISTENER = listener
-
-LISTENER =
-  (DESCRIPTION =
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = IPC)(KEY = LISTENER))
-    )
-  )
-
-LISTENER_CSMPER-CLS06 =
-  (DESCRIPTION =
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = TCP)(HOST = csmper-cls06-vip)(PORT = 1521))
-      (ADDRESS = (PROTOCOL = TCP)(HOST = 10.240.26.26)(PORT = 1521)(IP = FIRST))
-    )
-  )
-
-ENABLE_GLOBAL_DYNAMIC_ENDPOINT_LISTENER = ON
-
-LISTENER_SCAN3 =
-  (DESCRIPTION =
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = IPC)(KEY = LISTENER_SCAN3))
-    )
-  )
-
-LISTENER_SCAN2 =
-  (DESCRIPTION =
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = IPC)(KEY = LISTENER_SCAN2))
-    )
-  )
-
-LISTENER_SCAN1 =
-  (DESCRIPTION =
-    (ADDRESS_LIST =
-      (ADDRESS = (PROTOCOL = IPC)(KEY = LISTENER_SCAN1))
-    )
-  )
-
-Various Timeout Settings in Cluster:
------------------------------------------
+### Various Timeout Settings in Cluster:
+```
 Disktimeout: Disk Latencies in seconds from node-to-Votedisk. Default Value is 200. (Disk IO)
 
 Misscount: Network Latencies in second from node-to-node (Interconnect). Default Value is 60 Sec (Linux) and 30 Sec in Unix platform. (Network IO) Misscount < Disktimeout
@@ -360,22 +267,17 @@ ELSE
 DO NOT REBOOT
 END IF;
 
-crsctl get css disktimeout
-
-crsctl get css misscount
-
-crsctl get css reboottime
-
+```
+```
 [root@node1-pub ~]# crsctl get css disktimeout
-
 200
 
 [root@node1-pub ~]# crsctl get css misscount
+```
+### Configuration parameter misscount is not defined.
 
-Configuration parameter misscount is not defined.
---------------------------------------------------
 The above message indicates that the Misscount is not set manually and it is set to its default Value which is 60 seconds on Linux. It can be changed as below.
-
+```
 [root@node1-pub ~]# crsctl set css misscount 100
 Configuration parameter misscount is now set to 100.
 
@@ -386,737 +288,22 @@ The below command sets the value of misscount back to its default value.
 crsctl unset css misscount
 [root@node1-pub ~]# crsctl unset css misscount
 [root@node1-pub ~]# crsctl get css reboottime  
-
-
-
 crsd restart 
-
-
 
 root@iorsdb02-adm::/root
 cd /u01/app/grid/diag/crs/iorsdb01-adm/crs/trace/
 tailf crsd.trc
+```
 
-$ cd /opt/oracle.ExaWatcher/archive/Top.ExaWatcher/
+### CRS Check
+```
+$CRS_HOME/bin/crsctl check cluster -all
 
-2015_12_23_17_32_21_TopExaWatcher_iorsdb02-adm.apac.ent.bhpbilliton.net.dat.bz2
+$CRS_HOME/bin/crsctl status resource -t
+```
 
-bzgrep crsd.bin 2015_12_23_17*.bz2
- grep crsd 2015_12_29_08_10_10_TopExaWatcher_iorsdb02-adm.apac.ent.bhpbilliton.net.dat
-
-As OEM_INC_USER disable incident management 
-
- 
-
-On iorsdb01-adm
-
-Logon and become root user
-set +ASM as environment
-stop the crsd process
-
-crsctl stop res ora.crsd -init
-
-wait for 30 seconds and start it again
-
-crsctl start res ora.crsd -init
-
-Check if CRSD daemon is running again:
-
-$ crsctl check crs
-CRS-4638: Oracle High Availability Services is online
-CRS-4535: Cannot communicate with Cluster Ready Services
-CRS-4529: Cluster Synchronization Services is online
-CRS-4533: Event Manager is online
-
-Not yet!!
-
-$ crsctl check crs
-CRS-4638: Oracle High Availability Services is online
-CRS-4537: Cluster Ready Services is online
-CRS-4529: Cluster Synchronization Services is online
-CRS-4533: Event Manager is online
-
-Good to go!!
-
-I.	Repeat the same on iorsdb02-adm
-
-When CRSD daemon is OK op both hosts again check in OEM if all databases are up and running.
-You can run the crsstat command as well to check all resources. Only rac-services for standby databases should be offline.
-
-Enable incident management again!!!
-Please don't forget this one, because we will NOT be aware of any critical incidents…
-  
-
-
-
-interconnect 
-
-
-
-CLUSTER_INTERCONNECT
-One method of implementing this feature is to use the CLUSTER_INTERCONNECT parameter. By listing the IP addresses,
-Oracle is made aware of the additional interconnects and Oracle will use them for communication.
-ALTER SYSTEM SET CLUSTER_INTERCONNECT= '192.30.0.96: 192.30.0.100: 192.30.0.98'  scope=SPFILE SID='SSKY_1';
-
-Verifying the Interconnect
-Tuning the cluster interconnect should begin with verifying the hardware configuration. This basic check should
-ensure that the database is using the correct IP addresses or NICs for the interconnect.
-Check 1
-The following query provides a list of IP addresses registered with the Oracle database kernel:
-Script:MVRACPDnTap_verifyic.sql
-SELECT addr,
-indx,
-inst_id,
-pub_ksxpia,
-picked_ksxpia,
-name_ksxpia,
-ip_ksxpia
-FROM x$ksxpia;
-
-
-SELECT inst_id, name, ip_address, is_public
-FROM gv$cluster_interconnects
-ORDER BY inst_id;
-
-   INST_ID NAME                                          IP_ADDRESS                                       IS_PUBLIC
----------- --------------------------------------------- ------------------------------------------------ ---------
-         1 ib1:1                                         169.254.164.86                                   NO
-         1 ib0:1                                         169.254.5.50                                     NO
-
-SYS@PBDW12 SQL> select INST_ID, IP_ADDRESS from GV$CLUSTER_INTERCONNECTS;
-
-   INST_ID IP_ADDRESS
----------- ------------------------------------------------
-         2 169.254.101.237
-         2 169.254.153.193
-         1 169.254.101.213
-         1 169.254.251.25
-
-
-$ oifcfg iflist -p -n
-bond0  10.241.26.0  PRIVATE  255.255.255.0
-bond1  10.241.27.0  PRIVATE  255.255.255.0
-bond2  10.241.54.0  PRIVATE  255.255.255.0
-bond2  169.254.0.0  UNKNOWN  255.255.0.0
-The private interconnect is no longer recorded in the OCR file; instead, Oracle keeps the information locally in “GPnP” (Grid Plug and Play) profiles.
-
-$ netstat -i
-Kernel Interface table
-Iface       MTU Met    RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg
-bond0      1500   0 211034351457      0      0      0 168737889391      0      0      0 BMmRU
-bond0:1    1500   0      - no statistics available -                            BMmRU
-bond0:4    1500   0      - no statistics available -                            BMmRU
-bond0:6    1500   0      - no statistics available -                            BMmRU
-bond0:8    1500   0      - no statistics available -                            BMmRU
-bond0:9    1500   0      - no statistics available -                            BMmRU
-bond1      1500   0 38804506      0      0      0    34890      0      0      0 BMmRU
-bond2      1500   0 252258890549      0      0      0 243691509991      0      0      0 BMmRU
-bond2:1    1500   0      - no statistics available -                            BMmRU
-eth0       1500   0 170890176725      0      0      0 130040113472      0      0      0 BMsRU
-eth1       1500   0 40144174732      0      0      0 38697775919      0      0      0 BMsRU
-eth2       1500   0 15762991      0      0      0    28200      0      0      0 BMsRU
-eth3       1500   0 23041515      0      0      0     6690      0      0      0 BMsRU
-eth4       1500   0 161527333815      0      0      0 160150157301      0      0      0 BMsRU
-eth5       1500   0 90731556734      0      0      0 83541352690      0      0      0 BMsRU
-lo        16436   0 19353346412      0      0      0 19353346412      0      0      0 LRU
-
-bond0: is the public interconnect created using the bonding functionality.
-bond0:1, bond0:4, bond0:6 are all SCAN VIPs.
-bond2: is the private interconnect alias created using the bonding functionality.
-bond2:1 is the private interconnect VIP. Because VIPs are logical, there are no direct NICs attached to them; hence, there is no traffic or statistics visible.
-
-
-Check 3
-The database and ASM alert logs show entries related to the interconnect.
-Both the RDBMS and ASM alert logs can also be sources to confirm this information:  
-
-
-
-OCR 
-
-
-
-OCR is one of the critical components of an Oracle Clusterware, which maintains and manages essential details for the cluster sources such as RAC databases, listeners, instances, and services. 
-
-SIZE: Don't configure a large disk for OCR. A small disk of around 300 MB-500 MB is a good choice.
-
-The OCR is loaded as cache on each node, each node will update the cache then only one node is allowed to write the cache to the OCR file, the node is called the master.
-
-$ORA_CRS_HOME/bin/crs_stat -t
-$ORA_CRS_HOME/bin/crs_stop -all
-$ORA_CRS_HOME/bin/crs_stat -t
-$ORA_CRS_HOME/bin/crs_stat
-$ORA_CRS_HOME/bin/crs_start -all
-
-Adding, Replacing, Managing & Removing OCR
-
-we can’t have more than two OCRs.we can add an OCR either after an upgrade or after installing the RAC installation. If you already mirror the OCR, then you do not need to add an OCR location; Oracle does that automatically. If your OCR is on the network, do create a target file before performing any tasks! In addition, you must be logged in as the root user to run the ocrconfig tool.
-
-So if you created a single OCR, then add by doing the following. :
-+++++++++++++
-add a mirror file
-+++++++++++++
-1. To add an OCRMIRROR device when only OCR device is defined:
-To add an OCR mirror device, provide the full path including file name. 
-10.2 and 11.1:
-
-# ocrconfig -replace ocrmirror <filename>
-eg:
-# ocrconfig -replace ocrmirror /dev/raw/raw2
-# ocrconfig -replace ocrmirror /dev/sdc1
-# ocrconfig -replace ocrmirror /cluster_fs/ocrdisk.dat
-> ocrconfig -replace ocrmirror \\.\OCRMIRROR2  - for Windows
-
-11.2+: From 11.2 onwards, upto 4 ocrmirrors can be added
-
-# ocrconfig -add <filename>
-eg:
-# ocrconfig -add +OCRVOTE2
-# ocrconfig -add /cluster_fs/ocrdisk.dat
-
-+++++++++++++++++++++++++++
-remove an OCR device
-+++++++++++++++++++++++++++
-To remove an OCR device: 
-10.2 and 11.1:
-# ocrconfig -replace ocr
-
-11.2+:
-# ocrconfig -delete <filename>
-eg:
-# ocrconfig -delete +OCRVOTE1
-
-NOTE: 
-* Once an OCR device is removed, ocrmirror device automatically changes to be OCR device.
-* It is not allowed to remove OCR device if only 1 OCR device is defined, the command will return PROT-16.
-
-++++++++++++++++++++++++++
-remove an OCR mirror device: 
-++++++++++++++++++++++++++
-10.2 and 11.1:
-# ocrconfig -replace ocrmirror
-
-11.2+:
-# ocrconfig -delete <ocrmirror filename>
-eg:
-# ocrconfig -delete +OCRVOTE2
-
-NOTE: After removal, the old OCR/OCRMIRROR can be deleted if they are on cluster filesystem.
-+++++++++++++++++
-replace OCR
-+++++++++++++++++
-Note. 
-1. An ocrmirror must be in place before trying to replace the OCR device. The ocrconfig will fail with PROT-16, if there is no ocrmirror exists. 
-2. If an OCR device is replaced with a device of a different size, the size of the new device will not be reflected until the clusterware is restarted.
-
-10.2 and 11.1:
-To replace the OCR device with <filename>, provide the full path including file name.
-# ocrconfig -replace ocr <filename>
-eg:
-# ocrconfig -replace ocr /dev/sdd1
-$ ocrconfig -replace ocr \\.\OCR2 - for Windows
-To replace the OCR mirror device with <filename>, provide the full path including file name.
-# ocrconfig -replace ocrmirror <filename>
-eg:
-# ocrconfig -replace ocrmirrow /dev/raw/raw4
-# ocrconfig -replace ocrmirrow \\.\OCRMIRROR2  - for Windows
-
-11.2:
-The command is same for replace either OCR or OCRMIRRORs (at least 2 OCR exist for replace command to work):
-# ocrconfig -replace <current filename> -replacement <new filename>
-eg:
-# ocrconfig -replace /cluster_file/ocr.dat -replacement +OCRVOTE
-# ocrconfig -replace +CRS -replacement +OCRVOTE
-
-4. To restore an OCR when clusterware is down
-When OCR is not accessible, CRSD process will not start, hence the clusterware stack will not start completely. A restore of OCR device access and good OCR content is required.
-To view the automatic OCR backup:
-
-# ocrconfig -showbackup
-To restore the OCR backup:
-
-# ocrconfig -restore <path/filename of OCR backup>
-
-For 11.2: If OCR is located in ASM disk and ASM disk is also lost, please check out:
-How to restore ASM based OCR after complete loss of the CRS diskgroup on Linux/Unix systems Document 1062983.1
-How to Restore OCR After the 1st ASM Diskgroup is Lost on Windows Document 1294915.1
-
-++++++++++++++++++++++++++++++
-ADD/DELETE/MOVE Voting Disk
-+++++++++++++++++++++++++++++++
-Note: 1. crsctl votedisk commands must be run as root for 10.2 and 11.1, but can be run as grid user for 11.2+
-2. For 11.2, when using ASM disks for OCR and voting, the command is same for Windows and Unix platform.
-For pre 11.2, to take a backup of voting disk:
-
-$ dd if=voting_disk_name of=backup_file_name
-For Windows:
-
-ocopy \\.\votedsk1 o:\backup\votedsk1.bak
-For 11.2+, it is no longer required to back up the voting disk. The voting disk data is automatically backed up in OCR as part of any configuration change. The voting disk files are backed up automatically by Oracle Clusterware if the contents of the files have changed in the following ways:
-
-Configuration parameters, for example misscount, have been added or modified
-
-After performing voting disk add or delete operations
-
-The voting disk contents are restored from a backup automatically when a new voting disk is added or replaced.
-
-For 10gR2 release
-Shutdown the Oracle Clusterware (crsctl stop crs as root) on all nodes before making any modification to the voting disk. Determine the current voting disk location using:
-crsctl query css votedisk
-
-1. To add a Voting Disk, provide the full path including file name: 
-# crsctl add css votedisk <VOTEDISK_LOCATION> -force
-eg:
-# crsctl add css votedisk /dev/raw/raw1 -force
-# crsctl add css votedisk /cluster_fs/votedisk.dat -force
-> crsctl add css votedisk \\.\VOTEDSK2 -force   - for windows
-
-2. To delete a Voting Disk, provide the full path including file name:
-# crsctl delete css votedisk <VOTEDISK_LOCATION> -force
-eg:
-# crsctl delete css votedisk /dev/raw/raw1 -force
-# crsctl delete css votedisk /cluster_fs/votedisk.dat -force
-> crsctl delete css votedisk \\.\VOTEDSK1 -force   - for windows
-
-3. To move a Voting Disk, provide the full path including file name, add a device first before deleting the old one:
-# crsctl add css votedisk <NEW_LOCATION> -force
-# crsctl delete css votedisk <OLD_LOCATION> -force
-eg:
-# crsctl add css votedisk /dev/raw/raw4 -force
-# crsctl delete css votedisk /dev/raw/raw1 -force
-After modifying the voting disk, start the Oracle Clusterware stack on all nodes
-
-# crsctl start crs
-Verify the voting disk location using
-
-# crsctl query css votedisk
-For 11gR1 release
-Starting with 11.1.0.6, the below commands can be performed online (CRS is up and running).
-
-1. To add a Voting Disk, provide the full path including file name:
-
-# crsctl add css votedisk <VOTEDISK_LOCATION>
-eg:
-# crsctl add css votedisk /dev/raw/raw1
-# crsctl add css votedisk /cluster_fs/votedisk.dat
-> crsctl add css votedisk \\.\VOTEDSK2        - for windows
-2. To delete a Voting Disk, provide the full path including file name:
-
-# crsctl delete css votedisk <VOTEDISK_LOCATION>
-eg:
-# crsctl delete css votedisk /dev/raw/raw1 -force
-# crsctl delete css votedisk /cluster_fs/votedisk.dat
-> crsctl delete css votedisk \\.\VOTEDSK1     - for windows
-3. To move a Voting Disk, provide the full path including file name:
-
-# crsctl add css votedisk <NEW_LOCATION> 
-# crsctl delete css votedisk <OLD_LOCATION>
-eg:
-# crsctl add css votedisk /dev/raw/raw4
-# crsctl delete css votedisk /dev/raw/raw1
-Verify the voting disk location:
-
-# crsctl query css votedisk
- 
-
-For 11gR2 release
-From 11.2, votedisk can be stored on either ASM diskgroup or cluster file systems. The following commands can only be executed when Grid Infrastructure is running. As grid user:
-
-1. To add a Voting Disk
-a. When votedisk is on cluster file system:
-
-$ crsctl add css votedisk <cluster_fs/filename>
-b. When votedisk is on ASM diskgroup, no add option available.
-The number of votedisk is determined by the diskgroup redundancy. If more copies of votedisks are desired, one can move votedisk to a diskgroup with higher redundancy. See step 4.
-If a votedisk is removed from a normal or high redundancy diskgroup for abnormal reason, it can be added back using:
-
-alter diskgroup <vote diskgroup name> add disk '</path/name>' force;
- 
-2. To delete a Voting Disk
-a. When votedisk is on cluster file system:
-
-$ crsctl delete css votedisk <cluster_fs/filename>
-or
-$ crsctl delete css votedisk <vdiskGUID>     (vdiskGUID is the File Universal Id from 'crsctl query css votedisk')
-b. When votedisk is on ASM, no delete option available, one can only replace the existing votedisk group with another ASM diskgroup
-
-3. To move a Voting Disk on cluster file system
-
-$ crsctl add css votedisk <new_cluster_fs/filename>
-$ crsctl delete css votedisk <old_cluster_fs/filename>
-or
-$ crsctl delete css votedisk <vdiskGUID>
-4. To move voting disk on ASM from one diskgroup to another diskgroup due to redundancy change or disk location change
-
-$ crsctl replace votedisk <+diskgroup>|<vdisk>
-Example here is moving from external redundancy +OCRVOTE diskgroup to normal redundancy +CRS diskgroup
-
-1. create new diskgroup +CRS as desired
-
-2. $ crsctl query css votedisk
-##  STATE    File Universal Id                File Name Disk group
---  -----    -----------------                --------- ---------
- 1. ONLINE   5e391d339a594fc7bf11f726f9375095 (ORCL:ASMDG02) [+OCRVOTE]
-Located 1 voting disk(s).
-
-3. $ crsctl replace votedisk +CRS
-Successful addition of voting disk 941236c324454fc0bfe182bd6ebbcbff.
-Successful addition of voting disk 07d2464674ac4fabbf27f3132d8448b0.
-Successful addition of voting disk 9761ccf221524f66bff0766ad5721239.
-Successful deletion of voting disk 5e391d339a594fc7bf11f726f9375095.
-Successfully replaced voting disk group with +CRS.
-CRS-4266: Voting file(s) successfully replaced
-
-4. $ crsctl query css votedisk
-##  STATE    File Universal Id                File Name Disk group
---  -----    -----------------                --------- ---------
- 1. ONLINE   941236c324454fc0bfe182bd6ebbcbff (ORCL:CRSD1) [CRS]
- 2. ONLINE   07d2464674ac4fabbf27f3132d8448b0 (ORCL:CRSD2) [CRS]
- 3. ONLINE   9761ccf221524f66bff0766ad5721239 (ORCL:CRSD3) [CRS]
-Located 3 voting disk(s).
-5. To move voting disk between ASM diskgroup and cluster file system
-a. Move from ASM diskgroup to cluster file system:
-
-$ crsctl query css votedisk
-##  STATE    File Universal Id                File Name Disk group
---  -----    -----------------                --------- ---------
- 1. ONLINE   6e5850d12c7a4f62bf6e693084460fd9 (ORCL:CRSD1) [CRS]
- 2. ONLINE   56ab5c385ce34f37bf59580232ea815f (ORCL:CRSD2) [CRS]
- 3. ONLINE   4f4446a59eeb4f75bfdfc4be2e3d5f90 (ORCL:CRSD3) [CRS]
-Located 3 voting disk(s).
-
-$ crsctl replace votedisk /rac_shared/oradata/vote.test3
-Now formatting voting disk: /rac_shared/oradata/vote.test3.
-CRS-4256: Updating the profile
-Successful addition of voting disk 61c4347805b64fd5bf98bf32ca046d6c.
-Successful deletion of voting disk 6e5850d12c7a4f62bf6e693084460fd9.
-Successful deletion of voting disk 56ab5c385ce34f37bf59580232ea815f.
-Successful deletion of voting disk 4f4446a59eeb4f75bfdfc4be2e3d5f90.
-CRS-4256: Updating the profile
-CRS-4266: Voting file(s) successfully replaced
-
-$ crsctl query css votedisk
-##  STATE    File Universal Id                File Name Disk group
---  -----    -----------------                --------- ---------
- 1. ONLINE   61c4347805b64fd5bf98bf32ca046d6c (/rac_shared/oradata/vote.disk) []
-Located 1 voting disk(s). 
-b. Move from cluster file system to ASM diskgroup
-
-$ crsctl query css votedisk
-##  STATE    File Universal Id                File Name Disk group
---  -----    -----------------                --------- ---------
- 1. ONLINE   61c4347805b64fd5bf98bf32ca046d6c (/rac_shared/oradata/vote.disk) []
-Located 1 voting disk(s).
-
-$ crsctl replace votedisk +CRS
-CRS-4256: Updating the profile
-Successful addition of voting disk 41806377ff804fc1bf1d3f0ec9751ceb.
-Successful addition of voting disk 94896394e50d4f8abf753752baaa5d27.
-Successful addition of voting disk 8e933621e2264f06bfbb2d23559ba635.
-Successful deletion of voting disk 61c4347805b64fd5bf98bf32ca046d6c.
-Successfully replaced voting disk group with +CRS.
-CRS-4256: Updating the profile
-CRS-4266: Voting file(s) successfully replaced
-
-[oragrid@auw2k4 crsconfig]$ crsctl query css votedisk
-##  STATE    File Universal Id                File Name Disk group
---  -----    -----------------                --------- ---------
- 1. ONLINE   41806377ff804fc1bf1d3f0ec9751ceb (ORCL:CRSD1) [CRS]
- 2. ONLINE   94896394e50d4f8abf753752baaa5d27 (ORCL:CRSD2) [CRS]
- 3. ONLINE   8e933621e2264f06bfbb2d23559ba635 (ORCL:CRSD3) [CRS]
-Located 3 voting disk(s).
-6. To verify:
-
-$ crsctl query css votedisk
-
-To remove an OCR, you need to have at least one OCR online. You may want to do this to reduce overhead or for other storage reasons, 
-such as stopping a mirror to move it to SAN, RAID etc. Carry out the following steps :
-
-Check if at least one OCR is online 
-Remove the OCR or OCR mirror 
-  ocrconfig -replace ocr ;
-  ocrconfig -replace ocrmirror;
-
- Type ocrconfig -option to see all the commands.
-
-
-RESTORING OCR
-------------------------------
-The following steps demonstrate the procedure to restore the OCR using the latest binary backup copy on a shared storage device, applicable for 11g R1 and 11g R2.
-1. Firstly, you will need to locate the latest binary backup copy of the OCR. As root user on any node of a cluster, execute the following command to find out the latest backup copy details:
-./ocrconfig -showbackup
-2. After identifying and determining the backup file to be restored, ensure you are logged in as root user and stop the cluster stack across the nodes of the cluster by using the following command:
-./crsctl stop crs (repeat the command on all nodes in 11g R1)
-3. In 11g R2:
-./crsctl stop cluster -all (just from the first node)
-./crsctl stop crs (repeat the command on all nodes in 11g R2)
-4. After the cluster stack is successfully stopped on all the nodes, proceed to restore the backup file identified previously using the following command:
-./ocrconfig -restore <backup_copy_location_filename>
-5. Once you have successfully restored the backup file, bring up the cluster stack on all the nodes of a cluster using the following command:
-./crsctl start crs
-6. Perform the OCR integrity checks using the following commands to ensure the restoration is successful:
-./ocrcheck
-./cluvfy comp ocr -n all -verbose
-
-Now, we will look at the procedure to restore an OCR and Voting disk file that are stored together in the same ASM diskgroup. The steps demonstrate how to reconstruct the corrupted or lost diskgroup followed by restoring/recovering the OCR and Voting disk file:
-1. Firstly, you will need to locate the latest binary backup copy of the OCR. As root user on any node of a cluster, run the following command to find out the latest backup file details:
-./ocrconfig -showbackup
-2. After identifying and determining the backup file to be restored, stop the cluster stack across the nodes of a cluster and run the following command as root user:
-./crsctl stop crs (use -f flag if you have any issues stopping the cluster stack)
-3. Start up the cluster stack in exclusive mode on a node that holds the latest binary backup file for OCR. Run the following command as root user:
-./crsctl start crs -excl
-4. Connect to the local ASM instance on the node to recreate the diskgroup first, ensure the diskgroup COMPATIBLE.ASM attribute is set to 11.2, and run the following commands as GRID software owner:
-export ORACLE_SID=+ASM1 - assuming it is on the first node
-export ORACLE_HOME=$ORA_GRID_HOME - set gird home
-sqlplus / as sysasm
-SQL> CREATE DISKGROUP data EXTERNAL REDUNDANCY
-DISK '/dev/diskname1'
-ATTRIBUTE 'COMPATIBLE.ASM'='11.2';
-Exit from the SQLPLUS prompt upon creating the diskgroup successfully.
-5. As root user, run the following command to restore the OCR from a backup copy:
-./ocrconfig -restore /u00/grid/oracle/product/11.2.0/cdata/crsgrid-scan/backup00.ocr
-6. Upon restoring the OCR file successfully, you then need to run the following command as root user to recreate the Voting disk file on the newly-recreated diskgroup:
-./crsctl start res ora.crsd -init
-./crsctl replace votedisk +DATA
-7. After restoring the Voting disk file successfully on to the diskgroup, stop the cluster stack on the local node and start the cluster stack subsequently across all the nodes of the cluster using the following command:
-./crsctl stop crs
-./crsctl start crs (repeat this command on all nodes)
-8. Perform the OCR integrity checks after starting up the cluster stack successfully on all the nodes, using the following command:
-./ocrcheck
-./cluvfy comp ocr -n all -verbose
-
-+++++++++++++++Other Example +++++++++++++++++++++++++++
-Procedure for Restoring the Oracle Cluster Registry on UNIX-Based Systems
-
-1. Stop the following OCR daemons: CSSD, CRSD, EVMD, and the EVM logger. On Linux the init.crs script located in the /etc/init.d directory is used to stop these daemons, for example:
-[root@aultlinux1 init.d]#/etc/init.d/init.crs stop
-2. Shut down all the nodes in the cluster and restart from one node in single-user mode.
-3. Identify the recent backups using the ocrconfig -showbackup command.
-4. Execute the restore by applying an OCR backup file identified in Step 3 with the ocrconfig -restore <file name> command.
-5. Restart the CRS, CSS, and EVM daemons and resume operations in cluster mode. The daemons can be restarted using the same script as in step one only use the start option:
-
-[root@aultlinux1 init.d]#/etc/init.d/init.crs start
-Procedure for Restoring the Oracle Cluster Registry on Windows-Based Systems
-
-1. Shut down all but one node in the RAC database.
-2. Disable the following OCR clients and stop them using the Service Control Panel:
-
-* OracleClusterVolumeService,
-* OracleCSService,
-* OracleCRService, and the
-* OracleEVMService.
-
-3. Identify the recent backups using the ocrconfig -showbackup command.
-4. Execute the restore by applying an OCR backup file identified in Step 3 with the ocrconfig -restore <file name> command.
-5. Start all the services that were stopped in step 2. Restart all the instances and resume operations in cluster mode.
-
-RESTORING ASM based OCR
-------------------------------------------------
-How to restore ASM based OCR after complete loss of the CRS diskgroup on Linux/Unix systems [ID 1062983.1]
-
-Fix
-When using an ASM disk group for CRS there are typically 3 different types of files located in the disk group that potentially need to be restored/recreated:
-
-the Oracle Cluster Registry file (OCR) 
-the Voting file(s) 
-the shared SPFILE for the ASM instances 
-The following example assumes that the OCR was located in a single disk group used exclusively for CRS. The disk group has just one disk using external redundancy.
-
-Since the CRS disk group has been lost the CRS stack will not be available on any node.
-
-The following settings used in the example would need to be replaced according to the actual configuration:
-
-GRID user:                       oragrid
-GRID home:                       /u01/app/11.2.0/grid ($CRS_HOME)
-ASM disk group name for OCR:     CRS
-ASM/ASMLIB disk name:            ASMD40
-Linux device name for ASM disk:  /dev/sdh1
-Cluster name:                    rac_cluster1
-Nodes:                           racnode1, racnode2
-
-
-This document assumes that the name of the OCR diskgroup remains unchanged, however there may be a need to use a different diskgroup name, in which case the name of the OCR diskgroup would have to be modified in /etc/oracle/ocr.loc across all nodes prior to executing the following steps.
-
-1. Locate the latest automatic OCR backup
-
-When using a non-shared CRS home, automatic OCR backups can be located on any node of the cluster, consequently all nodes need to be checked for the most recent backup:
-
-# ocrconfig -showbackup
-
-$ ls -lrt $CRS_HOME/cdata/rac_cluster1/
--rw------- 1 root root 7331840 Mar 10 18:52 week.ocr
--rw------- 1 root root 7651328 Mar 26 01:33 week_.ocr
--rw------- 1 root root 7651328 Mar 29 01:33 day.ocr
--rw------- 1 root root 7651328 Mar 30 01:33 day_.ocr
--rw------- 1 root root 7651328 Mar 30 01:33 backup02.ocr
--rw------- 1 root root 7651328 Mar 30 05:33 backup01.ocr
--rw------- 1 root root 7651328 Mar 30 09:33 backup00.ocr
-
-2. Make sure the Grid Infrastructure is shutdown on all nodes
-
-Given that the OCR diskgroup is missing, the GI stack will not be functional on any node, however there may still be various daemon processes running.  On each node shutdown the GI stack using the force (-f) option:
-
-# $CRS_HOME/bin/crsctl stop crs -f
-
-3. Start the CRS stack in exclusive mode
-
-On the node that has the most recent OCR backup, log on as root and start CRS in exclusive mode, this mode will allow ASM to start & stay up without the presence of a Voting disk and without the CRS daemon process (crsd.bin) running.
-
-11.2.0.1:
-
-# $CRS_HOME/bin/crsctl start crs -excl
-...
-CRS-2672: Attempting to start 'ora.asm' on 'racnode1'
-CRS-2676: Start of 'ora.asm' on 'racnode1' succeeded
-CRS-2672: Attempting to start 'ora.crsd' on 'racnode1'
-CRS-2676: Start of 'ora.crsd' on 'racnode1' succeeded
-
-Please note:
-This document assumes that the CRS diskgroup was completely lost, in which  case the CRS daemon (resource ora.crsd) will terminate again due to the inaccessibility of the OCR - even if above message indicates that the start succeeded. 
-If this is not the case - i.e. if the CRS diskgroup is still present (but corrupt or incorrect) the CRS daemon needs to be shutdown manually using:
-# $CRS_HOME/bin/crsctl stop res ora.crsd -init
-otherwise the subsequent OCR restore will fail.
-
-11.2.0.2 and above:
-
-# $CRS_HOME/bin/crsctl start crs -excl -nocrs
-CRS-4123: Oracle High Availability Services has been started.
-...
-CRS-2672: Attempting to start 'ora.cluster_interconnect.haip' on 'auw2k3'
-CRS-2672: Attempting to start 'ora.ctssd' on 'racnode1'
-CRS-2676: Start of 'ora.drivers.acfs' on 'racnode1' succeeded
-CRS-2676: Start of 'ora.ctssd' on 'racnode1' succeeded
-CRS-2676: Start of 'ora.cluster_interconnect.haip' on 'racnode1' succeeded
-CRS-2672: Attempting to start 'ora.asm' on 'racnode1'
-CRS-2676: Start of 'ora.asm' on 'racnode1' succeeded
- 
-
-IMPORTANT:
-A new option '-nocrs' has been introduced with  11.2.0.2, which prevents the start of the ora.crsd resource. It is vital that this option is specified, otherwise the failure to start the ora.crsd resource will tear down ora.cluster_interconnect.haip, which in turn will cause ASM to crash.
-
-
-4. Label the CRS disk for ASMLIB use
-
-If using ASMLIB the disk to be used for the CRS disk group needs to stamped first, as user root do:
-
-# /usr/sbin/oracleasm createdisk ASMD40 /dev/sdh1
-Writing disk header: done
-Instantiating disk: done
-
-
-5. Create the CRS diskgroup via sqlplus
-
-The disk group can now be (re-)created via sqlplus from the grid user. The compatible.asm attribute must be set to 11.2 in order for the disk group to be used by CRS:
-
-$ sqlplus / as sysasm
-SQL*Plus: Release 11.2.0.1.0 Production on Tue Mar 30 11:47:24 2010
-Copyright (c) 1982, 2009, Oracle. All rights reserved.
-Connected to:
-Oracle Database 11g Enterprise Edition Release 11.2.0.1.0 - Production
-With the Real Application Clusters and Automatic Storage Management options
-
-SQL> create diskgroup CRS external redundancy disk 'ORCL:ASMD40' attribute 'COMPATIBLE.ASM' = '11.2';
-
-Diskgroup created.
-SQL> exit
-
-6. Restore the latest OCR backup
-
-Now that the CRS disk group is created & mounted the OCR can be restored - must be done as the root user:
-
-# cd $CRS_HOME/cdata/rac_cluster1/
-# $CRS_HOME/bin/ocrconfig -restore backup00.ocr
-
-7. Start the CRS daemon on the current node (11.2.0.1 only !)
-Now that the OCR has been restored the CRS daemon can be started, this is needed to recreate the Voting file. Skip this step for 11.2.0.2.0.
-
-# $CRS_HOME/bin/crsctl start res ora.crsd -init 
-CRS-2672: Attempting to start 'ora.crsd' on 'racnode1'
-CRS-2676: Start of 'ora.crsd' on 'racnode1' succeeded
-
-8. Recreate the Voting file
-
-The Voting file needs to be initialized in the CRS disk group:
-
-# $CRS_HOME/bin/crsctl replace votedisk +CRS
-Successful addition of voting disk 00caa5b9c0f54f3abf5bd2a2609f09a9.
-Successfully replaced voting disk group with +CRS.
-CRS-4266: Voting file(s) successfully replaced
-
-9. Recreate the SPFILE for ASM (optional)
-
-
-
-Please note:
-Starting with 11gR2 ASM can start without a PFILE or SPFILE, so if you are 
-- not using an  SPFILE for ASM 
-- not using a shared SPFILE for ASM 
-- using a shared SPFILE not stored in ASM (e.g. on cluster file system)
-this step possibly should be skipped. 
-
-Also use extra care in regards to the asm_diskstring parameter as it impacts the discovery of the voting disks.
-
-Please verify the previous settings using the ASM alert log.
-
-Prepare a pfile (e.g. /tmp/asm_pfile.ora) with the ASM startup parameters - these may vary from the example below. If in doubt consult the ASM alert log  as the ASM instance startup should list all non-default parameter values. Please note the last startup of ASM (in step 2 via CRS start) will not have used an SPFILE, so a startup prior to the loss of the CRS disk group would need to be located.
-
-*.asm_power_limit=1
-*.diagnostic_dest='/u01/app/oragrid'
-*.instance_type='asm'
-*.large_pool_size=12M
-*.remote_login_passwordfile='EXCLUSIVE'
-Now the SPFILE can be created using this PFILE:
-
-$ sqlplus / as sysasm
-SQL> create spfile='+CRS' from pfile='/tmp/asm_pfile.ora';
-
-10. Shutdown CRS 
-
-Since CRS is running in exclusive mode, it needs to be shutdown  to allow CRS to run on all nodes again. Use of the force (-f) option may be required:
-
-# $CRS_HOME/bin/crsctl stop crs -f
-...
-CRS-2793: Shutdown of Oracle High Availability Services-managed resources on 'auw2k3' has completed
-CRS-4133: Oracle High Availability Services has been stopped.
-
-
-11. Rescan ASM disks
-
-If using ASMLIB rescan all ASM disks on each node as the root user:
-
-# /usr/sbin/oracleasm scandisks
-Reloading disk partitions: done
-Cleaning any stale ASM disks...
-Scanning system for ASM disks...
-Instantiating disk "ASMD40"
-
-12. Start CRS 
-As the root user submit the CRS startup on all cluster nodes:
-
-# $CRS_HOME/bin/crsctl start crs
-CRS-4123: Oracle High Availability Services has been started.
-
-13. Verify CRS 
-
-To verify that CRS is fully functional again:
-
-# $CRS_HOME/bin/crsctl check cluster -all
-**************************************************************
-racnode1:
-CRS-4537: Cluster Ready Services is online
-CRS-4529: Cluster Synchronization Services is online
-CRS-4533: Event Manager is online
-**************************************************************
-racnode2:
-CRS-4537: Cluster Ready Services is online
-CRS-4529: Cluster Synchronization Services is online
-CRS-4533: Event Manager is online
-**************************************************************
-
-# $CRS_HOME/bin/crsctl status resource -t
-...
-BACKUP
-+++++++++
+### BACKUP
+```
 To show the backups, type the commands :             ocrconfig -showbackup 
 Perform a manual backup:      ocrconfig -manualbackup
 Logical backup:                    #ocrconfig -export /home/oracle/ocr.backup
@@ -1146,18 +333,13 @@ Stop the RAC Clusterware on all nodes by going to the bin directory of your clus
 Now we have to carry out the import by supplying the following commands. Here myfile will be the file from which you want to import your OCR configuration data 
  ocrconfig -import myfile
 Doing a cluvfy comp ocr -n all [-verbose] will retrieve a list of all the nodes in the cluster. 
-
+```
   
+### Processes 
 
+```
 
-
-Processes 
-
-
-
-various RAC – Clusterware process handling test cases, if any of these processes get killed, how RAC clusterware will handle it.
-
-On RAC node 1 (iorsdb01-adm)
+On RAC node 1
 1.Log in as root or your custom OS USER (i.e. grid) depend upon what processes you are killing.
 2.Set up environment
 
@@ -1175,9 +357,10 @@ Swap: 25165820k total,  2196540k used, 22969280k free, 65650428k cached
 
    PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND
  78198 root      20   0 2584m 201m  30m S  0.7  0.0  18:16.20 crsd.bin
+```
 
-CRSD Process (root)
-====================
+### CRSD Process (root)
+```
 1.Check CRSD
 
 [root@racpoc01 ~]# ps -aef | grep -i crsd
@@ -1192,9 +375,10 @@ root      78198      1  3 05:01 ?        00:12:35 /u01/app/12.1.0.2/gi_000/bin/c
 3.Check CRSD should restart automatically.
 
 #  ps -aef | grep -i crsd
+```
 
-EVMD Process (grid)
-=====================
+### EVMD Process (grid)
+```
 1.Check EVMD
 grid@iorsdb01-adm:+ASM1:/home/grid
 $  ps -aef | grep -i evmd
@@ -1207,9 +391,10 @@ $ kill -9 14594
 
 3.Check EVMD should restart automatically.
 $  ps -aef | grep -i evmd
+```
 
-GRID CRSD ORAAGENT Process
-===========================
+### GRID CRSD ORAAGENT Process
+```
 1.Check GRID CRSD ORAAGENT
 $ locate oraagent_grid.pid
 /u01/app/grid/crsdata/iorsdb01-adm/output/crsd_oraagent_grid.pid
@@ -1230,22 +415,15 @@ ps -aef | grep -i oraagent
 
 $ cat /u01/app/grid/crsdata/iorsdb01-adm/output/crsd_oraagent_grid.pid
 <NEW Process>
+```
 
-
-GRID OHASD ORAAGENT Process
-=============================
+### GRID OHASD ORAAGENT Process
+```
 $ locate oraagent_grid.pid
-/u01/app/grid/crsdata/iorsdb01-adm/output/crsd_oraagent_grid.pid
-/u01/app/grid/crsdata/iorsdb01-adm/output/ohasd_oraagent_grid.pid
 
 1.Check GRID OHASD ORAAGENT
 $ cat /u01/app/grid/crsdata/iorsdb01-adm/output/ohasd_oraagent_grid.pid
-14579
 $ ps -aef | grep -i oraagent
-grid      14579      1  0 May11 ?        18:00:13 /u01/app/12.1.0.2/gi_000/bin/oraagent.bin
-grid      69160  84602  2 11:33 pts/1    00:00:00 grep -i oraagent
-grid      81805      1  0 05:01 ?        00:02:39 /u01/app/12.1.0.2/gi_000/bin/oraagent.bin
-oracle    81814      1 20 05:01 ?        01:19:40 /u01/app/12.1.0.2/gi_000/bin/oraagent.bin
 
 2.Kill GRID OHASD ORAAGENT
 kill -9 14579
@@ -1253,9 +431,10 @@ kill -9 14579
  ps -aef | grep -i oraagent
 
 cat /u01/app/grid/crsdata/iorsdb01-adm/output/ohasd_oraagent_grid.pid
+```
 
-GRID CRSD ROOTAGENT Process ( root )
-=======================================
+### GRID CRSD ROOTAGENT Process ( root )
+```
 $ locate orarootagent_root.pid
 /u01/app/grid/crsdata/iorsdb01-adm/output/crsd_orarootagent_root.pid
 /u01/app/grid/crsdata/iorsdb01-adm/output/ohasd_orarootagent_root.pid
@@ -1271,9 +450,10 @@ Kill -9 <>
 	#  ps -aef | grep -i rootagent
 
 cat /u01/app/grid/crsdata/iorsdb01-adm/output/crsd_orarootagent_root.pid
+```
 
-GRID OHASD ROOTAGENT Process ( root )
-===========================================
+### GRID OHASD ROOTAGENT Process ( root )
+```
 1. 
 cat /u01/app/grid/crsdata/iorsdb01-adm/output/ohasd_orarootagent_root.pid
 
@@ -1286,10 +466,10 @@ cat /u01/app/grid/crsdata/iorsdb01-adm/output/ohasd_orarootagent_root.pid
 # ps -aef | grep -i rootagent
 
 cat /u01/app/grid/crsdata/iorsdb01-adm/output/ohasd_orarootagent_root.pid
+```
 
-
-RDBMS CRSD ORAAGENT Process (oracle)
-======================================
+### RDBMS CRSD ORAAGENT Process (oracle)
+```
 1.Check RDBMS CRSD ORAAGENT
 $ locate oraagent_oracle.pid
 /u01/app/grid/crsdata/iorsdb01-adm/output/crsd_oraagent_oracle.pid
@@ -1303,9 +483,11 @@ $ kill -9 <>
 
 2.Check RDBMS CRSD ORAAGENT should restart automatically.
 $ ps -aef | grep -i oraagent
+```
 
-CSSD Process [THINK FIRST]
-======================
+
+### CSSD Process [THINK FIRST]
+```
 1.Check CSSD
 grid@iorsdb01-adm:+ASM1:/home/grid
 $ ps -aef | grep -i cssd
@@ -1321,34 +503,16 @@ kill -9 15324
 3.Check node is rebooted and check VIP failed over during reboot and then after node restartVIP failed back automatically.
 $ crsctl stat res –t
 
+```
 
-LOGS:
+### LOGS:
 
+```
 $ORACLE_HOME/log/<node2>/cssd/ocssd.log
+```
 
-
-"crsctl start crs" and new parameter on 11.2 "crsctl start cluster" the both have the same result?
-We can say that not has the same result.
-
-crsctl start/stop crs - Manage start/stop the entire Oracle Clusterware stack on a node, including the OHASD process, this command is to be used only on the local node..
-
-crsctl start/stop cluster - Manage start/stop the Oracle Clusterware stack on local node if you do not specify either -all or -n and nodes remote if option -n or -all be specified , NOT including the OHASD process. You can't start/stop clusterware stack without OHASD process running.
-
-Despite crsctl start/stop crs manage entire Oracle Clusterware stack on local node crsctl start/stop crs not allow you to manage remote nodes, unlike crsctl start/stop cluster that allows you to manage all the nodes, but if the process OASH is runing.
-
-To manage Oracle Clusterware Stack on remote nodes, the ohasd (Oracle High Availability Services Daemon) must be running on all managed nodes. (i.e using crsctl start cluster -n <node1>, <node2>)
-
-Then if you try use crsctl start cluster -n node1,node2 and your local node is node1 and on node1 or node2 OHASD not running this command will fails. 
-  
-
-
-
-Recreate OCR/Voting Disk 
-
-
-
-How to Recreate OCR/Voting Disk Accidentally Deleted [ID 399482.1]
-
+### How to Recreate OCR/Voting Disk Accidentally Deleted [ID 399482.1]
+```
 Depending on the issue, it may or may not be good idea to execute the steps provided.
 
 OCR  
@@ -1391,13 +555,7 @@ Add ASM & database resource to the OCR using the appropriate srvctl add database
 Add  Instance, services using appropriate srvctl add commands. Please refer to the documentation for the exact commands. 
 execute cluvfy stage -post crsinst -n node1,node2    ### Please ensure to replace node1,node2 with the node names of the cluster 
 
-  
-
-
-
-VotingDISK issue 
-
-
+ VotingDISK issue 
 
 Linux: root.sh Fails to Format Voting disks when Placing OCR/Voting Disks on ASM Using asmlib [ID 955550.1] 
 --------------------------------------------------------------------------------
@@ -1526,22 +684,14 @@ Note down the File Universal Id (FUID) of the voting disk
 subsequently, by using the following set of commands as root user:
 ./crsctl stop crs -f
 ./crsctl start crs
-  
+```  
 
+--------------------------------------------------------------------------------
+			A	S	M
+   -----------------------------------------------------------------------------
 
-
-ASM 
-
- 
-
-
-
-ADD-ASMDISKS 
-
-
-
-
-cat asmdu.sh
+### asmdu.sh
+```
 #!/bin/bash
 #
 # du of each subdirectory in a directory for ASM
@@ -1568,6 +718,9 @@ fi
                          END   { printf("\n\n%25s%16s%16s\n", "------", "-------", "---------");
                                  printf("%25s%16s%16s\n\n", "Total", use, mir)                 ;} '
 
+```
+## Sample command
+```
 . oraenv
 +ASM1
 ./asmdu.sh DATA
@@ -1575,9 +728,10 @@ fi
 Another one with many archivelogs directories :
 
 [oracle@]$./asmdu.sh FRA/THE_DB/ARCHIVELOG/
+```
 
-ASM ADD DISK
---------------
+### ASM ADD DISK
+```
 Step1. The current disk group configuration
 
 set lines 255
@@ -1811,16 +965,12 @@ With the Real Application Clusters and Automatic Storage Management options
 SYS@+ASM3 SQL> alter diskgroup PAMPRD_DATA_01 add disk 'ORCL:PORCFPEBKP03';
 
 Diskgroup altered.
+```
 
 
-  
+### ASM information
 
-
-
-ASM info 
-
-
-
+```
 SET LINESIZE  145
 SET PAGESIZE  9999
 SET VERIFY    off
@@ -1849,9 +999,9 @@ SELECT
   , ROUND((1- (free_mb / total_mb))*100, 2)  pct_used
 FROM v$asm_diskgroup
 ORDER BY name;
-
-SYS@+ASM1 SQL> /
-
+```
+### Sample Output
+```
 Disk Group            Sector   Block   Allocation
 Name                    Size    Size    Unit Size State       Type   Total Size (MB) Used Size (MB) Pct. Used
 -------------------- ------- ------- ------------ ----------- ------ --------------- -------------- ---------
@@ -1860,10 +1010,11 @@ DBFS_DG                  512   4,096    4,194,304 MOUNTED     NORMAL       1,038
 RECO                     512   4,096    4,194,304 MOUNTED     NORMAL      27,221,760      9,792,836     35.97
                                                                      --------------- --------------
 Grand Total:                                                             137,119,392    105,208,300
+```
 
+### If you are on Exadata or Oracle Database Appliance, the disk is put back online automatically. In all other cases an ASM administrator has to put the disk online with an alter diskgroup command, like this:
 
-If you are on Exadata or Oracle Database Appliance, the disk is put back online automatically. In all other cases an ASM administrator has to put the disk online with an alter diskgroup command, like this:
-
+```
 col "Group"          form 999
 col "Disk"           form 999
 col "Header"         form a11
@@ -1889,21 +1040,16 @@ order by group_number
 ,        disk_number
 /
 
-ALTER DISKGROUP RECO ONLINE DISK RECO_CD_01_IORMSC02_ADM
-
-or
-
+```
+```
 alter diskgroup DATA online all;
+```
+```
+alter diskgroup DATA online disk '<ORCL:DISK077>';
+```
 
-alter diskgroup DATA online disk 'ORCL:DISK077';
-
-or
-
-alter diskgroup DATA online all;
-
-
-ASM DISK Throughput
-
+### ASM DISK Throughput
+```
 SYS@+ASM1 SQL> select * from (select a.DBNAME as "DB Name",
     sum(a.READS) as "Read Request",
     sum(a.WRITES) as "Write Requests",
@@ -1916,25 +1062,10 @@ where  a.GROUP_NUMBER=b.GROUP_NUMBER
      group by a.DBNAME
    order by 4 desc)
    where rownum <=10;
+```
 
-SYS@+ASM1 SQL> /
-
-DB Name                  Read Request Write Requests Total Read MB Total Write MB Throughput
------------------------- ------------ -------------- ------------- -------------- ----------
-PBDR1_01                   6459382600     1037542122    3113791779     61245044.4 50.8415303
-PBDW1_01                   3235249422      889353734     512399304     32487790.9 15.7720574
-QIIB1_02                    459400287      594775706    13800782.5     19814787.1 .696489059
-PIIB1_01                   2272406744      482656219    34753718.1     11654016.2 2.98212372
-PBIC1_01                    309991445      484362439    76754012.9     10368590.9 7.40255003
-PSAM1_01                   4823759441      336007006     761886813     9043465.22  84.247221
-PMTR1_01                    244242411      576509956     132185356     7255155.15 18.2195079
-QMTR2_02                     86986074      130627814     2890432.7     6870783.72 .420684571
-QRAH1_02                    175509226      467280478    3704051.78      5812622.8 .637242757
-PMTR2_01                     80652319       77881046    2873754.81     4943890.63 .581273946
-
-10 rows selected.
-
-SYS@+ASM1 SQL> select * from (select a.DBNAME as "DB Name",
+```
+select * from (select a.DBNAME as "DB Name",
     b.PATH as "Device",
     a.READS as "Read Request",
     a.WRITES as "Write Requests",
@@ -1945,9 +1076,9 @@ SYS@+ASM1 SQL> select * from (select a.DBNAME as "DB Name",
     and a.DISK_NUMBER=b.DISK_NUMBER
    order by 3 desc)
    where rownum <=10;
-
-ASM DISKGROUP STATUS
-
+```
+### ASM DISKGROUP STATUS
+```
 SET LINESIZE  145
 SET PAGESIZE  9999
 SET VERIFY    off
@@ -1976,20 +1107,12 @@ SELECT
   , ROUND((1- (free_mb / total_mb))*100, 2)  pct_used
 FROM v$asm_diskgroup
 ORDER BY name;
-
-Disk Group            Sector   Block   Allocation
-Name                    Size    Size    Unit Size State       Type   Total Size (MB) Used Size (MB) Pct. Used
--------------------- ------- ------- ------------ ----------- ------ --------------- -------------- ---------
-DATA                     512   4,096    4,194,304 MOUNTED     NORMAL     108,859,392      74,919,824     68.82
-DBFS_DG               512   4,096    4,194,304 MOUNTED     NORMAL        1,038,240        122,088     11.76
-RECO                     512   4,096    4,194,304 MOUNTED     NORMAL       27,221,760        8,372,736     30.76
-                                                                  			   --------------- --------------
-Grand Total:                                                            		              137,119,392     83,414,648
-
+```
+```
 $ srvctl status diskgroup -g DATA
-
-DETAILED INFO
-------------------------------
+```
+### DETAILED INFO
+```
 select inst.inst_id,di.instname,g.name,di.disk_number,
 sum(di.reads),
 sum(di.writes),
@@ -2008,9 +1131,10 @@ and g.inst_id=inst.inst_id
 and g.group_number=di.group_number 
 and di.instname not like '+ASM%'
 group by inst.inst_id,di.instname,g.name,di.disk_number;
+```
 
-ASMDATAFILE INFO
------------------------------
+### ASMDATAFILE INFO
+```
 SET TERMOUT OFF;
 COLUMN current_instance NEW_VALUE current_instance NOPRINT;
 SELECT rpad(sys_context('USERENV', 'INSTANCE_NAME'), 17) current_instance FROM dual;
@@ -2102,9 +1226,10 @@ FROM
     ) volume_files
 WHERE volume_files.type IS NOT NULL
 /
-
-ASM MAPPING
-[oracle@csmper-cls17 ~]$ cat chk_asm_mapping.sh
+```
+### ASM MAPPING
+```
+cat chk_asm_mapping.sh
 /etc/init.d/oracleasm querydisk -d `/etc/init.d/oracleasm listdisks -d` |
 cut -f2,10,11 -d" " | perl -pe 's/"(.*)".*\[(.*), *(.*)\]/$1 $2 $3/g;' |
 while read v_asmdisk v_minor v_major
@@ -2112,9 +1237,10 @@ do
 v_device=`ls -la /dev | grep " $v_minor, *$v_major " | awk '{print $10}'`
 echo "ASM disk $v_asmdisk based on /dev/$v_device [$v_minor, $v_major]"
 done
---
--- display information on ASM
---
+```
+
+### display information on ASM
+```
 set wrap on
 set lines 256
 set pages 999
@@ -2143,10 +1269,10 @@ select group_number  "Group"
 ,      (total_mb - free_mb)/total_mb * 100 "Pct Used"
 from   v$asm_diskgroup
 /
+```
 
---
--- list v$asm_files by size - should run against ASM instance for speed. (db instance can be slow)
---
+### list v$asm_files by size - should run against ASM instance for speed. (db instance can be slow)
+```
 set echo off
 set verify off
 set heading on
@@ -2193,10 +1319,10 @@ order by p.gname,f.space
 spool asm_files
 /
 spool off
+```
 
---
--- display information on ASM
---
+### display information on ASM
+```
 set wrap on
 set lines 256
 set pages 999
@@ -2278,8 +1404,10 @@ select group_number  "Group"
 ,      (total_mb - free_mb)/total_mb * 100 "Pct Used"
 from   v$asm_diskgroup
 /
+```
 
---Other Checks
+### Other Checks
+```
 COLUMN disk_group_name FORMAT a20 HEAD 'Disk Group Name'
     COLUMN file_name FORMAT a30 HEAD 'File Name'
     COLUMN bytes FORMAT 9,999,999,999,999 HEAD 'Bytes'
@@ -2306,14 +1434,14 @@ COLUMN disk_group_name FORMAT a20 HEAD 'Disk Group Name'
     system_created = 'Y'
     ORDER BY g.name, file_number
     /
-Client
-
+```
+```
 select g.name_disk_group, c.*
 from v$asm_client c, v$asm_diskgroup G
 where c.group_number=g.group_number
 and g.name='DATA';
-
-ASMCMD> lsct -g DATA
+```
+```
 ASMCMD> lsct -g DATA
 Instance_ID  DB_Name   Status     Software_Version  Compatible_version  Instance_Name  Disk_Group
           1  +ASM      CONNECTED        12.1.0.2.0          12.1.0.2.0  +ASM1          DATA
@@ -2322,41 +1450,42 @@ Instance_ID  DB_Name   Status     Software_Version  Compatible_version  Instance
           1  DBDW1_01  CONNECTED        11.2.0.4.0          11.2.0.4.0  DBDW1_1        DATA
           1  DBIC1_01  CONNECTED        11.2.0.4.0          11.2.0.4.0  DBIC1_1        DATA
           1  DBLH1_01  CONNECTED        11.2.0.4.0          11.2.0.4.0  DBLH1_1        DATA
---
+```
 
-Database does file ..... in ASM belong to
+### Database file ..... in ASM belong to
 
+```
 select lpad('>',LEVEL*3,'=')||name 
 from v$asm_alias
-start with name = '+DATA/TSIM1_01/DATAFILE/USERS.966.881916355'
+start with name = '+DATA/TSIM1_01/DATAFILE/<xxxxxxx>'
 connect by prior parent_index = reference_index ;
-no rows selected
+```
 
-NB.
-You can replace the undo datafile of any other file you would like to know.
-
-Disk Operation
+### Disk Operation
+```
 SELECT group_number, operation, state, power, est_minutes FROM v$asm_operation;
+```
 
-altered the rebalance power for the diskgroup using the following command:
-
+### altered the rebalance power for the diskgroup using the following command:
+```
 alter diskgroup DISKGROUP rebalance power 5; 
-
-Long Operation
+```
+### Long Operation
 
 V$ASM_OPERATION -- display one row for every long running operation executing in the ASM instance.
-
+```
 select g.name_disk_group, o.*
 from v$asm_operation o, v$asm_diskgroup g
 where o.group_number=g.group_number;
 
 estimate --- number of allocation unit that require the movement
 SOFAR -- how many moved at a rate (EST_RATE --unit minute)
-
+```
+```
 asmcmd>lsop
-
-Full path name of the files in ASM diskgroups [ID 888943.1]
-
+```
+### Full path name of the files in ASM diskgroups [ID 888943.1]
+```
 Connect to the ASM instance:
 in 10g: sqlplus / as sysdba
 in 11g: sqlplus / as sysasm
@@ -2370,17 +1499,18 @@ FROM v$asm_alias a,v$asm_diskgroup g
 WHERE a.group_number = g.group_number)
 START WITH (mod(pindex, power(2, 24))) = 0
 CONNECT BY PRIOR rindex = pindex;
-
-List hidden ASM parameters 
-
+```
+### List hidden ASM parameters 
+```
 select a.ksppinm "name", c.ksppstvl "value"
   from x$ksppi a, x$ksppcv b, x$ksppsv c
  where a.indx = b.indx and a.indx = c.indx
  and ksppinm like '_asm%'
 order by a.ksppinm; 
-
-Generate a list of all the asm files / directories / aliasses for a given database
+```
+### Generate a list of all the asm files / directories / aliasses for a given database
 --- RUN into ASM instance 
+```
 column full_alias_path format a75
 column file_type format a15
 select concat('+'||gname, sys_connect_by_path(aname, '/')) full_alias_path, 
@@ -2403,13 +1533,10 @@ start with (mod(pindex, power(2, 24))) = 0
                         and a.name = '&DATABASENAME'
                 )
 connect by prior rindex = pindex;
-Enter value for databasename: QSAM1
-old  18:                         and a.name = '&DATABASENAME'
-new  18:                         and a.name = 'QSAM1'
+```
 
-no rows selected
-
-QUERY TO FIND THE FILES IN USE BY AN ASM INSTANCE 
+### QUERY TO FIND THE FILES IN USE BY AN ASM INSTANCE 
+```
 col full_path format a50
 col full_alias_path format a50
 SELECT concat('+'||gname, sys_connect_by_path(aname, '/')) full_alias_path
@@ -2417,29 +1544,11 @@ FROM (SELECT g.name gname, a.parent_index pindex, a.name aname,
 a.reference_index rindex FROM v$asm_alias a, v$asm_diskgroup g
 WHERE a.group_number = g.group_number)
 START WITH (mod(pindex, power(2, 24))) = 0 CONNECT BY PRIOR rindex = pindex;
-
-
-$ asmcmd
-ASMCMD> spget 
-$ sqlplus 
-Enter user-name: / as sysasm 
-SQL> create pfile from spfile;
-
-SQL> create spfile='+DATA_DG' from pfile='/u01/app/12.1.0.2/grid/dbs/init+ASM1.ora' ;
-
-File created.
-
-
-  
-
-
-
-ASM_IMBALANCE 
-
-
+```
+### ASM_IMBALANCE 
 
 Execute the following query in sqlplus to determine the current disk sizes of the ASM diskgroup and the amount of additional disks to request:
-
+```
 col name form a30
 select dg.name
 ,      dk.os_mb "Disk Size MB"
@@ -2451,7 +1560,7 @@ where  dg.group_number = dk.group_number
 and    dg.name = upper('&1')
 group by dg.name,dk.os_mb
 /
-
+```
 old   7: and    dg.name = upper('&1')
 new   7: and    dg.name = upper('porcfpedata')
 
@@ -2460,60 +1569,43 @@ NAME                           Disk Size MB   NR_Disks DisksToRequest
 PORCFPEDATA                           53549         15              4
 
 dgs.sql
+
+```
 select name,TOTAL_MB/1024,FREE_MB/1024,(FREE_MB/TOTAL_MB)*100 "free %" from  v$asm_diskgroup;
 select name,TOTAL_MB/1024,FREE_MB/1024,(FREE_MB/TOTAL_MB)*100 "free %" from  v$asm_diskgroup where (FREE_MB/TOTAL_MB)*100<20;
+```
+### Growth [ASM/NON-ASM] NOTE: need to filter by dest_id further, if there is multiple archive log destinations
 
-Growth [ASm/NON-ASM] NOTE: need to filter by dest_id further, if there is multiple archive log destinations
--------------------------
 Archivelog size each day:
-
+```
 SQL> select trunc(COMPLETION_TIME) TIME, SUM(BLOCKS * BLOCK_SIZE)/1024/1024 SIZE_MB from V$ARCHIVED_LOG group by trunc (COMPLETION_TIME) order by 1;
-
+```
 Archivelog size each hour:
-
+```
 SQL> alter session set nls_date_format = 'YYYY-MM-DD HH24';
-
-Session altered.
-
+```
+```
 SQL> select trunc(COMPLETION_TIME,'HH24') TIME, SUM(BLOCKS * BLOCK_SIZE)/1024/1024 SIZE_MB from V$ARCHIVED_LOG group by trunc (COMPLETION_TIME,'HH24') order by 1;
-
+```
+```
 Select dg.name,dg.allocation_unit_size/1024/1024 "AU(Mb)",min(d.free_mb) Min,
     max(d.free_mb) Max, avg(d.free_mb) Avg
     from v$asm_disk d, v$asm_diskgroup dg
     where d.group_number = dg.group_number
-    group by dg.name, dg.allocation_unit_size/1024/1024
-
-SY@+ASM SQL>/
-
-NAME                               AU(Mb)        MIN        MAX    AVG
------------------------------- ---------- ---------- ---------- ------
-DATA                                    1       7728      11599   8026
-
+    group by dg.name, dg.allocation_unit_size/1024/1024;
+```
+```
 alter diskgroup data rebalance power 4;
-
-NAME                               AU(Mb)        MIN        MAX    AVG
------------------------------- ---------- ---------- ---------- ------
-DATA                                    1       7734      11483   8026 – no difference
-
 alter system set "_asm_imbalance_tolerance"=0;
 alter diskgroup data rebalance power 4;
-NAME                               AU(Mb)        MIN        MAX        AVG
------------------------------- ---------- ---------- ---------- ----------
-DATA                                    1       8020       8062   8026  - Now nicely rebalanced
-
-  
-
-
-
-ASMSNMP 
-
-
+```
+### ASMSNMP 
 
 Could not validate ASMSNMP password due to following error- “ORA-01031: insufficient privileges”
 ORA-01990: error opening password file ‘/u02/app/11.2.0/grid/dbs/orapw’
 ORA-15306: ASM password file update failed on at least one node
 ORA-01918: user ‘ASMSNMP’ does not exist
-
+```
 Mostly the reason is missing asmsnmp user or missing password file in ASM instances.
 
 1. How to create asmsnmp user
@@ -2543,8 +1635,6 @@ Password file on Node2: orapw+ASM2
 ++++++++++
 Password file on Node1: orapw+ASM
 Password file on Node2: orapw+ASM
-
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 B) Copy the password file to other nodes
 
@@ -2580,9 +1670,10 @@ Username        sysdba         sysoper       sysasm
 
 SYS             TRUE           TRUE          FALSE
 ASMSNMP         TRUE           FALSE         FALSE
- 
-How to Change password for ASMSNMP
-++++++++++++++++++++++++++++++++++++++++++
+```
+
+### How to Change password for ASMSNMP
+```
 ASMCMD> lspwusr
 Username sysdba sysoper sysasm
      SYS   TRUE    TRUE   TRUE
@@ -2619,21 +1710,10 @@ Test new asmsnmp password >>
 
 $ sqlplus sys/asmsnmp as sysdba
 
-SQL*Plus: Release 11.2.0.3.0 Production on Wed Feb 6 12:57:30 2013
+```  
 
-Copyright (c) 1982, 2011, Oracle. All rights reserved.
-Connected to:
-Oracle Database 11g Enterprise Edition Release 11.2.0.3.0 – 64bit Production
-With the Real Application Clusters and Automatic Storage Management options
-
-  
-
-
-
-Check Diskgroup before dropping/replacing 
-
-
-
+### Check Diskgroup before dropping/replacing 
+```
 with creating ASM volumes, ensure that the ASM instance on the local node is active, and the required ASM disk group is already created and mounted (as the ASM volumes are created within a disk group).
 
 command prompt, run ./asmca command from the $GRID_HOME/bin               -GUI
@@ -2666,9 +1746,9 @@ SQL> ALTER DISKGROUP ALL DISABLE VOLUME ALL;
 The preceding command will disable all volumes in all disk groups.
 SQL> ALTER DISKGROUP dg_flash DROP VOLUME advm_vg;
 The preceding command will drop a volume.
-
-Creating an ACFS filesystem with ASMCMD
-===============================================
+```
+### Creating an ACFS filesystem with ASMCMD
+```
 1. Before we start creating the ACFS with ASMCMD, ensure the ADVM is already configured. 
 Ex: volcreate -G DG_FLASH -s 1G advm_vg
 
@@ -2693,9 +1773,10 @@ raclinux1 and raclinux2 using the following example:
 command, for example, the mount command.
 
 /bin/mount -t acfs /dev/asm/advm_vg2-86 /u01/app/oracle/acfsmounts/db_home
+```
 
-Creating a snapshot
-=======================
+### Creating a snapshot
+```
 Using the following acfsutil snap create command, we will create a snapshot of db_home filesystem:
 /sbin/acfsutil snap create acfs_snap1 /u01/app/oracle/acfsmounts/db_home
 acfsutil snap create: Snapshot operation is complete.
@@ -2718,9 +1799,11 @@ Removing a snapshot
 ====================
 To remove an existing snapshot created on an ACFS filesystem, use the following command:
 /sbin/acfsutil snap delete acfs_snap1 /u01/app/oracle/acfsmounts/db_home
+```
 
-CRS-4256 CRS-4602 While Replacing Voting Disk [ID 1475588.1]
+### CRS-4256 CRS-4602 While Replacing Voting Disk [ID 1475588.1]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+```
 $ crsctl replace votedisk +VOTEDG
 
 ASM diskgroup is not online or doesn't have enough free space or doesn't have sufficient failure groups (1 group for external redundance, 3 for normal, and 5 for high redundance). 
@@ -2740,9 +1823,9 @@ from   v$asm_disk
 order by group_number
 ,disk_number
 /
-
-QUERY TO DETECT FILES IN AN ASM DISKGROUP BEFORE DROPPING
-
+```
+### QUERY TO DETECT FILES IN AN ASM DISKGROUP BEFORE DROPPING
+```
 col full_path format a50
     col full_alias_path format a50
     SELECT concat('+'||gname, sys_connect_by_path(aname, '/')) full_alias_path
@@ -2751,8 +1834,9 @@ col full_path format a50
     WHERE a.group_number = g.group_number
     AND gname = 'MDDX1')
     START WITH (mod(pindex, power(2, 24))) = 0 CONNECT BY PRIOR rindex = pindex;
-
-Check ASM compatible attribute  (is not at least 11.2) , or the diskgroup mount status (is not mounted) on all nodes:
+```
+### Check ASM compatible attribute  (is not at least 11.2) , or the diskgroup mount status (is not mounted) on all nodes:
+```
 SQL> select inst_id, name, state, type, free_mb, substr(compatibility,1,10) compatibility from gv$asm_diskgroup;
 
 To update diskgroup compatible, execute the following SQL statement:
@@ -2760,64 +1844,9 @@ SQL> ALTER DISKGROUP VOTEDG set ATTRIBUTE 'compatible.asm' = '11.2.0.0.0';
 
 To mount on a specific node, connect to that node and issue the following or use asmca GUI interface to mount:
 SQL> ALTER DISKGROUP VOTEDG mount;
-
-  
-
-
-
-Interview Questions 
-
-
-
-ASM background processes
-usual background processes like SMON, PMON, DBWr, CKPT and LGWr. In addition to that the ASM instance also have the following background processes,
-
-RBAL (ASM Rebalance master, Rebalancer), which coordinates the disk activity for disk groups on an ASM instance.
-
-ARBn (Actual Rebalancer), n can be 0-9,  which actually performs the  extents movements between disks in the disk groups.The number of ARBx processes depends on the ASM_POWER_LIMIT init parameter.
-
-ASMB ( ASM Background- ASM Bridge): This process is used to provide information to and from the Cluster Synchronization Service (CSS) used by ASM to manage the disk resources. 
-
-It is also used to update statistics and provide a heartbeat mechanism.
-
-In the database instances, there are three background process to support ASM, namely:
-
-    RBAL, which performs the open and close of the disks in the disk group on behalf of database instance.
-    ASMB,performs the communication between the database and the ASM instance.
-    O00x, a group slave processes, with a numeric sequence starting at 000.
-
-ASM stripes files using extents with a coarse method for load balancing or a fine method to reduce latency.
- Coarse-grained striping is always equal to the effective AU size.
- Fine-grained striping is always equal to 128 KB.
-
-
-ASM: Difference's between CORSE and FINE Striping 
-
-COARSE STRIPING 	FINE GRAINED STRIPING 
-It is used for all voluminous input/output, e.g. input/output operations on datafiles. 	It is used for all small input/output, e.g. input/output operations on online redolog files and control files. 
-The size of the coarse grained data stripes is large. 							The size of the fine grained data stripes is small.
-It manages the load balance across the disk groups.	It spreads the load on disk groups reducing latency for certain file types
-The size of the coarse-grained stripe is always equal to the size of ASM Allocation Units (AU). 		The size of the fine-grained stripe is always 128 KB. 
-The size for coarse striping can be set using the _asm_ausize parameter. 	The size for fine grained striping can be set using the _asm_stripesize parameter. 
-
-
-
-  
-
-
-
-Migrate / Upgrade 
-
- 
-
-
-
-ASM Pstandby 
-
-
-
-Doco ID: Doc ID:  752360.1 
-
+```
+### Doco ID: Doc ID:  752360.1 
+```
 Applies to: 
 Oracle Server - Enterprise Edition - Version: 9.2.0.8 to 11.1.0.7
 Information in this document applies to any platform.
@@ -3069,14 +2098,14 @@ SQL> SELECT SEQUENCE#, FIRST_TIME, NEXT_TIME
 NOTE: Verify new archived redo log files were applied. At the standby database, query the V$ARCHIVED_LOG view to verify the archived redo log files were applied. 
 
 SQL> SELECT SEQUENCE#,APPLIED FROM V$ARCHIVED_LOG ORDER BY SEQUENCE#; 
-
+```
   
 
 
 
-ASM2NonASM 
+### ASM2NonASM 
 
-
+```
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Database Migration from ASM storage to non-ASM storage
@@ -3472,13 +2501,13 @@ NAME                                 TYPE        VALUE
 spfile                               string      /u01/app/oracle/product/12.1.0
                                                  /dbhome_1/dbs/spfileTESTP.ora
 
-  
+ ``` 
 
 
 
-NonASM2ASM 
+### NonASM2ASM 
 
-
+```
 
 Steps to migrate 11g R2 database from non-asm storage to asm storage 
 
@@ -3714,13 +2743,13 @@ FILE_NAME
 +PDEV20_DATA_01/pdev20/datafile/rosbo.269.799948433
 +PDEV20_DATA_01/pdev20/datafile/rosbo.278.860147209
 
-  
+ ``` 
 
 
 
-RAC2Single 
+### RAC2Single 
 
-
+```
 
 Converting RAC to single instance on same machine
 
@@ -3789,17 +2818,10 @@ $ vi $ORACLE_HOME/network/admin/tnsnames.ora
 
 That’s it. You have successfully converted your RAC database to Single Instance on same machine.
 Note: You can convert your single instance DB to RAC again by following metalink note:747457.1
-====================================================================================================================
 
-
-
-
-
-
-
-
-CONVERT RAC DATABASE INTO STANDALONE DATABASE
-
+```
+### CONVERT RAC DATABASE INTO STANDALONE DATABASE
+```
 There are several scenarios for this situation:
 
 1. Converting RAC instances to non-RAC instances permanently without keeping the Oracle Clusterware.
@@ -3875,13 +2897,11 @@ $ srvctl modify database -d <DBNAME> -y manual
 $ srvctl disable asm -n <node_name>
 # crsctl disable crs
 
-  
+```  
 
+### Single2RAC 
 
-
-Single2RAC 
-
-
+```
 
  STEPS TO CONVERT A SINGLE INSTANCE TO RAC  
 (In a cluster environment)
@@ -3956,8 +2976,9 @@ Optionally register it with CRS for protection
      $ srvctl add instance -d TEST -i TEST1 -n lmststdb1
      $ srvctl add instance -d TEST -i TEST2 -n lmststdb2
 
-
---------------------------With RMAN BACKUP ---------------------------
+```
+### --------------------------With RMAN BACKUP ---------------------------
+```
 Method to convert single instance to RAC
 We have different ways to migrate non-RAC to RAC. Here we are using the DUPLICATE DATABASE feature of RMAN to migrate single instance non-ASM database to RAC Server, which is using ASM as shared storage. Using this manual method you have full control on the duplication process. In case of any issues/errors, you just need to fix the failed setup and you do not need to redo the whole process.
 We are using a two phase approach to migrate non-RAC to RAC:
@@ -4226,16 +3247,11 @@ channel d1: sid=201 devtype=DISK
 
 ---- (Some detail removed for brevity) ----
 We have duplicated single instance Non-ASM database from ‘orasrv’ server into ASM storage on orarac1 server. In part 2 I explain to to convert the single instance database to RAC. 
-  
+  ```
 
 
-
-To10.2.0.5 
-
-
-
-Upgrading from 10.2.0.4 to 10.2.0.5 (Clusterware, RAC, ASM) 
-=========================================================
+### Upgrading from 10.2.0.4 to 10.2.0.5 (Clusterware, RAC, ASM) 
+```
 One of the pre-reqs is time zone value
 
 SQL> SELECT version FROM v$timezone_file;
@@ -4329,13 +3345,13 @@ Useful metalink notes
 Oracle Clusterware (CRS or GI) Rolling Upgrades [ID 338706.1] 
 http://asanga-pradeep.blogspot.co.uk/2012/02/upgrading-from-10204-to-10205.html
 
-  
+```  
 
 
 
-to11.2.0.1 
+#### to11.2.0.1 
 
-
+```
 
 1. Leave the existing RAC running. As of 11gR2 all upgrades are rolling upgrades
 
@@ -4382,15 +3398,11 @@ crsctl query crs activeversion
 crsctl query crs releaseversion
 
 crsctl query crs softwareversion
-
+```
   
+### TO 11.2.0.3 
 
-
-
-TO11.2.0.3 
-
-
-
+```
 Relevant section for 11.1 upgrade to 11.2 from GI Install guide. 
 After you have completed the Oracle Clusterware 11g release 2 (11.2) upgrade, if you did not choose to upgrade Oracle ASM when you upgraded Oracle Clusterware, then you can do it separately using the Oracle Automatic Storage Management Configuration Assistant (asmca) to perform rolling upgrades. You can use asmca to complete the upgrade separately, but you should do it soon after you upgrade Oracle Clusterware, as Oracle ASM management tools such as srvctl will not work until Oracle ASM is upgraded.
 
@@ -4539,13 +3551,11 @@ remote listener has both tnsnames.ora entries from 11gR1 and scan ip on all node
 
 remote_listener                      string      LISTENERS_RAC11G1, rac-scan:1521
 
-  
+  ```
 
 
 
-TO11.2.0.3 
-
-
+### TO      11.2.0.3 
 
 Upgrade from 10.2.0.5 to 11.2.0.3 (Clusterware, RAC, ASM) 
 ========================================================
@@ -4676,12 +3686,9 @@ remote_listener                      string      LISTENERS_RAC10G2, rac-scan:152
 
 
 
-Move ASMdatafiles 
-
-
-
-•	Rename Datafile
-
+### Move ASMdatafiles 
+#### Rename Datafile
+```
 SELECT SUM(a.bytes)/1024/1024 as UNDO_SIZE
 FROM v$datafile a,
        v$tablespace b,
@@ -4701,10 +3708,10 @@ SYS@ptest41 SQL> alter database datafile '+PTEST4_DATA_01/ptest4/users01.dbf' of
 SYS@ptest41 SQL> alter database rename file '+PTEST4_DATA_01/ptest4/users01.dbf' to '+PTEST4_DATA_01/ptest4/datafile/users.290.876737755';
 SYS@ptest41 SQL> recover datafile 4;
 SYS@ptest41 SQL> alter database datafile 4 online;
+```
 
-
-Move datafiles
-
+### Move datafiles
+```
 1. SYS@ptest241 SQL> SELECT file_name FROM dba_data_files;
 
 2. Identify the Oracle ASM diskgroup to which the database file will be moved to
@@ -4751,13 +3758,11 @@ $ ORACLE_SID=+ASM; export ORACLE_SID
 $ sqlplus "/ as sysdba"
 
 SQL> ALTER DISKGROUP +CLU02_DATA_01 DROP FILE '+CLU02_DATA_01/ptest24/datafile/dw_mtd_data.318.876396799';
-  
+ ``` 
 
+### Move DB to different diskgroups 
 
-
-Move DB to different diskgroups 
-
-
+```
 
 How To Move The Database To Different Diskgroup (Change Diskgroup Redundancy) [ID 438580.1] 
 --------------------------------------------------------------------------------
@@ -4973,17 +3978,15 @@ recover database;
 }
 (assuming that we have 5 datafiles in our database)
 
-  
+```  
 
 
 
-OrphanDisks-Drop 
-
-
+### OrphanDisks-Drop 
 
 Detect all orphan files on ASM
-
-DEFINE ASMGROUP="PTRN18_DATA_01"
+```
+DEFINE ASMGROUP="<DiskGroupName>"
  
 set linesize 200
 set pagesize 50000
@@ -5026,17 +4029,21 @@ MINUS (
 )
 );
 
+```
+
 FILES
 --------------------------------------------------------------------------------
-rm +DGDATA/O01XXXXX/CONTROLFILE/CURRENT.800.807811333
+rm <command>
 
 
 So then I just need to run from asmcmd:
-ASMCMD> rm +DGDATA/O01XXXXX/CONTROLFILE/CURRENT.800.807811333
-
+```
+ASMCMD> rm <command>
+```
 Because WITH clause does not work on MOUNTED databases (like a standby) - 
 SQL Statement Using 'WITH' Clause Fails with ORA-01219 [ID 1166073.1] -, here the version without the WITH clause:
 
+```
 DEFINE ASMGROUP="PAMTEST_DATA_01"
  
 set linesize 200
@@ -5075,35 +4082,20 @@ MINUS (
  SELECT upper(member) files, 'ONLINELOG' type FROM v$logfile WHERE member like '+&ASMGROUP%'
 )
 );
+```
 
-old   3:   SELECT '+&ASMGROUP'||files files, type
-new   3:   SELECT '+PAMTEST_DATA_01'||files files, type
-old   9:               WHERE group_number = (SELECT group_number FROM v$asm_diskgroup WHERE name='&ASMGROUP')
-new   9:               WHERE group_number = (SELECT group_number FROM v$asm_diskgroup WHERE name='PAMTEST_DATA_01')
-old  13:                                     WHERE group_number = (SELECT group_number FROM v$asm_diskgroup WHERE name='&ASMGROUP'))) b
-new  13:                                     WHERE group_number = (SELECT group_number FROM v$asm_diskgroup WHERE name='PAMTEST_DATA_01'))) b
-old  26:  SELECT upper(name) files, 'CONTROLFILE' type FROM v$controlfile WHERE name like '+&ASMGROUP%'
-new  26:  SELECT upper(name) files, 'CONTROLFILE' type FROM v$controlfile WHERE name like '+PAMTEST_DATA_01%'
-old  28:  SELECT upper(member) files, 'ONLINELOG' type FROM v$logfile WHERE member like '+&ASMGROUP%'
-new  28:  SELECT upper(member) files, 'ONLINELOG' type FROM v$logfile WHERE member like '+PAMTEST_DATA_01%'
-
-no rows selected
-  
-
-
-
-ACFS 
-
-
+### ACFS 
 
 Oracle Automatic Storage Management Cluster File System (Oracle ACFS) is a multi-platform, scalable file system, and storage management technology that extends Oracle Automatic Storage Management (Oracle ASM) functionality to support customer files maintained outside of Oracle Database.
-
+```
 ASMCMD> volcreate -G data -s 2G –column 4 –width 128K –redundancy unprotected ACFS_VOLB
-
+```
+```
 SQL>alter diskgroup data add volume ACFS_VOLA size 2G stripe_width 128K stripe_columns 4 ;
+```
 
-Creating ACFS
----------------------------------------
+### Creating ACFS
+```
 1. Set the diskgroup attribute parameters. Compatible.asm and compatible.advm should be >= 11.2
 $ sqlplus  / as sysasm
 SQL> alter diskgroup flash set attribute 'compatible.asm'='11.2';
@@ -5135,9 +4127,10 @@ ASMCMD> volinfo -G flash VOLUMNE1
 Diskgroup Name: FLASH         Volume Name: VOLUMNE1         Volume Device: /dev/asm/volumne1-398         State: ENABLED         Size (MB): 1024         Resize Unit (MB): 256         Redundancy: UNPROT         Stripe Columns: 4         Stripe Width (K): 128         Usage: ACFS         Mountpath: /opt/acfsvol6. Change ownership to Oracle user to allow oracle user processes to use the file system 
 # chown oracle:oinstall /opt/acfsvol6. As oracle user create a file in the mount point 
 cd /opt/acfsvoltouch xIn a RAC system the volume will be mounted on all nodes after server reboots and requires selinux to be permissive.
+```
 
-Removing ACFS
-
+### Removing ACFS
+```
 1. Unmount the file system 
 # umount /opt/acfsvol2. De-register the file system
 # acfsutil registry -d /opt/acfsvolacfsutil registry: successfully removed ACFS mount point /opt/acfsvol from Oracle Registry3. Drop the volumne from the diskgroup
@@ -5151,8 +4144,6 @@ VOLUME_DEVICE
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 SOFTWARE
 /dev/asm/software-193
-
-
 
 ASMCMD> volinfo --all
 Diskgroup Name: DBFS_DG
@@ -5188,8 +4179,6 @@ mount -t acfs /dev/asm/software-193 /software
 $ ls -l /dev/asm/software-193
 brwxrwx--- 1 root asmadmin 251, 98817 Jan  4 12:05 /dev/asm/software-193
 
-
-
 ASMCMD> volinfo --all
 Diskgroup Name: DBFS_DG
 
@@ -5204,11 +4193,7 @@ Diskgroup Name: DBFS_DG
          Usage: ACFS
          Mountpath: /software
 
-
-
-
 srvctl start volume -volume SOFTWARE -diskgroup DBFS_DG
-
 
 root@iorsdb02-adm::/root
 $ mkfs -t acfs /dev/asm/software-193
@@ -5217,9 +4202,10 @@ mkfs.acfs: on-disk version           = 39.0
 mkfs.acfs: volume                    = /dev/asm/software-193
 mkfs.acfs: ACFS-01010: Volume already contains an ACFS file system.  To reformat the volume, reissue mkfs.acfs with the -f option.
 mkfs.acfs: ACFS-01004: /dev/asm/software-193 was not formatted.
+```
+#### ===================================================================Using acmcmd ==========================
 
-===================================================================Using acmcmd ==========================
-asmcmd>
+```
 
 1. create a volume
 asmcmd>volcreate -G ACFS -s 3G TEST
@@ -5248,10 +4234,9 @@ asmcmd volinfo -G ACFS TEST
 Check the ACFS:
 Node1:
 # df -k | grep 'Filesystem \|u01'  
+```
 
-
-
-RAC 
+### RAC 
 
 
 
