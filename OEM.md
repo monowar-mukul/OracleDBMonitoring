@@ -1,17 +1,17 @@
-Identifying Installed Plugins
+## Identifying Installed Plugins
 
 Identify all plugins installed on your system using the query provided in the documentation, run as SYSMAN against your repository database.
-
+```
 SELECT epv.display_name, epv.plugin_id, epv.version, epv.rev_version,decode(su.aru_file, null, 'Media/External', 'https://updates.oracle.com/Orion/Services/download/'||aru_file||'?aru='||aru_id||chr(38)||'patch_file='||aru_file) URL
 FROM em_plugin_version epv, em_current_deployed_plugin ecp, em_su_entities su
 WHERE epv.plugin_type NOT IN ('BUILT_IN_TARGET_TYPE', 'INSTALL_HOME')
 AND ecp.dest_type='2'
 AND epv.plugin_version_id = ecp.plugin_version_id
 AND su.entity_id = epv.su_entity_id;
+```
 
-
-JOB List
---------------
+## JOB List
+```
 SELECT j.job_id ,
   e.execution_id ,
   j.job_name     ,
@@ -22,9 +22,10 @@ SELECT j.job_id ,
    FROM mgmt_job j,
   mgmt_job_exec_summary e
   WHERE j.job_id = e.job_id;
-
-Check Plugin
----------------------
+```
+## Check Plugin
+```
+SQL> connect sysman/Oracle#123
 SQL> SELECT
     epv.display_name
      , epv.plugin_id
@@ -40,95 +41,12 @@ SQL> SELECT
     AND ecp.dest_type='2'
     AND epv.plugin_version_id = ecp.plugin_version_id
     AND su.entity_id = epv.su_entity_id;
- , em_su_entities su
-   *
-ERROR at line 11:
-ORA-00942: table or view does not exist
+```
 
-Qqb1fyPPQbDJSt09YChV
-SQL> connect sysman/Oracle#123
-Connected.
-SQL> /
-
-DISPLAY_NAME
-----------------------------------------------------------------
-PLUGIN_ID
-----------------------------------------------------------------
-VERSION                          REV_VERSION
--------------------------------- -----------
-URL
---------------------------------------------------------------------------------
-Oracle Exadata
-oracle.sysman.xa
-12.1.0.6.0                                 0
-Media/External
-
-Oracle Cloud Framework
-oracle.sysman.cfw
-12.1.0.1.0                                 0
-Media/External
-
-Oracle Database
-oracle.sysman.db
-12.1.0.6.0                                 0
-Media/External
-
-Oracle Fusion Middleware
-oracle.sysman.emas
-12.1.0.6.0                                 0
-Media/External
-
-Oracle MOS (My Oracle Support)
-oracle.sysman.mos
-12.1.0.6.0                                 0
-Media/External
-
-Oracle Virtualization
-oracle.sysman.vt
-12.1.0.6.0                                 0
-Media/External
-
-Microsoft SQLServer Database
-oracle.em.smss
-12.1.0.4.0                                 0
-Media/External
-
-Oracle Cloud Application
-oracle.sysman.ssa
-12.1.0.8.0                                 0
-Media/External
-
-
-8 rows selected.
-
-BLOCK Agent
+## BLOCK Agent
+```
 SELECT target_name, blocked_reason_msg, blocked_reason_nls_id, blocked_reason_nls_params, to_char(blocked_timestamp, 'yyyy.mm.dd hh24:mi:ss') as blocked_ts, blocked_by, blocked_code FROM mgmt_targets tgt, mgmt_blocked_agents blk WHERE tgt.target_guid = blk.target_guid;
-
-
-TARGET_NAME
---------------------------------------------------------------------------------
-BLOCKED_REASON_MSG
---------------------------------------------------------------------------------
-BLOCKED_REASON_NLS_ID
---------------------------------------------------------------------------------
-BLOCKED_REASON_NLS_PARAMS
---------------------------------------------------------------------------------
-BLOCKED_TS
----------------------------------------------------------
-BLOCKED_BY
---------------------------------------------------------------------------------
-BLOCKED_CODE
---------------------------------------------------------------------------------
-CSMBDC-VGGMNQ01.apac.ent.bhpbilliton.net:3872
-Agent is out-of-sync with repository. This most likely means that the agent was
-reinstalled or recovered. Please contact an EM administrator to unblock the agen
-t by performing an agent resync from the console.
-BLK_AGENT_FOR_RESYNC
-
-2015.03.31 08:54:41
-SYSMAN
-BBCO
-
+```
 
 [http://cloudcontrol12c.blogspot.com.au/2014/03/em12c-database-data-inventory.html]
 SELECT DISTINCT
@@ -283,20 +201,23 @@ SELECT DISTINCT
              tbl_dbhostos.db_host_os
     ORDER BY 2;
  
-Note: If you are going to use another account other than SYSMAN to select you will need to have the following privilege.
-
+## Note: If you are going to use another account other than SYSMAN to select you will need to have the following privilege.
+```
 grant select on mgmt$storage_report_data to <username>;
 grant select on mgmt_target_properties to <username>;
 grant select on mgmt_targets to <username>;
 grant exempt access policy to <username>;
+```
+
 select target_type,target_name 
 from mgmt_targets_delete d 
 where delete_complete_time is null 
 group by target_type,target_name 
 having count(*) > 1 ; 
 
-Report on OEM Alert metrics
-SYSMAN@POEM1 SQL> SELECT to_char(s.load_timestamp,'yyyy/mm/dd hh24:mi:ss') ts,
+## Report on OEM Alert metrics
+```
+SQL> SELECT to_char(s.load_timestamp,'yyyy/mm/dd hh24:mi:ss') ts,
  decode(v.violation_level,18,'Insecure/Invalid state',20,'Warning',25,'Critical',125,'Agent Unreachable',325,'Metric Error','Unkno    wn') alert_level,
  t.target_type, t.target_name, v.message
 FROM sysman.mgmt_severity s, sysman.mgmt_targets t, sysman.mgmt_annotation a, sysman.mgmt_notification_log l, sysman.mgmt_violatio    ns v
@@ -309,9 +230,9 @@ and v.violation_level in (18,20,25,125,325)
 and s.load_timestamp > sysdate-4
 ORDER BY 1
  /
+```
 
-no rows selected
-
+```
 SYSMAN@POEM1 SQL> SELECT 'OEM' source, to_char(s.load_timestamp,'yyyy/mm/dd') alert_date, t.target_type, t.target_name,
  decode(v.violation_level,18,'Insecure/Invalid state',20,'Warning',25,'Critical',125,'Agent Unreachable',325,'Metric Error','Unknown') alert_level,
  count(1) total
@@ -327,10 +248,10 @@ group by to_char(s.load_timestamp,'yyyy/mm/dd'), t.target_type, t.target_name,
  decode(v.violation_level,18,'Insecure/Invalid state',20,'Warning',25,'Critical',125,'Agent Unreachable',325,'Metric Error','Unknown')
 ORDER BY 2,3
  /
+```
 
-no rows selected
-
-Databases with no flashback enabled [Verified]
+## Databases with no flashback enabled
+```
 SELECT
 m.target_name,
 t.type_qualifier4  AS Role,
@@ -348,11 +269,12 @@ AND t.target_name=m.target_name
 AND t.target_guid=m.target_guid
 order by t.type_qualifier4 ,
 m.value
+```
 
-1. How to find the Agent’s with missing OH targets and missing home data?
-Few helpful sql queries …
-1) Agent targets and corresponding OH targets 
+## How to find the Agent’s with missing OH targets and missing home data?
 
+### Agent targets and corresponding OH targets 
+```
 SELECT agt.*,
 home_info.target_name AS OH_TARGET_NAME
 FROM mgmt$oh_home_info home_info,
@@ -367,8 +289,9 @@ AND tp.property_name = 'OracleHome'
 ) agt
 WHERE home_info.home_location(+) = agt.AGENT_OH_LOCATION
 AND home_info.host_name(+) = agt.HOST_NAME
+```
 
-2) Number of Agent targets which are missing corresponding OH targets 
+### Number of Agent targets which are missing corresponding OH targets 
 
 SELECT TARGET_NAME
 FROM
