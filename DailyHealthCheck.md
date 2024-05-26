@@ -100,8 +100,7 @@ rem      to test when an object is close to max extents
 rem      e.g. if you want to report on segments that are within 10 extents
 rem      of max extents, then the the threshold would be set to 3.
 rem
-rem    Author   A. Johnston (CSC)  Dec 2003
-rem             based on script supplied by T. Tan
+
 set verify off
 set termout off
 set linesize 80
@@ -453,8 +452,6 @@ rem
 rem    USAGE:   monitor_dataguard
 rem
 rem             script is called by monitor_dataguard.sh
-rem
-rem    Author   Ray Halse   (CSC)  Feb 2006
 rem
 
 set verify off
@@ -875,8 +872,6 @@ rem    USAGE:   monitor_dataguard
 rem
 rem             script is called by monitor_dataguard.sh
 rem
-rem    Author   Ray Halse   (CSC)  Feb 2006
-rem
 
 set verify off
 set termout off
@@ -1065,8 +1060,8 @@ set verify on
 /
 ```
 
-### ADDM REport
-
+### ADDM Report Shell Script
+```
 #!/usr/bin/ksh
 
 PATH=/usr/local/bin:$PATH
@@ -1105,14 +1100,7 @@ cd $REPORT_DIR
 cat ${ORACLE_SID}_ADDM_REPORT_${TODAY}.txt | mailx -s " ADDM reoprt ${ORACLE_SID} `hostname` at `date`  " "sthati@csc.com,smandava6@csc.com"
 done
 test -f $TMPFILE && rm $TMPFILE
-
-
-
-
-
-
-
-
+```
 
 AUDIT
 --------
@@ -1133,14 +1121,18 @@ spool off
 exit
 eof
 done
-[oracle@csmper-cls09 audit]$ more arch_gen.sql
+
+## arch_gen.sql
+```
 SELECT A.*,Round(A.Count#*B.AVG#/1024/1024) Daily_Avg_Mb
 FROM (SELECT To_Char(First_Time,'YYYY-MM-DD') DAY,Count(1) Count#,
 Min(RECID) Min#,Max(RECID) Max# FROM v$log_history GROUP
 BY To_Char(First_Time,'YYYY-MM-DD') ORDER BY 1 DESC ) A,
 (SELECT Avg(BYTES) AVG#,Count(1) Count#,Max(BYTES) Max_Bytes,Min(BYTES) Min_Bytes
 FROM v$log) B;
-[oracle@csmper-cls09 audit]$ more arch_gen2.sql
+```
+## arch_gen2.sql
+```
 select sum(GB_USED_PER_DAY)/count(GB_USED_PER_DAY) from (SELECT
  TO_CHAR(completion_time,'YYYY-MM-DD') completion_date,
  round (SUM(block_size*(blocks+1)) / 1024 / 1024 / 1024 , 2) GB_USED_PER_DAY
@@ -1149,10 +1141,12 @@ select sum(GB_USED_PER_DAY)/count(GB_USED_PER_DAY) from (SELECT
  TRUNC(SYSDATE-30) AND TRUNC(SYSDATE)
 GROUP BY TO_CHAR(completion_time,'YYYY-MM-DD')
  order by 1 desc);
+```
 
-
-
-[oracle@csmper-cls09 monitor]$ more oracle_housekeeping.sh
+## House Keeping Shell script for Oracle Database Home
+ 
+more oracle_housekeeping.sh
+```
 #!/bin/sh
 
 #       -----------------------------------------------------------------------
@@ -1179,8 +1173,8 @@ GROUP BY TO_CHAR(completion_time,'YYYY-MM-DD')
 #
 #       Date            Who     What
 #       ==========      ======  ======================================
-#       13-08-2004      rhalse  Initial coding
-#       -----------------------------------------------------------------------
+#              <>                  <>                  <>#
+# -----------------------------------------------------------------------
 
 #       ------------------------------------------------------------------------
 #       Check input parameters
@@ -1393,12 +1387,15 @@ echo "********************* END OF JOB ******************************"
 
 exit
 
+```
+### sample execute command
+/var/oracle/cron/oracle_housekeeping.sh EAYM      > /var/oracle/cron/logs/oracle_housekeeping.out 2>>/dev/null
 
----
-09 23 * * 6     /var/oracle/cron/grid_housekeping.sh +ASM2      > /var/oracle/cron/logs/grid_housekeping.out 2>>/dev/null
 
+## House Keeping Shell script for Grid Infrastructure Home
 
-[grid@csmper-cls08 cron]$  more grid_housekeping.sh
+more grid_housekeping.sh
+```
 #!/bin/sh
 
 #       -----------------------------------------------------------------------
@@ -1418,7 +1415,7 @@ exit
 #
 #       Date            Who     What
 #       ==========      ======  ======================================
-#       26-10-2013      Srinivas  Initial coding
+#       <>                  <>                  <>
 #       -----------------------------------------------------------------------
 
 #       ------------------------------------------------------------------------
@@ -1639,27 +1636,26 @@ echo
 echo "********************* END OF JOB ******************************"
 
 exit
+```
+
+### sample execute command
+/var/oracle/cron/grid_housekeping.sh +ASM1      > /var/oracle/cron/logs/grid_housekeping.out 2>>/dev/null
 
 
-
-ASM
-----
-#00  00,03,06,09,12,15,18,21   *  *  *  /export/home/oracle/bin/monitor/process_asm.sh >> /export/home/oracle/bin/monitor/logs/monitor_ASM_process.log
-
+# Monitor ASM Process
 more process_asm.sh
-more /app/pprod12/product/sample.log > /tmp/session.out
+```
 ps -ef | grep -i asm | wc -l >> /tmp/session.out
 export proc=`ps -ef | grep -i asm | wc -l`
 if [ "$proc" -gt 900 ]; then
-mailx -s " Process threshold has breached for ASM `hostname` at `date`" "Australia_SupportDBA_ORACLE@gmail.com" < /tmp/session.out
+mailx -s " Process threshold has breached for ASM `hostname` at `date`" "monowar.mukul@gmail.com" < /tmp/session.out
 fi
+```
+### sample execute command
+/export/home/oracle/bin/monitor/process_asm.sh >> /export/home/oracle/bin/monitor/logs/monitor_ASM_process.log
 
-
-$ more /app/pprod12/product/sample.log
-Please action on the below process value of ASM.
-
----------
-[grid@csmper-cls08 monitor]$ more monitor_report_sessions.sql
+### monitor_report_sessions.sql
+```
 set head off
 set linesize 200 trimspool on pagesize 0
 select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS
@@ -1676,7 +1672,8 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
    WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
 
 SELECT 'Sid,Serial#,User,Temp(Mb),Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
-
+```
+```
 col size_mb format 999 head "size_mb"
 COMPUTE SUM of size_mb ON REPORT
 
@@ -1701,89 +1698,23 @@ group by  s.sid || ',' || s.serial#,
           substr(round(((u.blocks*p.value)/1024/1024),2),1,7),
           substr(s.osuser||','||s.machine||','||s.module||','||
           s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
+```
 
+## Manually Clean Trace files [ replace the right db_home and sid / get the path from the parameter file]
+```
+find /<db_home>/admin/<SID>/bdump -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
+find /<db_home>/admin/<SID>/udump -name "*.trc" -a -mtime +30 -exec rm -rf {} \;
+find /<db_home>/admin/<SID>/adump -name "*.aud" -a -mtime +30 -exec rm -rf {} \;
 
+find /app/wspsp/product/diag/rdbms/eaym/eaym2/trace  -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
+find /app/wspsp/product/admin/eaym/adump  -name "*.aud" -a -mtime +30 -exec rm  -rf {} \;
+```
 
-EXPORT  [database_exportdp.sh]
-------------------------------
-
-#!/bin/sh
-case "$PATH" in
-        */usr/local/bin*)       ;;
-        *:)                     PATH=${PATH}/usr/local/bin   ;;
-        "")                     PATH=/usr/local/bin          ;;
-        *)                      PATH=${PATH}:/usr/local/bin  ;;
-esac
-
-export PATH
-
-if [ "$1" ] ; then
-        ORACLE_SID=$1
-        export ORACLE_SID
-else
-        echo "ERROR: Database name not passed as parameter to io1docpr_export_backup.sh ... Aborting"
-        exit 1
-fi
-
-ORAENV_ASK=NO
-export ORAENV_ASK
-
-. /usr/local/bin/oraenv
-
-CURDATE=`date '+%Y%m%d%H%M'`                                ;export CURDATE
-#BACKUP_ROOT=/app/io1docpr/oradump/
-BKPLOG=/app/io1docpr/oradump/io1docpr_export_log_${CURDATE}   ;export BKPLOG
-MAILLIST="monowar.mukul@bhpbilliton.com"                    ;export MAILLIST
-MAILHEADER="`uname -n` BHPBIO_DISK export BACKUP ${ORACLE_SID} `date '+%a %h %d'`"     ;export MAILHEADER
-
-
-#       -----------------------------------------------------------------------
-#       Perform a consistent full database export
-#       -----------------------------------------------------------------------
-
-#rm -f $BACKUP_ROOT/${ORACLE_SID}_pipe
-#/bin/mknod $BACKUP_ROOT/${ORACLE_SID}_pipe p
-#gzip -c >$BACKUP_ROOT/${ORACLE_SID}.dmp.gz <$BACKUP_ROOT/${ORACLE_SID}_pipe &
-
-expdp system/io1docproper dumpfile=io1docpr_$CURDATE%U.dmp directory=exportdump filesize=6g Full=y logfile=io1docpr_$CURDATE.log
-
-
-
-#       -----------------------------------------------------------------------
-#       Cleanup log files from this job (keep logs from the last 5 weeks)
-#       and exit
-#       -----------------------------------------------------------------------
-
-echo "***************************************************************"
-echo
-echo "Cleaning up log files from database_export.sh"
-echo
-
-#find /app/io1docpr/oradump/exportdump/ -name "io1docpr_*.dmp" -type f -mtime +1 -ls -exec rm  {} \;
-#find /app/io1docpr/oradump/exportdump/ -name "io1docpr_*.log" -type f -mtime +2 -ls -exec rm  {} \;
-
-echo
-echo "ORACLE EXPORT Finished `date`"
-echo
-echo "********************* END OF JOB ******************************"
-
-exit
-
-
----- Manually Clean 
-find /opt/oracle/product/10.2.0/db_1/admin/pprod25/bdump -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
-find /opt/oracle/product/10.2.0/db_1/admin/pprod25/udump -name "*.trc" -a -mtime +30 -exec rm -rf {} \;
-find /opt/oracle/product/10.2.0/db_1/admin/pprod25/adump -name "*.aud" -a -mtime +30 -exec rm -rf {} \;
-
-
-
-find /app/wspsp/product/diag/rdbms/wspsp/wspsp3/trace  -name "*.trc" -a -mtime +30 -exec rm  -rf {} \;
-find /app/wspsp/product/admin/wspsp/adump  -name "*.aud" -a -mtime +30 -exec rm  -rf {} \;
-
-
+## Get the sql session history
+```
 spool hist_sql_DEV.lst
 undefine sql_id
-prompt 'Please enter SQL_ID: (ie: 0sfvm0sf84qan)'
+prompt 'Please enter SQL_ID: (ie: 0sfvmtydgh4qan)'
 define sql_id='&SQL_ID'
 
 set null null
@@ -1911,9 +1842,11 @@ select plan_table_output from table (dbms_xplan.display_awr('&&sql_id',null, nul
 select plan_table_output from table (dbms_xplan.display_cursor('&&sql_id', null, 'ADVANCED +PEEKED_BINDS'));
 
 spool off
+```
 
-[oracle@csmper-cls09 kumaresh]$ vi 22.sql
+### Get the rollback segment information
 
+```
 column RBS_NAME format a10
 
 
@@ -1937,7 +1870,9 @@ and r.usn = t.xidusn
 and s.sid = &sid_number
 /
 
-
+```
+### SORT information
+```
 PROMPT
 PROMPT Sort Information
 PROMPT ----------------
@@ -1956,18 +1891,13 @@ FROM v$session s, v$sort_usage u
 WHERE s.saddr = u.session_addr
 AND s.sid = &sid_number
 /
+```
 
 
+### Performance Statistics
 
-
-set heading on
-set verify on
-
-
-clear column
-
-
-Performance_stat.sql
+more performance_stat.sql
+```
 col sid format 9999
 col username format a10
 col osuser format a10
@@ -2109,11 +2039,11 @@ select object_name, object_type, status from dba_objects where owner='CTXSYS' an
 
 
 spool off
-~
-~
+```
 
-[oracle@csmper-cls09 sthati]$ vi bkp.sql
-
+### Backup Status Report - Grant permission only to the right user / group
+more bkp.sql
+```
 CREATE OR REPLACE FORCE VIEW "SYS"."RMAN_REPORT"
 ("DB_NAME","INPUT_TYPE", "STATUS", "START_TIME", "END_TIME", "HRS", "SUM_BYTES_BACKED_IN_GB","SUM_BACKUP_PIECES_IN_GB", "OUTPUT_DEVICE_TYPE") AS
 select a.NAME,
@@ -2127,12 +2057,31 @@ OUTPUT_BYTES/1024/1024/1024 SUM_BACKUP_PIECES_IN_GB,
 OUTPUT_DEVICE_TYPE
 FROM V_$RMAN_BACKUP_JOB_DETAILS,v$database a
 order by a.name,SESSION_KEY;
-
+```
+```
 set lines 200 pages 2000
 select * from rman_report;
-~
+```
+```
+CREATE OR REPLACE FORCE VIEW "RMAN_REPORT_DAILY"
+("DB_NAME", "INPUT_TYPE", "STATUS", "START_TIME", "END_TIME")
+AS
+select name,INPUT_TYPE,STATUS,TO_CHAR(START_TIME,'mm/dd/yy hh24:mi') start_time,TO_CHAR(END_TIME,'mm/dd/yy hh24:mi') end_time
+FROM v$database,V$RMAN_BACKUP_JOB_DETAILS where status in ('COMPLETED','COMPLETED WITH WARNINGS') and INPUT_TYPE in ('DB FULL','DB INCR') and OUTPUT_DEVICE_TYPE='SBT_TAPE' AND END_TIME=(SELECT MAX(END_TIME) FROM
+V$RMAN_BACKUP_JOB_DETAILS WHERE STATUS in ('COMPLETED','COMPLETED WITH WARNINGS') AND INPUT_TYPE in ('DB FULL','DB INCR') and OUTPUT_DEVICE_TYPE='SBT_TAPE')
+union
+select name,INPUT_TYPE,STATUS,TO_CHAR(START_TIME,'mm/dd/yy hh24:mi') start_time,TO_CHAR(END_TIME,'mm/dd/yy hh24:mi') end_time
+FROM V$RMAN_BACKUP_JOB_DETAILS,v$database where status in ('COMPLETED','COMPLETED WITH WARNINGS') and INPUT_TYPE='ARCHIVELOG' and OUTPUT_DEVICE_TYPE='SBT_TAPE' AND END_TIME=(SELECT MAX(END_TIME) FROM
+V$RMAN_BACKUP_JOB_DETAILS WHERE STATUS in ('COMPLETED','COMPLETED WITH WARNINGS') AND INPUT_TYPE='ARCHIVELOG' and OUTPUT_DEVICE_TYPE='SBT_TAPE');
 
-crs_stat.sh
+create synonym cscbkp.RMAN_REPORT_DAILY for sys.RMAN_REPORT_DAILY;
+grant select on sys.RMAN_REPORT_DAILY to &usr;
+```
+
+## CRS resource status query script
+
+cat crs_stat.sh
+```
 #!/usr/bin/ksh
 #
 # 10g CRS resource status query script
@@ -2196,103 +2145,26 @@ exit
   ;;
 esac
 done
+```
 
-++++++++++++++++++++++++++++++++++++++++++++
-show_alert.sql
-
-CREATE OR REPLACE FORCE VIEW "RMAN_REPORT_DAILY"
-("DB_NAME", "INPUT_TYPE", "STATUS", "START_TIME", "END_TIME")
-AS
-select name,INPUT_TYPE,STATUS,TO_CHAR(START_TIME,'mm/dd/yy hh24:mi') start_time,TO_CHAR(END_TIME,'mm/dd/yy hh24:mi') end_time
-FROM v$database,V$RMAN_BACKUP_JOB_DETAILS where status in ('COMPLETED','COMPLETED WITH WARNINGS') and INPUT_TYPE in ('DB FULL','DB INCR') and OUTPUT_DEVICE_TYPE='SBT_TAPE' AND END_TIME=(SELECT MAX(END_TIME) FROM
-V$RMAN_BACKUP_JOB_DETAILS WHERE STATUS in ('COMPLETED','COMPLETED WITH WARNINGS') AND INPUT_TYPE in ('DB FULL','DB INCR') and OUTPUT_DEVICE_TYPE='SBT_TAPE')
-union
-select name,INPUT_TYPE,STATUS,TO_CHAR(START_TIME,'mm/dd/yy hh24:mi') start_time,TO_CHAR(END_TIME,'mm/dd/yy hh24:mi') end_time
-FROM V$RMAN_BACKUP_JOB_DETAILS,v$database where status in ('COMPLETED','COMPLETED WITH WARNINGS') and INPUT_TYPE='ARCHIVELOG' and OUTPUT_DEVICE_TYPE='SBT_TAPE' AND END_TIME=(SELECT MAX(END_TIME) FROM
-V$RMAN_BACKUP_JOB_DETAILS WHERE STATUS in ('COMPLETED','COMPLETED WITH WARNINGS') AND INPUT_TYPE='ARCHIVELOG' and OUTPUT_DEVICE_TYPE='SBT_TAPE');
-
-create synonym cscbkp.RMAN_REPORT_DAILY for sys.RMAN_REPORT_DAILY;
-grant select on sys.RMAN_REPORT_DAILY to cscbkp;
-~
-~
-~
-
-RESTORE   [USER BACKUP]
------------
-[oracle@csmper-cls09 restore]$ more usr_def.sql
-SQL>
-SQL> select 'alter user ' ||u.username|| ' profile default ;' from   sys.dba_users u;
-
-'ALTERUSER'||U.USERNAME||'PROFILEDEFAULT;'
------------------------------------------------------------
-alter user PERFSTAT profile default ;
-alter user MOBILEADMIN profile default ;
-alter user RM profile default ;
-alter user ODM_MTR profile default ;
-alter user ODM profile default ;
-alter user WKSYS profile default ;
-alter user WKPROXY profile default ;
-alter user SRA_SYSDATA profile default ;
-alter user HSECARCH profile default ;
-alter user PHD profile default ;
-alter user HSECE profile default ;
-:
-:
-alter user SUDHA profile default ;
-alter user SYS profile default ;
-alter user SYSTEM profile default ;
-alter user OUTLN profile default ;
-
-71 rows selected.
-
-SQL>
+## Get default profile information
+```
+SQL> spool oon
+SQL> select 'alter user ' ||u.username|| ' profile '||u.profile||';' from   sys.dba_users u;
 SQL> spool off
-SQL> select 'alter user ' ||u.username|| ' profile '||u.profile||';'
-  2  from   sys.dba_users u;
-
-'ALTERUSER'||U.USERNAME||'PROFILE'||U.PROFILE||';'
---------------------------------------------------------------------------------
-alter user PERFSTAT profile DEFAULT;
-alter user MOBILEADMIN profile DEFAULT;
-alter user RM profile DEFAULT;
-alter user ODM_MTR profile DEFAULT;
-alter user ODM profile DEFAULT;
-alter user WKSYS profile DEFAULT;
-:
-:
-
-alter user SUDHA profile DEFAULT;
-alter user SYS profile DEFAULT;
-alter user SYSTEM profile DEFAULT;
-alter user OUTLN profile DEFAULT;
-
-71 rows selected.
-
-SQL>
-SQL> spool off
-
-restore]$ vi PasswordBackup_ptest11_20022014.sql
-
+```
+### Passsword information 
+cat PasswordBackup_<db>_<date>.sql
+```
 set lines 120
 set pages 999
 set ver off head off feed off
 select 'alter user '|| name ||' identified by values '''||
 decode(spare4,null,password,spare4)||''';' sql
 from sys.user$;
-
-alter user SYS identified by values 'S:DC4EE545EB688C99BE4BE43675A5B0F631601BCF07AF34EB5A08A25E7C3D';
-alter user PUBLIC identified by values '';
-alter user CONNECT identified by values '';
-
-:
-:
-alter user CSCBKP identified by values 'S:95703FB84AD62824876FF979106F4EBDF5D451F76E5C5841FC96BCEF38D0';
-alter user CSC_ROLE_MON identified by values '';
-alter user CSCMONITOR identified by values 'S:01220F99BD3FACC993E279CC6F7911A88CD49D9C05881C1DF27710204F66';
-alter user CSCDBADMIN identified by values 'S:49F0BB07F059BC5DE0E6564A82E19993884A0E004E32590F6361A0BF97DC';
-SQL> spool off
-
-[oracle@csmper-cls09 restore]$ more crontrol_create.sql
+```
+## Create controlfile 
+```
 CREATE CONTROLFILE SET DATABASE "PTEST1" RESETLOGS ARCHIVELOG
     MAXLOGFILES 192
     MAXLOGMEMBERS 3
@@ -2316,34 +2188,8 @@ LOGFILE
 DATAFILE
   '+PTEST1_DATA_01/ptest1/datafile/system.259.840123923',
   '+PTEST1_DATA_01/ptest1/datafile/sysaux.271.840123917',
-  '+PTEST1_DATA_01/ptest1/datafile/undotbs1.273.840127871',
-  '+PTEST1_DATA_01/ptest1/datafile/undotbs2.286.840123917',
-  '+PTEST1_DATA_01/ptest1/datafile/undotbs3.279.840123917',
-  '+PTEST1_DATA_01/ptest1/datafile/users.268.840125645',
-  '+PTEST1_DATA_01/ptest1/datafile/undotbs3.287.840123923',
-  '+PTEST1_DATA_01/ptest1/datafile/arcdata_large.264.840125665',
-  '+PTEST1_DATA_01/ptest1/datafile/arcindex_large.262.840125665',
-  '+PTEST1_DATA_01/ptest1/datafile/arcindex_medium.263.840125665',
-  '+PTEST1_DATA_01/ptest1/datafile/arcindex_small.285.840125665',
-  '+PTEST1_DATA_01/ptest1/datafile/cwmlite.288.840125665',
-  '+PTEST1_DATA_01/ptest1/datafile/data_large01.266.840125663',
-  '+PTEST1_DATA_01/ptest1/datafile/data_large01.272.840127869',
-  '+PTEST1_DATA_01/ptest1/datafile/data_medium01.267.840123921',
-  '+PTEST1_DATA_01/ptest1/datafile/data_medium01.269.840123923',
-  '+PTEST1_DATA_01/ptest1/datafile/data_small01.276.840123917',
-  '+PTEST1_DATA_01/ptest1/datafile/drsys.280.840125645',
-  '+PTEST1_DATA_01/ptest1/datafile/index_large01.257.840125643',
-  '+PTEST1_DATA_01/ptest1/datafile/index_medium01.265.840123919',
-  '+PTEST1_DATA_01/ptest1/datafile/index_small01.278.840127873',
-  '+PTEST1_DATA_01/ptest1/datafile/indx.289.840125645',
-  '+PTEST1_DATA_01/ptest1/datafile/odm.270.840125645',
-  '+PTEST1_DATA_01/ptest1/datafile/rm_data.256.840127871',
-  '+PTEST1_DATA_01/ptest1/datafile/rm_index.284.840123917',
-  '+PTEST1_DATA_01/ptest1/datafile/rm_index.260.840127873',
-  '+PTEST1_DATA_01/ptest1/datafile/syncserver.277.840125645',
-  '+PTEST1_DATA_01/ptest1/datafile/tools.295.840127871',
-  '+PTEST1_DATA_01/ptest1/datafile/xdb.258.840123923',
-  '+PTEST1_DATA_01/ptest1/datafile/index_large01.275.840123921'
+  -----
+
 CHARACTER SET WE8ISO8859P1
 ;
 
@@ -2358,9 +2204,10 @@ TO_CHAR(TIME,'DD/   COUNT(*)
 21/02/14:04:28:29         30
 
 SQL> spool off;
+```
 
-restore_ptest11.sh
-
+### restore_ptest11.sh
+```
 #!/usr/bin/ksh
 TODAY=`date +%y%m%d_%H%M`
 export NLS_DATE_FORMAT="YYYY-MM-DD:HH24:MI:SS"
@@ -2384,26 +2231,7 @@ set newname for datafile 6 to '+PTEST1_DATA_01';
 set newname for datafile 7 to '+PTEST1_DATA_01';
 set newname for datafile 8 to '+PTEST1_DATA_01';
 set newname for datafile 9 to '+PTEST1_DATA_01';
-set newname for datafile 10 to '+PTEST1_DATA_01';
-set newname for datafile 11 to '+PTEST1_DATA_01';
-set newname for datafile 12 to '+PTEST1_DATA_01';
-set newname for datafile 13 to '+PTEST1_DATA_01';
-set newname for datafile 14 to '+PTEST1_DATA_01';
-set newname for datafile 15 to '+PTEST1_DATA_01';
-set newname for datafile 16 to '+PTEST1_DATA_01';
-set newname for datafile 17 to '+PTEST1_DATA_01';
-set newname for datafile 18 to '+PTEST1_DATA_01';
-set newname for datafile 19 to '+PTEST1_DATA_01';
-set newname for datafile 20 to '+PTEST1_DATA_01';
-set newname for datafile 21 to '+PTEST1_DATA_01';
-set newname for datafile 22 to '+PTEST1_DATA_01';
-set newname for datafile 23 to '+PTEST1_DATA_01';
-set newname for datafile 24 to '+PTEST1_DATA_01';
-set newname for datafile 25 to '+PTEST1_DATA_01';
-set newname for datafile 26 to '+PTEST1_DATA_01';
-set newname for datafile 27 to '+PTEST1_DATA_01';
-set newname for datafile 28 to '+PTEST1_DATA_01';
-set newname for datafile 29 to '+PTEST1_DATA_01';
+---
 set newname for datafile 30 to '+PTEST1_DATA_01';
 set until time "2014-02-21:04:28:26','YYYY-MM-DD:HH24:MI:SS";
 restore database;
@@ -2416,8 +2244,9 @@ RELEASE CHANNEL ch1;
 RELEASE CHANNEL ch2;
 }
 EOF
-
-restore]$ vi recover_ptest11.sh
+```
+### vi recover_ptest11.sh
+```
 #!/usr/bin/ksh
 TODAY=`date +%y%m%d_%H%M`
 export NLS_DATE_FORMAT="YYYY-MM-DD:HH24:MI:SS"
@@ -2439,4 +2268,4 @@ RELEASE CHANNEL ch1;
 RELEASE CHANNEL ch2;
 }
 EOF
-
+```
