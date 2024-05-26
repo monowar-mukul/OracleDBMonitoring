@@ -4914,3 +4914,111 @@ like
 .
 RMAN-06813: could not translate pluggable database PDB1
  
+---
+
+## Create controlfile 
+```
+CREATE CONTROLFILE SET DATABASE "PTEST1" RESETLOGS ARCHIVELOG
+    MAXLOGFILES 192
+    MAXLOGMEMBERS 3
+    MAXDATAFILES 1024
+    MAXINSTANCES 32
+    MAXLOGHISTORY 5840
+LOGFILE
+  GROUP 1 (
+    '+PTEST1_DATA_01',
+    '+PTEST1_ARC_01'
+  ) SIZE 50M BLOCKSIZE 512,
+  GROUP 2 (
+    '+PTEST1_DATA_01',
+    '+PTEST1_ARC_01'
+  ) SIZE 50M BLOCKSIZE 512,
+  GROUP 3 (
+    '+PTEST1_DATA_01',
+    '+PTEST1_ARC_01'
+  ) SIZE 50M BLOCKSIZE 512
+-- STANDBY LOGFILE
+DATAFILE
+  '+PTEST1_DATA_01/ptest1/datafile/system.259.840123923',
+  '+PTEST1_DATA_01/ptest1/datafile/sysaux.271.840123917',
+  -----
+
+CHARACTER SET WE8ISO8859P1
+;
+
+SQL> @crontrol_create.sql
+
+Control file created.
+
+SQL> select to_char(TIME,'dd/mm/yy:hh24:mi:ss'),count(*) from v$recover_file group by to_char(TIME,'dd/mm/yy:hh24:mi:ss');
+
+TO_CHAR(TIME,'DD/   COUNT(*)
+----------------- ----------
+21/02/14:04:28:29         30
+
+SQL> spool off;
+```
+
+### restore_ptest11.sh
+```
+#!/usr/bin/ksh
+TODAY=`date +%y%m%d_%H%M`
+export NLS_DATE_FORMAT="YYYY-MM-DD:HH24:MI:SS"
+#export NB_ORA_CLIENT=csmper-cls09
+export ORACLE_SID=ptest11
+export ORACLE_HOME=/app/ptest1/product/11.2.0.2/db_1
+ORAENV_ASK=NO
+. oraenv
+rman target / msglog /home/oracle/sthati/restore/restore_ptest11_$TODAY.out append << EOF
+RUN {
+ALLOCATE CHANNEL ch1 TYPE 'SBT_TAPE'
+     PARMS='ENV=(NB_ORA_SERVER=ironper-bak01d,NB_ORA_CLIENT=csmper-cls08b,NB_ORA_POLICY=IronOre-DB-Cluster-Unix-ORA)';
+ALLOCATE CHANNEL ch2 TYPE 'SBT_TAPE'
+     PARMS='ENV=(NB_ORA_SERVER=ironper-bak01d,NB_ORA_CLIENT=csmper-cls08b,NB_ORA_POLICY=IronOre-DB-Cluster-Unix-ORA)';
+set newname for datafile 1 to '+PTEST1_DATA_01';
+set newname for datafile 2 to '+PTEST1_DATA_01';
+set newname for datafile 3 to '+PTEST1_DATA_01';
+set newname for datafile 4 to '+PTEST1_DATA_01';
+set newname for datafile 5 to '+PTEST1_DATA_01';
+set newname for datafile 6 to '+PTEST1_DATA_01';
+set newname for datafile 7 to '+PTEST1_DATA_01';
+set newname for datafile 8 to '+PTEST1_DATA_01';
+set newname for datafile 9 to '+PTEST1_DATA_01';
+---
+set newname for datafile 30 to '+PTEST1_DATA_01';
+set until time "2014-02-21:04:28:26','YYYY-MM-DD:HH24:MI:SS";
+restore database;
+#restore database from tag 'NBUHOTBACK_*****';
+switch datafile all;
+#set until time "2014-02-21:04:28:26','YYYY-MM-DD:HH24:MI:SS";
+recover database;
+# Release channels
+RELEASE CHANNEL ch1;
+RELEASE CHANNEL ch2;
+}
+EOF
+```
+### vi recover_ptest11.sh
+```
+#!/usr/bin/ksh
+TODAY=`date +%y%m%d_%H%M`
+export NLS_DATE_FORMAT="YYYY-MM-DD:HH24:MI:SS"
+#export NB_ORA_CLIENT=csmper-cls09
+export ORACLE_SID=ptest11
+export ORACLE_HOME=/app/ptest1/product/11.2.0.2/db_1
+ORAENV_ASK=NO
+. oraenv
+rman target / msglog /home/oracle/sthati/restore/restore_ptest11_$TODAY.out append << EOF
+RUN {
+ALLOCATE CHANNEL ch1 TYPE 'SBT_TAPE'
+     PARMS='ENV=(NB_ORA_SERVER=ironper-bak01d,NB_ORA_CLIENT=csmper-cls08b,NB_ORA_POLICY=IronOre-DB-Cluster-Unix-ORA)';
+ALLOCATE CHANNEL ch2 TYPE 'SBT_TAPE'
+     PARMS='ENV=(NB_ORA_SERVER=ironper-bak01d,NB_ORA_CLIENT=csmper-cls08b,NB_ORA_POLICY=IronOre-DB-Cluster-Unix-ORA)';
+set until time "2014-02-21:05:00:00','YYYY-MM-DD:HH24:MI:SS";
+recover database;
+# Release channels
+RELEASE CHANNEL ch1;
+RELEASE CHANNEL ch2;
+}
+EOF
+```
