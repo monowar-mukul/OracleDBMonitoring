@@ -1133,4 +1133,74 @@ Worker 1 Status:
   Completed Bytes: 6,806,777,136
   Percent Done: 90
   Worker Parallelism: 1
- 
+
+====
+
+
+EXPORT  [database_exportdp.sh]
+------------------------------
+
+#!/bin/sh
+case "$PATH" in
+        */usr/local/bin*)       ;;
+        *:)                     PATH=${PATH}/usr/local/bin   ;;
+        "")                     PATH=/usr/local/bin          ;;
+        *)                      PATH=${PATH}:/usr/local/bin  ;;
+esac
+
+export PATH
+
+if [ "$1" ] ; then
+        ORACLE_SID=$1
+        export ORACLE_SID
+else
+        echo "ERROR: Database name not passed as parameter to io1docpr_export_backup.sh ... Aborting"
+        exit 1
+fi
+
+ORAENV_ASK=NO
+export ORAENV_ASK
+
+. /usr/local/bin/oraenv
+
+CURDATE=`date '+%Y%m%d%H%M'`                                ;export CURDATE
+#BACKUP_ROOT=/app/io1docpr/oradump/
+BKPLOG=/app/io1docpr/oradump/io1docpr_export_log_${CURDATE}   ;export BKPLOG
+MAILLIST="monowar.mukul@bhpbilliton.com"                    ;export MAILLIST
+MAILHEADER="`uname -n` BHPBIO_DISK export BACKUP ${ORACLE_SID} `date '+%a %h %d'`"     ;export MAILHEADER
+
+
+#       -----------------------------------------------------------------------
+#       Perform a consistent full database export
+#       -----------------------------------------------------------------------
+
+#rm -f $BACKUP_ROOT/${ORACLE_SID}_pipe
+#/bin/mknod $BACKUP_ROOT/${ORACLE_SID}_pipe p
+#gzip -c >$BACKUP_ROOT/${ORACLE_SID}.dmp.gz <$BACKUP_ROOT/${ORACLE_SID}_pipe &
+
+expdp system/io1docproper dumpfile=io1docpr_$CURDATE%U.dmp directory=exportdump filesize=6g Full=y logfile=io1docpr_$CURDATE.log
+
+
+
+#       -----------------------------------------------------------------------
+#       Cleanup log files from this job (keep logs from the last 5 weeks)
+#       and exit
+#       -----------------------------------------------------------------------
+
+echo "***************************************************************"
+echo
+echo "Cleaning up log files from database_export.sh"
+echo
+
+#find /app/io1docpr/oradump/exportdump/ -name "io1docpr_*.dmp" -type f -mtime +1 -ls -exec rm  {} \;
+#find /app/io1docpr/oradump/exportdump/ -name "io1docpr_*.log" -type f -mtime +2 -ls -exec rm  {} \;
+
+echo
+echo "ORACLE EXPORT Finished `date`"
+echo
+echo "********************* END OF JOB ******************************"
+
+exit
+
+
+
