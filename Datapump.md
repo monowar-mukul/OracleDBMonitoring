@@ -140,10 +140,7 @@ problem can be related with STREAMS_POOL_SIZE. DataPump uses streams to generate
 connect / as sysdba alter system set STREAMS_POOL_SIZE=100M scope=spfile; shutdown startup  
 
 
-
 Clean old exp jobs 
-
-
 
 SQL> select owner_name,job_name,operation,job_mode,state,attached_sessions from dba_datapump_jobs;
 
@@ -182,7 +179,6 @@ SQL> purge table system.SYS_EXPORT_SCHEMA_02;
 Table purged
 SQL> purge table system.SYS_EXPORT_SCHEMA_03;
 Table purged  
-
 
 export a package and a procedure (Metadata) 
 
