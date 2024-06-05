@@ -476,3 +476,20 @@ MAX(MAXQUERYLEN)
             2765
 
 SQL>ALTER SYSTEM SET UNDO_RETENTION = 2800 scope=both sid='*';
+
+
+# Find Total archive generated with Size – day wise
+set pages 1000
+alter session set nls_date_format = 'DD-MON-YYYY HH24:MI:SS';
+select to_char(COMPLETION_TIME,’DD/MON/YYYY’) Day,
+sum(blocks*block_size)/1048576/1024 "Size(GB)",
+count(sequence#) "Total Archives"
+from (select distinct sequence#,
+thread#,
+COMPLETION_TIME,
+blocks,
+block_size
+from v$archived_log
+where completion_time>=sysdate-7)
+group by to_char(COMPLETION_TIME,’DD/MON/YYYY’)
+order by 1;
