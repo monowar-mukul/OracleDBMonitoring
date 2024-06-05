@@ -1,3 +1,5 @@
+## Database Size with used and free space
+```
 col "Database Size" format a20
 col "Free space" format a20
 col "Used space" format a20
@@ -17,23 +19,8 @@ from    (select bytes
         from dba_free_space) free
 group by free.p
 /
-
-Database Size        Used space           Free space
--------------------- -------------------- --------------------
-3 GB                 2 GB                 1 GB
-
-select 'Data Files' type, sum(bytes)/1024/1024/1024 szgb,count(*) cnt
-from v$datafile group by substr(name,1,instr(name,'/',1,2)-1)
-union
-select 'Temp Files', sum(bytes)/1024/1024/1024 szgb,count(*) cnt
-from v$tempfile group by substr(name,1,instr(name,'/',1,2)-1)
-union
-select 'Redo Member',sum(l.bytes)/1024/1024/1024 szgb,count(*) cnt
-from v$logfile lf, v$log l
-where l.group#=lf.group# group by substr(member,1,instr(member,'/',1,2)-1)
-/
-
-OR
+```
+```
 SELECT 'Database Size' "*****"
       ,round(sum(round(sum(nvl(fs.bytes/1024/1024,0)))) / 
         sum(round(sum(nvl(fs.bytes/1024/1024,0))) + round
@@ -55,17 +42,32 @@ WHERE fs.file_id(+) = df.file_id
 GROUP BY df.tablespace_name, df.file_id, df.bytes,
    df.autoextensible
 ORDER BY df.file_id;
+```
+## Size (Datafiles, temp files and redo members)
+```
+select 'Data Files' type, sum(bytes)/1024/1024/1024 szgb,count(*) cnt
+from v$datafile group by substr(name,1,instr(name,'/',1,2)-1)
+union
+select 'Temp Files', sum(bytes)/1024/1024/1024 szgb,count(*) cnt
+from v$tempfile group by substr(name,1,instr(name,'/',1,2)-1)
+union
+select 'Redo Member',sum(l.bytes)/1024/1024/1024 szgb,count(*) cnt
+from v$logfile lf, v$log l
+where l.group#=lf.group# group by substr(member,1,instr(member,'/',1,2)-1)
+/
+```
+### Schema Size 
 
-SCHEMA SIZE 
-----------------
+```
 set pagesize 10000
 BREAK ON REPORT
 COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in MB" ON REPORT
 select segment_type, sum(bytes/1024/1024) "Size of Each Segment in MB" 
 from dba_segments where owner='&Owner' 
 group by segment_type order by 1;
-
-Segment SIze based on Type
+```
+## Segment SIze based on Type
+```
 set pagesize 10000
 BREAK ON REPORT
 COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in GB" ON REPORT
@@ -73,7 +75,9 @@ select segment_type, sum(bytes/1024/1024/1024) "Size of Each Segment in GB"
 from dba_segments 
 --where owner='BPELADMIN' 
 group by segment_type order by 1;
-
+```
+### Sample Output
+```
 SEGMENT_TYPE       Size of Each Segment in MB
 ------------------ --------------------------
 INDEX                               .179870605
@@ -82,44 +86,37 @@ LOBSEGMENT               12.975464
 TABLE                              2.84216309
                    --------------------------
 TOTAL                              216.007446
-
+```
+```
 set pagesize 10000
 BREAK ON REPORT
 COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in GB" ON REPORT
 select segment_type, sum(bytes/1024/1024/1024) "Size of Each Segment in GB" 
 from dba_segments 
-where owner='ICCSYSDB' 
-And segment_name='WMB_MSGS_OLD'
+where owner='&owner' 
+And segment_name='&Segment'
 group by segment_type order by 1;
 
---ICCSYSDB.WMB_MSGS_OLD
+```
+```
+select extent_id, bytes, blocks
+from dba_extents
+where segment_name = '&segmentname'
+and segment_type = 'TABLE'
+and owner='&owner';
+```
 
-SQL> select extent_id, bytes, blocks
-  2  from dba_extents
-  3  where segment_name = 'WMB_BINARY_DATA_OLD'
-  4  and segment_type = 'TABLE'
-  5  and owner='ICCSYSDB';
-
-
-set pagesize 10000
-BREAK ON REPORT
-COMPUTE SUM LABEL TOTAL OF "Size of Each Segment in GB" ON REPORT
-select segment_type, sum(bytes/1024/1024/1024) "Size of Each Segment in GB" 
-from dba_segments where owner='INTERFACE' 
-group by segment_type order by 1;
-
-
-table size
-########
+## Table Size
+```
 select sum(bytes)/(1024*1024), segment_name
 from dba_segments
 where segment_name='&TABLE_NAME'
 and owner='&owner'
 group by segment_name;
-
-Tablespaces Status
+```
+### Tablespaces Status
 consider the last column "MAX_PCT_USED" to identify current tablespace usage regardless autoextend status (ON/OFF).
-===========================================================================================
+```
 set linesize 300;
 SELECT a.tablespace_name TBS_NAME, ROUND (a.bytes_alloc / 1024 / 1024, 0) MEGS_ALLOC,
 ROUND (NVL (b.bytes_free, 0) / 1024 / 1024, 0) MEGS_FREE,
@@ -138,9 +135,9 @@ FROM dba_free_space f
 GROUP BY tablespace_name) b
 WHERE a.tablespace_name = b.tablespace_name(+)
 order by 8;
-
-Output:
-
+```
+### Sample Output:
+```
 TBS_NAME                       MEGS_ALLOC  MEGS_FREE  MEGS_USED   PCT_FREE   PCT_USED MAX_MEGS_ALLOC MAX_PCT_FREE MAX_PCT_USED
 ------------------------------ ---------- ---------- ---------- ---------- ---------- -------------- ------------ ------------
 SYSAUX                               1077        146        932      13.52      86.48       32767.98        97.16         2.84
@@ -151,10 +148,10 @@ USERS                                  42         23         19      54.95      
 SYSTEM                               1024        305        719       29.8       70.2       32767.98        97.81         2.19
 
 6 rows selected.
+```
 
-
-Extent Size
-##########
+### Extent Size
+```
 COL Object FORMAT a24;
 COL Type FORMAT a5;
 SELECT segment_name "Object", segment_type "Type"
@@ -165,9 +162,9 @@ FROM dba_extents
 WHERE owner = 'PRODOWNER' AND segment_type IN ('TABLE','INDEX')
 GROUP BY segment_name, segment_type
 ORDER BY segment_name, segment_type DESC;
- 
-Table space vs index space
-
+``` 
+### Table space vs Index space
+```
 SELECT segment_type, ROUND(SUM(size_mb)) size_mb, 
 ROUND((RATIO_TO_REPORT(SUM(size_mb)) OVER ())*100, 2)|| '%' PERC 
 FROM (SELECT owner, segment_name, segment_type, partition_name, ROUND(bytes/(1024*1024),2) SIZE_MB, tablespace_name 
@@ -177,7 +174,9 @@ WHERE SEGMENT_TYPE IN ('TABLE', 'INDEX', 'TABLE PARTITION', 'INDEX PARTITION',
 ORDER BY bytes DESC) 
 GROUP BY segment_type 
 ORDER BY size_mb DESC;
-
+```
+### Sample Output
+```
 SEGMENT_TYPE          SIZE_MB PERC
 ------------------ ---------- ------
 INDEX SUBPARTITION    3365434 34.94%
@@ -186,9 +185,10 @@ TABLE                 1329498 13.8%
 TABLE PARTITION        767524 7.97%
 INDEX PARTITION        559988 5.81%
 INDEX                  292943 3.04%
+```
 
-If someone wants to have a better grouping like tables against indexes space can use the following. 
---------------------------------------------------------------------------------
+### Grouping like tables against indexes space
+```
 SELECT SUBSTR(segment_type, 0, 5) SEGMENT, SUM(size_mb) size_mb, 
 ROUND((RATIO_TO_REPORT(SUM(size_mb)) OVER ())*100, 2)|| '%' PERC
 FROM (
@@ -201,9 +201,6 @@ ORDER BY bytes DESC)
 GROUP BY segment_type 
 ORDER BY size_mb DESC) 
 GROUP BY SUBSTR(segment_type, 0, 5);
+```
 
-SEGMENT  SIZE_MB PERC
------ ---------- ------
-INDEX    4218371 43.8%
-TABLE    5413359 56.2%
 
