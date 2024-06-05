@@ -1,10 +1,10 @@
-
+```
 select *
 from database_properties
 where property_name like 'DEFAULT%TABLESPACE';
-SQL> alter database default tablespace MW_USR;
+```
 
-===========================
+```
 select	OWNER,
 	SEGMENT_NAME,
 	SEGMENT_TYPE,
@@ -14,12 +14,15 @@ from 	dba_segments
 where	TABLESPACE_NAME = 'SYSTEM'
 and	OWNER not in ('SYS','SYSTEM')
 order 	by OWNER, SEGMENT_NAME
+```
 
 AUTOEXTEND
-select substr(file_name,1,50), AUTOEXTENSIBLE from dba_data_files
-select tablespace_name from dba_tables where table_name like '%902%'
+```
+substr(file_name,1,50), AUTOEXTENSIBLE from dba_data_files;
+```
 
-Script – Tablespace free space and fragmentation
+## Tablespace free space and fragmentation
+```
 set linesize 150
         column tablespace_name format a20 heading 'Tablespace'
      column sumb format 999,999,999
@@ -49,8 +52,8 @@ set linesize 150
      group by tablespace_name) a
      group by a.tablespace_name
 order by pct_free;
-==============================================================================
-
+```
+```
 SELECT F.TABLESPACE_NAME,
        TO_CHAR ((T.TOTAL_SPACE - F.FREE_SPACE),'999,999') "USED (MB)",
        TO_CHAR (F.FREE_SPACE, '999,999') "FREE (MB)",
@@ -73,27 +76,19 @@ FROM   (
        ) T
 WHERE F.TABLESPACE_NAME = T.TABLESPACE_NAME
 AND (ROUND ((F.FREE_SPACE/T.TOTAL_SPACE)*100)) < 10;
-
-
-Output: 
-
-TABLESPACE_NAME                USED (MB FREE (MB TOTAL (M PER_FR
------------------------------- -------- -------- -------- ------
-CINTELLATE                        2,000        0    2,000    0 %
-SYSAUX                              244       16      260    6 %
-
-SQL> 
+```
+```
 select TABLESPACE_NAME, FILE_NAME, sum(bytes)/1024/1024
 from dba_data_files
 where TABLESPACE_NAME='&TBSPACE'
 group by TABLESPACE_NAME, FILE_NAME;
+```
+```
+select tablespace_name from dba_tables where table_name like '%902%';
+```
 
-TABLESPACE_NAME        FILE_NAME                                                  SUM(BYTES)/1024/1024
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CINTELLATE           /oradata/pool/SITESDEV/data/cintellatedat01.dbf                 2000
-
-1. Space available per tablespace.  
-
+### Space available per tablespace.  
+```
 set pagesize 300  
 set linesize 120  
 select a.tablespace_name,sum(a.tots)/1024/1024 Tot_Size,   
@@ -111,25 +106,26 @@ select tablespace_name,sum(bytes) tots,0,0,0 from
 dba_data_files  
 group by tablespace_name) a  
 group by a.tablespace_name;  
-
-Find out the file_name which needs to increase: 
-
+```
+### Find out the file_name which needs to increase: 
+```
 select file_name, sum(bytes)/1024/1024 from dba_data_files
 where TABLESPACE_NAME='&TSpace'
 group by file_name;
-
+```
+```
 alter database datafile '&dfile' resize &size;
-
-2. Lists tables and indexes with more than 20 extents.  
-
+```
+### Lists tables and indexes with more than 20 extents.  
+```
 select owner,segment_name,extents,bytes ,   
 max_extents,next_extent   
 from  dba_segments   
 where segment_type in ('TABLE','INDEX') and extents>20   
 order by owner,segment_name;  
-
-3. Lists tables/indexes whose next extent will not fit  
-
+```
+### Lists tables/indexes whose next extent will not fit  
+```
 select  a.owner, a.segment_name, b.tablespace_name,  
      decode(ext.extents,1,b.next_extent,  
      a.bytes*(1+b.pct_increase/100)) nextext,   
@@ -154,107 +150,11 @@ where   a.owner=b.owner and
      decode(ext.extents,1,b.next_extent,  
      a.bytes*(1+b.pct_increase/100)) > freesp.largest  
 /  
+```
 
-Script To Find The Active_Session_Waits
 
-SET LINESIZE 200
-SET PAGESIZE 1100
-COLUMN username FORMAT A15
-COLUMN osuser FORMAT A15
-COLUMN sid FORMAT 99999
-COLUMN serial# FORMAT 9999999
-COLUMN wait_class FORMAT A15
-COLUMN state FORMAT A19
-COLUMN logon_time FORMAT A20
-SELECT NVL(a.username, '(oracle)') AS username, a.osuser, a.sid, a.serial#, d.spid AS process_id, a.wait_class, a.seconds_in_wait, a.state, a.blocking_session, a.blocking_session_status, a.module, TO_CHAR(a.logon_Time,'DD-MON-YYYY HH24:MI:SS') AS logon_timeFROM v$session a, v$process dWHERE a.paddr = d.addrAND a.status = 'ACTIVE'ORDER BY 1,2;
-
-Script To Find Database Usage High Watermark :
-
-COLUMN name FORMAT A40
-COLUMN highwater FORMAT 999999999999
-COLUMN last_value FORMAT 999999999999
-SET PAGESIZE 24
-SELECT hwm1.name, hwm1.highwater, hwm1.last_valueFROM dba_high_water_mark_statistics hwm1WHERE hwm1.version = (SELECT MAX(hwm2.version) FROM dba_high_water_mark_statistics hwm2 WHERE hwm2.name = hwm1.name)ORDER BY hwm1.name;
-COLUMN FORMAT DEFAULT
-
-Display The Value of Dynamically Memory Pools :
-
-COLUMN name FORMAT A40
-COLUMN value FORMAT A40
-SELECT name, valueFROM v$parameterWHERE SUBSTR(name, 1, 1) = '_'ORDER BY name;
-COLUMN FORMAT DEFAULT
-
-Display Feature Usage Statistics :
-
-COLUMN name FORMAT A50
-COLUMN detected_usages FORMAT 999999999999
-SELECT u1.name, u1.detected_usagesFROM dba_feature_usage_statistics u1WHERE u1.version = (SELECT MAX(u2.version) FROM dba_feature_usage_statistics u2 WHERE u2.name = u1.name)ORDER BY u1.name;
-COLUMN FORMAT DEFAULT 
-
-Displays Scheduler Information About Job Classes :
-
-SET LINESIZE 200
-COLUMN service FORMAT A20 COLUMN comments FORMAT A40 
-
-SELECT job_class_name, resource_consumer_group, service, logging_level, log_history, commentsFROM dba_scheduler_job_classesORDER BY job_class_name;
-
-Displays scheduler information about job programs :
-
-SET LINESIZE 250
-COLUMN owner FORMAT A20 COLUMN program_name FORMAT A30 COLUMN program_action FORMAT A50 COLUMN comments FORMAT A40
-SELECT owner, program_name, program_type, program_action, number_of_arguments, enabled, commentsFROM dba_scheduler_programsORDER BY owner, program_name;
-
-Displays scheduler information about job schedules :
-
-SET LINESIZE 250
-COLUMN owner FORMAT A20 COLUMN schedule_name FORMAT A30 COLUMN start_date FORMAT A35 COLUMN repeat_interval FORMAT A50 COLUMN end_date FORMAT A35 COLUMN comments FORMAT A40
-SELECT owner, schedule_name, start_date, repeat_interval, end_date, commentsFROM dba_scheduler_schedulesORDER BY owner, schedule_name;
-
-Displays scheduler job information :
-
-SET LINESIZE 200
-COLUMN owner FORMAT A20 COLUMN next_run_date FORMAT A35
-SELECT owner, job_name, enabled, job_class, next_run_dateFROM dba_scheduler_jobsORDER BY owner, job_name;
-
-Displays scheduler information for running jobs :
-
-SET LINESIZE 200
-COLUMN owner FORMAT A20
-SELECT owner, job_name, running_instance, elapsed_timeFROM dba_scheduler_running_jobsORDER BY owner, job_name;
-
-Displays information about database services :
-
-SET LINESIZE 200
-COLUMN name FORMAT A30
-COLUMN network_name FORMAT A50
-SELECT name, network_name FROM dba_services ORDER BY name;
-
-Displays information on all database session waits :
-
-SET LINESIZE 200SET PAGESIZE 1000
-COLUMN username FORMAT A20
-COLUMN event FORMAT A30
-COLUMN wait_class FORMAT A15
-SELECT NVL(s.username, '(oracle)') AS username, s.sid, s.serial#, sw.event, sw.wait_class, sw.wait_time, sw.seconds_in_wait, sw.stateFROM v$session_wait sw, v$session sWHERE s.sid = sw.sidORDER BY sw.seconds_in_wait DESC;
-
-Displays scheduler information about window groups :
-
-SET LINESIZE 250
-COLUMN comments FORMAT A40
-SELECT window_group_name, enabled, number_of_windows, commentsFROM dba_scheduler_window_groupsORDER BY window_group_name;
-SELECT window_group_name, window_nameFROM dba_scheduler_wingroup_membersORDER BY window_group_name, window_name;
-
-Displays scheduler information about windows :
-
-SET LINESIZE 250
-COLUMN comments FORMAT A40
-SELECT window_name, resource_plan, enabled, active, commentsFROM dba_scheduler_windows
-ORDER BY window_name;
-
---
--- gens bigfile tablespace statements for migration
---
-
+### Create bigfile tablespace statements for migration
+```
 set pause off
 set pagesize 9999
 set linesize 132
@@ -301,7 +201,8 @@ WHERE ts.tablespace_name = df.tablespace_name(+)
   and ts.tablespace_name = tf.tablespace_name(+)
   and ts.tablespace_name = fs.tablespace_name(+)
 /
-
+```
+```
 compute sum of blocks on report
 
 select extent_id, bytes, blocks
@@ -309,7 +210,9 @@ from user_extents
 where segment_name = '&sename'
 and segment_type = 'TABLE'
  /
-
+```
+### Sample output
+```
  EXTENT_ID      BYTES     BLOCKS
 ---------- ---------- ----------
          2      81920         10
@@ -319,12 +222,15 @@ and segment_type = 'TABLE'
          1      40960          5
                       ----------
 sum                           55
-
+```
+```
 select blocks, empty_blocks, avg_space, num_freelist_blocks
 from user_tables
 where table_name = 'T'
  /
-
+```
+### Sample Output:
+```
     BLOCKS EMPTY_BLOCKS  AVG_SPACE NUM_FREELIST_BLOCKS
 ---------- ------------ ---------- -------------------
          1           53       6091                   1
@@ -339,9 +245,10 @@ Therefore, our table
 
 o consumes 1 block
 o of which  1block * 8k blocksize - 1 block * 6k free = 2k is used for our data.
+```
 
-TABLESPACE CREATE DYNAMIC
-++++++++++++++++++++++++++++
+###  CREATE DYNAMIC TABLESPACE
+```
 set pages 0;
 set head off;
 Create table ts_gen_scripts(line int, text varchar2(2000));
@@ -403,15 +310,18 @@ When Others Then
 Raise_Application_Error(-20999,'Something Wrong..'||SQLERRM);
 END;
 /
-
-*
+```
+### Issue 
+```
 ERROR at line 1:
 ORA-29339: tablespace block size 16384 does not match configured block sizes
-
-
+```
+```
 ALTER SYSTEM SET DB_16K_CACHE_SIZE=64M SCOPE=BOTH;
 ALTER SYSTEM SET db_32k_cache_size=64M SCOPE=BOTH;
-
+```
+```
+SQL> show parameter db_block
 db_block_size                        integer     8192
 SQL> show parameter cache_size
 
@@ -421,8 +331,10 @@ db_16k_cache_size                    big integer 64M
 db_2k_cache_size                     big integer 0
 db_32k_cache_size                    big integer 64M
 
+```
+###  tablespace quota
 
-Check for tablespace quota
+```
 set head off;
 
 Create table ts_gen_scripts(line int, text varchar2(2000));
@@ -521,19 +433,18 @@ Raise_Application_Error(-20999,'Something Wrong..'||SQLERRM);
   
 END;
 /
+```
 
-
-Check for tablespace quota
-========================
+### Check for tablespace quota
+```
 SET lines 100 numwidth 12
 SELECT q.username, q.tablespace_name, q.bytes, q.max_bytes   
 FROM dba_ts_quotas q, dba_users u  
 WHERE q.username=u.username AND q.username in ('TEST'); 
+```
 
-What about a free tablespace (no segment) ? You may want to add an external join.
-
-What  we can do :
-
+## free tablespace (no segment) ? You may want to add an external join.
+```
 select b.tablespace_name, tbs_size SizeMb, a.free_space FreeMb
 from  (select tablespace_name, round(sum(bytes)/1024/1024 ,2) as free_space
        from dba_free_space
@@ -542,10 +453,10 @@ from  (select tablespace_name, round(sum(bytes)/1024/1024 ,2) as free_space
        from dba_data_files
        group by tablespace_name) b
 where a.tablespace_name(+)=b.tablespace_name;
+```
 
-=====================================================
-tablespace datafile, freespace ,availiable and autoextend or not.
-=====================================================
+### tablespace datafile, freespace ,availiable and autoextend or not.
+```
 set pagesize 100
 
 column file_name format a32
@@ -579,68 +490,42 @@ column t clear
 column a clear
 column p clear
 ttitle off
-
-===============
-
-SQL> 
+```
+``` 
 select file_name, bytes/1024/1024 current_size_MB, increment_by*8192/1024/1024 autoextend_size_MB, maxbytes/1024/1024 max_size_MB
 from dba_data_files
 where bytes>(maxbytes*0.90)
 and autoextensible = 'YES'
 or bytes/1024/1024+increment_by*8192/1024/1024>maxbytes/1024/1024*0.9
 and autoextensible = 'YES';
-
-
-FILE_NAME
-------------------------------------------------------------------------------------------------------------------------------------------------------
-CURRENT_SIZE_MB AUTOEXTEND_SIZE_MB MAX_SIZE_MB
---------------- ------------------ -----------
-/u01/ORADBS/BPELPRD/orabpel.dbf
-     32767.9844                 30  32767.9844
-
-/u01/ORADBS/BPELPRD/orabpel2.dbf
-     32767.9844                 50  32767.9844
-
-/u01/ORADBS/BPELPRD/orabpel3.dbf
-     32767.9844                100  32767.9844
-
-/u01/ORADBS/BPELPRD/orabpel4.dbf
-     32767.9844                100  32767.9844
-
-/u01/ORADBS/BPELPRD/orabpel5.dbf
-     32767.9844                100  32767.9844
-
-alter database datafile '/u01/ORADBS/BPELPRD/orabpel.dbf6.dbf' autoextend on maxsize 20000M;
-
-alter database datafile '/u01/ORADBS/BPELPRD/orabpel.dbf6.dbf' autoextend on next 100M maxsize 20000M;
-
-SQL> alter database datafile '/u01/ORADBS/BPELPRD/orabpel.dbf6.dbf' autoextend on next 100M maxsize 20000M;
-
-Database altered.
-
+```
+```
 SQL> select FILE_NAME, INCREMENT_BY from dba_data_files where FILE_NAME='/u01/ORADBS/BPELPRD/orabpel.dbf6.dbf';
-
-FILE_NAME
-------------------------------------------------------------------------------------------------------------------------------------------------------
-INCREMENT_BY
+```
+### Sample Output
+```
+FILE_NAME                                                      INCREMENT_BY
 ------------
-/u01/ORADBS/BPELPRD/orabpel.dbf6.dbf
-       12800
+/u01/ORADBS/BPELPRD/orabpel.dbf6.dbf                                    12800
 
 
 NEXT=100M [= (incrementby*block_size)/1024 M]
-
+```
+```
 select owner, segment_type, segment_name, extents, max_extents/1024/1024, bytes/1024/1024 
 from dba_segments
 where segment_name ='AUDIT_TRAIL';
+```
 
-To determine if your tablespaces are having a problem with fragmentation, you can use the below script:
-
+### To determine if your tablespaces are having a problem with fragmentation, you can use the below script:
+```
 set pages 50000 lines 32767
 select tablespace_name,count(*) free_chunks,decode(round((max(bytes) / 1024000),2),null,0,
 round((max(bytes) / 1024000),2)) largest_chunk, nvl(round(sqrt(max(blocks)/sum(blocks))*(100/sqrt(sqrt(count(blocks)) )),2),0) fragmentation_index
 from sys.dba_free_space group by tablespace_name order by 2 desc, 1;
-
+```
+### Sample Output
+```
 TABLESPACE_NAME                                                                            FREE_CHUNKS LARGEST_CHUNK FRAGMENTATION_INDEX
 ------------------------------------------------------------------------------------------ ----------- ------------- -------------------
 SYSAUX                                                                                            1308         52.22                2.24
@@ -656,11 +541,11 @@ IP_GAIDX_TS                                                                     
 TOOLS                                                                                                1          1.09                 100
 
 11 rows selected.
+```
 
-Here,fragmentationindex column will give your tablespace an overall ranking with respect to how badly it is actually fragmented. A 100% score indicates no fragmentation at all. Lesser scores verify the presence of fragmentation.
-
+Note: Here,fragmentationindex column will give your tablespace an overall ranking with respect to how badly it is actually fragmented. A 100% score indicates no fragmentation at all. Lesser scores verify the presence of fragmentation.
 The free chunks count column will tell you how many segments of free space are scattered throughout the tablespace. One thing to keep in mind is that tablespaces with multiple datafiles will always show a free chunk count greater than one because each datafile will likely have at least one pocket of free space.
--------------------------------------------------
+```
 
 set lines 132
 set pages 60
@@ -699,7 +584,7 @@ where
 order by
     1,2
 /
-
+```
 What is Oracle Table Fragmentation?
 If a table is only subject to inserts, there will not be any fragmentation.
 Fragmentation comes with when we update/delete data in table.
