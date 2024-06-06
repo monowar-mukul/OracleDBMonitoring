@@ -585,35 +585,10 @@ order by
     1,2
 /
 ```
-What is Oracle Table Fragmentation?
-If a table is only subject to inserts, there will not be any fragmentation.
-Fragmentation comes with when we update/delete data in table.
-The space which gets freed up during non-insert DML operations is not immediately re-used (or sometimes, may not get reuse ever at all). This leaves behind holes in table which results in table fragmentation.
 
-To understand it more clearly, we need to be clear on how oracle manages space for tables.
 
-When rows are not stored contiguously, or if rows are split onto more than one block, performance decreases because these rows require additional block accesses.
-
-Note that table fragmentation is different from file fragmentation. When a lot of DML operations are applied on a table, the table will become fragmented because DML does not release free space from the table below the HWM.
-
-HWM is an indicator of USED BLOCKS in the database. Blocks below the high water mark (used blocks) have at least once contained data. This data might have been deleted. Since Oracle knows that blocks beyond the high water mark don't have data, it only reads blocks up to the high water mark when doing a full table scan.
-
-DDL statement always resets the HWM.
-
-What are the reasons to reorganization of table?
-
-a) Slower response time (from that table)
-b) High number of chained (actually migrated) rows. 
-c) Table has grown many folds and the old space is not getting reused.
-
-Note: Index based queries may not get that much benefited by reorg as compared to queries which does Full table scan.
-
-How to find Table Fragmentation?
-
-In Oracle schema there are tables which has huge difference in actual size (size from User_segments) and expected size from user_tables (Num_rows*avg_row_length (in bytes)). This all is due to fragmentation in the table or stats for table are not updated into dba_tables.
-
-Steps to Check and Remove Table Fragmentation:- 
-=============================================
+### Steps to Check and Remove Table Fragmentation:- 
+```
 1. Gather table stats:
 ---------------------
 To check exact difference in table actual size (dba_segments) and stats size (dba_tables). The difference between these value will report actual fragmentation to DBA. So, We have to have updated stats on the table stored in dba_tables. Check LAST_ANALYZED value for table in dba_tables. If this value is recent you can skip this step. Other wise i would suggest to gather table stats to get updated stats.
@@ -751,11 +726,11 @@ Advantages over the conventional methods are:
 1. Unlike "alter table move ..",indexes are not in UNUSABLE state.After shrink command,indexes are updated also.
 2. Its an online operation, So you dont need downtime to do this reorg.
 3. It doesnot require any extra space for the process to complete.
+```
 
 
-
-
-1- 
+## find free extends
+```
 select file_id, block_id, blocks, 
 owner||'.'||segment_name "Name" 
 from sys.dba_extents 
@@ -766,9 +741,8 @@ select file_id, block_id, blocks,
 from sys.dba_free_space 
 where tablespace_name = 'INDX' 
 order by 1,2,3 
-
-2- 
-
+```
+```
 select file_id, block_id, blocks, 
 owner||'.'||segment_name "Name" 
 from sys.dba_extents 
@@ -779,44 +753,11 @@ select file_id, block_id, blocks,
 from sys.dba_free_space 
 where tablespace_name = 'DATA' 
 order by 1,2,3; 
+```
 
-After executing these scripts, I find many free extends in the middle and the command : 
+## ALTER DATABASE DATAFILE ... RESIZE is failed 
 
-ALTER DATABASE DATAFILE ... RESIZE is failed 
-
-++++++++++++++++++++++++++++++++++++++++++++++++
-Find the High Water Mark and resize the upto that. 
-+++++++++++++++++++++++++++++++++++++++++++++++++
-
-Execute below query to find the HWM from SYSTEM/SYS 
-
-alter 
-
-Output Example: 
-FILE_NAME
---------------------------------------------------------------------------------
-  TOT_SIZE     Actual        HWM
----------- ---------- ----------
-/dbmintst/oracle/mintst/tst_system_01.dbf
-       350        259         91
-
-/dbmintst/oracle/mintst/tst_idx_900_900_m_02.dbf
-      2200       2049        151
-
-/dbmintst/oracle/mintst/tst_tab_800_899_m_01.dbf
-       512        333        179
-
-/dbmintst/oracle/mintst/tst_idx_901_949_m_01.dbf
-       300        265         35
-
-/dbmintst/oracle/mintst/tst_tab_400_799_m_01.dbf
-       275        229         46
-
-/dbmintst/oracle/mintst/tst_tab_800_899_s_01.dbf
-      1536       1247        289
-
-
-Then resize upto HWM. 
+###  Find the High Water Mark and resize the upto that. 
 
 Anthor method If your database is oracle10g and all tablespaces are segmentspace management auto then shrink the tables upto HWM using below command. 
 
@@ -838,8 +779,9 @@ Then after the objects have been moved toward the front of the file a shrink ope
 
 Re-analyzing the objects after reorganization is a good idea but otherwise has no effect on the process. 
 -----------------------------------------------------------------------------------------------------------
-Use the following script to decide the HWM of each file. Resize the file a little above the HWM. 
+### Use the following script to decide the HWM of each file. Resize the file a little above the HWM. 
 ------------------------------------------------------------------------------------------------------------
+```
 set echo off 
 set linesize 150 
 column file_name format a45; 
@@ -857,10 +799,10 @@ from dba_data_files) a,
 where a.file_id=b.file_id(+)
 order by a.tablespace_name,a.file_name
 /
--
-=====================================================================================
-Check HWM
-----------------------------
+```
+
+### Check HWM
+```
 set verify off
 column file_name format a50 word_wrapped
 column smallest format 999,990 heading "Smallest|Size|Poss."
@@ -882,19 +824,16 @@ from dba_data_files a,
         group by file_id ) b
 where a.file_id = b.file_id(+) order by savings desc
 /
+```
+
+## Sample Output
+```
 VALUE
 ------------------------------
 8192
 
-SQL>
-VALUE
-------------------------------
-8192
 
-SQL>   2    3    4    5    6    7    8    9   10   11
-
-
-                                                   Smallest
+                                                  Smallest
                                                        Size  Current    Poss.
 FILE_NAME                                             Poss.     Size  Savings
 -------------------------------------------------- -------- -------- --------
@@ -918,10 +857,11 @@ FILE_NAME                                             Poss.     Size  Savings
 sum                                                                    17,296
 
 16 rows selected.
-
+```
 By the output i can reclaim space around 17gb of space, without reorganizing any objects. 
 
-[For lower version 
+## For lower version 
+```
 set linesize 400
 col tablespace_name format a15
 col file_size format 99999
@@ -937,21 +877,22 @@ WHERE ddf.file_id = ebf.file_id
 AND de.file_id = ebf.file_id
 AND de.block_id = ebf.maximum
 ORDER BY 1,2);
-]
+```
 
-Resize Datafiles:-
+### Resize Datafiles:-
 -----------------------------
 We can resize datafile up to "Smallest Size Poss" value (or) we can assign any fixed size (or) On top of that we can enable autoextend up to maximum size of datafile.
-SQL> SQL> alter database datafile '/IJISDEV/oradata/qhub_index02.dbf' resize 27600M;
+```
+ SQL> alter database datafile '/IJISDEV/oradata/qhub_index02.dbf' resize 27600M;
 
 Database altered.
+```
 
-
-TEMP
----------
+### TEMP
+```
 SQL> ALTER TABLESPACE TEMP SHRINK SPACE;
-
-
+```
+```
 set linesize 1000 pagesize 0 feedback off trimspool on
 with
  hwm as (
@@ -986,11 +927,10 @@ where
  bytes-hwm_bytes>1024*1024 -- resize only if at least 1MB can be reclaimed
 order by bytes-hwm_bytes desc
 /
+```
 
---
--- Shows tablespace utilization
---
-
+### Shows tablespace utilization
+```
 set serveroutput on
 declare
 
@@ -1044,26 +984,25 @@ END LOOP;
    close df_cursor;
 end;
 /
+```
 
-
-
+```
 select table_name,pct_free from(select table_name,pct_free from user_tables order by pct_free)
 user_tables where rownum < 11
 order by pct_free
 /
 select table_name,pct_free from dba_tables
 where pct_free = (select min(pct_free) from user_tables)
-and owner='PRODOWNER'
+and owner='&OWNER'
 /
-
-Check Blocksize
-+++++++++++++++++++++
+```
+### Check Blocksize
 Run this first query to confirm block size is 8192
-
+```
 SELECT * FROM V$PARAMETER WHERE NAME = 'db_block_size';
-
+```
 Then run the following:
-
+```
 SELECT 'ALTER DATABASE DATAFILE ''' || FILE_NAME || ''' RESIZE ' || 
        CEIL( (NVL(HWM,1)*8192)/1024/1024 ) || 'M;' SHRINK_DATAFILES
        ,round(bytes/1024/1024,2) curr_size_mb
@@ -1072,13 +1011,8 @@ from dba_data_files dbadf,
      (select file_id, max(block_id+blocks-1) hwm from dba_extents group by file_id ) dbafs
        where dbadf.file_id = dbafs.file_id(+) 
          and ceil(blocks*8192/1024/1024)- ceil((nvl(hwm,1)* 8192)/1024/1024 ) > 0;
-
-We run successfully from taking some from up
-
-ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_pub_data.291.795785909' RESIZE 587M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/sap_arc_data.295.795785909' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dwalerts_data.307.849976303' RESIZE 3M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/misc_data.308.849976309' RESIZE 58M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_int_index.272.747746233' RESIZE 2313M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_lnd_index.290.795785907' RESIZE 4M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_fnl_index.275.747746261' RESIZE 574M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_mtd_data.281.747747209' RESIZE 4120M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_pub_index.292.795785909' RESIZE 466M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_wrk_data.293.795785909' RESIZE 1067M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_prn_index.278.747747149' RESIZE 222M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/sap_mst_data.296.795785911' RESIZE 3M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_brz_data.298.799338405' RESIZE 2M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_brz_index.299.799338415' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_wrk_index.294.795785909' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_stg_data.268.747746187' RESIZE 523M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_lnd_data.288.747747293' RESIZE 8M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/sap_stg_data.297.795785911' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_trn_data.270.747746217' RESIZE 1525M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_int_data.271.747746225' RESIZE 32709M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_fnl_data.273.747746247' RESIZE 6439M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_validation_data.309.850058883' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/impl_bkp_data.306.848241411' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/dw_is_data.310.853775325' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/impl_bkp_data.304.848241411' RESIZE 1M; ALTER DATABASE DATAFILE '+PTEST24_DATA_01/ptest24/datafile/impl_bkp_data.305.848241411' RESIZE 1M;
-
-
-
+```
+```
 set verify off
 set lines 150
 column file_name format a60 word_wrapped
@@ -1128,30 +1062,13 @@ from dba_data_files a,
 where a.file_id = b.file_id(+)
 and a.tablespace_name in (select tablespace_name from dba_tablespaces where block_size = 16384)
 /
-
-OUTPUT
-==================
-
-                                                                 Size  Current    Poss.
-FILE_NAME                                                       Poss.     Size  Savings
------------------------------------------------------------- -------- -------- --------
-/TSU/oradata/APC2_DATA01.dbf                                     1101    1,250      149
-/TSU/oradata/AUDIT2_DATA01.dbf                                  5951    6,000       49
-/TSU/oradata/AUDIT2_IDX01.dbf                                    4236    4,500      264
-/TSU/oradata/AUDIT_DATA01.dbf                                    3501    4,000      499
-/TSU/oradata/AUDIT_DATA02.dbf                                    3101    3,500      399
-
-
+```
+```
 SQL> alter database datafile '&dbfile' resize &size;
-Enter value for dbfile: /TSU/oradata/AUDIT_DATA01.dbf
-Enter value for m: 3600M
+```
 
-Database altered.
-
--------------------------------------------------------
---
--- generate sql for datafile resize
---
+### generate sql for datafile resize
+```
 set pagesize 0
 set linesize 132
 set trimout on
@@ -1182,7 +1099,8 @@ and     f.file_id  = v.file#
 /
 spool off
 exit
-
+```
+```
 set lines 132
 col owner format a15
 col segment_name format a25
@@ -1202,36 +1120,12 @@ where s.TABLESPACE_NAME = t.TABLESPACE_NAME
 and t.TABLESPACE_NAME like upper('%&tablespace%')
 and (s.NEXT_EXTENT = t.NEXT_EXTENT
      or s.PCT_INCREASE != t.PCT_INCREASE)
-/ 
-##################################################################### 
+/
+```
+
 ####segment size
-#####################################################################
-COL Object FORMAT a24;
-COL Type FORMAT a5;
-SELECT segment_name "Object", segment_type "Type"
-      ,ROUND(bytes/1024/1024) "Mb", ROUND(bytes/1024) "Kb"
-      ,bytes "Bytes", blocks "Blocks"
-FROM dba_segments WHERE owner = 'INTERFACE'
-AND segment_type IN ('TABLE','INDEX')
-ORDER BY segment_name, segment_type DESC;
 
-
-SQL> COL Type FORMAT a5;
-SQL> SELECT segment_name "Object", segment_type "Type"
-  2          ,ROUND(bytes/1024/1024) "Mb", ROUND(bytes/1024) "Kb"
-  3          ,bytes "Bytes", blocks "Blocks"
-  4    FROM dba_segments WHERE owner = 'INTERFACE'
-  5    AND segment_type IN ('TABLE','INDEX')
-  6  AND segment_name='INTERNAL_MESSAGE_LOG_IML'
-  7  ORDER BY segment_name, segment_type DESC;
-
-Object                                                               Mb         Kb      Bytes     Blocks
------------------------- ----- ---------- ---------- ---------- ----------
-INTERNAL_MESSAGE_LOG_IML TABLE        896     917504  939524096     114688
-
-
-
-
+```
 COL Object FORMAT a24;
 COL Type FORMAT a5;
 SELECT segment_name "Object", segment_type "Type"
@@ -1240,14 +1134,26 @@ SELECT segment_name "Object", segment_type "Type"
 FROM dba_segments WHERE owner = 'ELLIPSE'
 AND segment_type IN ('TABLE','INDEX')
 ORDER BY segment_name, segment_type DESC;
-
+```
+```
+COL Object FORMAT a24;
+COL Type FORMAT a5;
+SELECT segment_name "Object", segment_type "Type"
+      ,ROUND(bytes/1024/1024) "Mb", ROUND(bytes/1024) "Kb"
+      ,bytes "Bytes", blocks "Blocks"
+FROM dba_segments WHERE owner = 'INTERFACE'
+AND segment_type IN ('TABLE','INDEX')
+-- AND segment_name='INTERNAL_MESSAGE_LOG_IML'
+ORDER BY segment_name, segment_type DESC;
+```
+```
 SELECT s.owner,SUM (s.BYTES) / (1024 * 1024 * 1024) SIZE_IN_GB
 FROM dba_segments s
 GROUP BY s.owner;
+```
 
-=====================================================
-OWNER, TABLESPACE, SEGMENTS
-=====================================================
+## OWNER, TABLESPACE, SEGMENTS
+```
 SQL>            select substr(a.owner,1,15) owner ,
                           substr(a.tablespace_name,1,20) tablespace_name,
                           substr(a.segment_name,1,30) Name,substr(a.segment_type,1,12) Type,
@@ -1263,24 +1169,28 @@ SQL>            select substr(a.owner,1,15) owner ,
               a.min_extents,a.bytes
              order by 5 DESC
            /
-===========================================
-List segments with fewer than 5 extents remaining 
-=============================================
+```
+
+### List segments with fewer than 5 extents remaining 
+```
 SELECT segment_name,segment_type,
 max_extents, extents
 FROM dba_segments
 WHERE extents+5 > max_extents
 AND segment_type<>'CACHE';
- 
-Extent information for a table 
+ ```
+### Extent information for a table 
 ===================================
+```
 SELECT segment_name, extent_id, blocks, bytes/1024/1024
 FROM dba_extents
 WHERE owner='&own' and segment_name = '&TNAME' ;
-
+```
+```
 select segment_name,segment_type,(bytes/1024/1024)MB 
 from dba_segments where owner='PRODOWNER';
-
+```
+```
 col owner format a15
 col segment_name format a35
 
@@ -1293,24 +1203,11 @@ order by bytes/1024 desc
 )
 where rownum < 10
 /
+```
+### Extents reaching maximum
 
-
-col segment_name format a35
-
-select * from
-(
-select segment_Type, segment_name, bytes/1024/1024 mbytes
-from dba_segments
-where owner = 'PRODOWNER'
-order by bytes/1024 desc
-)
-where rownum < 30
-/
-===============================================
-Extents reaching maximum
-=================================================
 TABLES AND EXTENTS WITHIN 3 EXTENTS OF MAXIMUM :
-
+```
 select owner "Owner",
        segment_name "Segment Name",
        segment_type "Type",
@@ -1321,9 +1218,9 @@ from dba_segments
 where ((max_extents - extents) <= 3) 
 and owner not in ('SYS','SYSTEM')
 order by owner, segment_name;
+```
+### Segment Fragmentation
 
-Segment Fragmentation
-====================================================
 OBJECTS WITH MORE THAN 50% OF MAXEXTENTS NOTES:
 Owner - Owner of the object 
 Tablespace Name - Name of the tablespace 
@@ -1338,7 +1235,7 @@ As of v7.3.4, you can set MAXEXTENTS=UNLIMITED to avoid ORA-01631: max # extents
 To calculate the MAXEXTENTS value on versions < 7.3.4 use the following equation: DBBLOCKSIZE / 16 - 7 
 Here are the MAXEXTENTS for common blocksizes: 1K=57, 2K=121, 4K=249, 8K=505, and 16K=1017 
 Multiple extents in and of themselves aren't bad. However, if you also have chained rows, this can hurt performance. 
-
+```
 select 	OWNER,
 	TABLESPACE_NAME,
 	SEGMENT_NAME,
@@ -1351,9 +1248,9 @@ from 	dba_segments
 where 	SEGMENT_TYPE in ('TABLE','INDEX')
 and 	EXTENTS > MAX_EXTENTS/2
 order 	by (EXTENTS/MAX_EXTENTS) desc
-
----------------------------------------------------------------------column differnce 
-
+```
+### column differnce 
+```
 SELECT 'TABLE_A has these columns that are not in TABLE_B', DIFF.*
   FROM (
         SELECT  COLUMN_NAME, DATA_TYPE, DATA_LENGTH
@@ -1375,25 +1272,27 @@ SELECT 'TABLE_B has these columns that are not in TABLE_A', DIFF.*
           FROM all_tab_columns
          WHERE table_name = 'TABLE_A'
       ) DIFF;
-
+```
+```
 select count (*) from TABLENAME
 minus select count (*) from TABLENAME@DATABASE2
-
-DATAFILES with TABLESPACE INFO
--------------------------------
+```
+### DATAFILES with TABLESPACE INFO
+```
 spool tablespace_info.log
 set linesize 200 LONG 50000 pagesize 5000
 select dbms_metadata.get_ddl('TABLESPACE',tablespace_name)
 from dba_tablespaces
 where tablespace_name in ('USERS','FASMON_CEI_TS_BASE','FASMON_CEI_TS_CATALOG','FASMON_CEI_TS_EXTENDED','FASMON_CEI_TS_TEMP');
 spool off;
-
+```
+```
 select owner, constraint_name,table_name,index_owner,index_name
 from dba_constraints
 where (index_owner,index_name) in (select owner,index_name from dba_indexes
  where tablespace_name='FASMON_CEI_TS_BASE');
-
-
+```
+```
 col tablespace_name format a30
 col file_name format a60
 
@@ -1402,60 +1301,27 @@ FROM sys.dba_free_space fs, sys.dba_data_files dd
 WHERE dd.tablespace_name = fs.tablespace_name AND dd.file_id = fs.file_id 
 GROUP BY dd.tablespace_name, dd.file_name, dd.bytes/(1024*1024) 
 ORDER BY SUM(fs.bytes)/(1024*1024);
-
-TABLESPACE_NAME                FILE_NAME                                                    TABLESPACE_MB MBYTES_FREE  NEXT_FREE
------------------------------- ------------------------------------------------------------ ------------- ----------- ----------
-INTERFACE_DATA                 /IJISJSS/oradata/interface_data02.dbf                                30240       .4375      .4375
-INTERFACE_DATA                 /IJISJSS/oradata/interface_data01.dbf                           32767.9844       .9375      .9375
-INTERFACE_DATA                 /IJISJSS/oradata/interface_data04.dbf                                25000           6          6
-QHUB_DATA                      /IJISJSS/oradata/qhub_data03.dbf                                     20888     84.9375         84
-SYSTEM                         /IJISJSS/oradata/system01.dbf                                         1024      272.75        272
-QHUB_DATA                      /IJISJSS/oradata/qhub_data02.dbf                                     21200         363        363
-SYSAUX                         /IJISJSS/oradata/sysaux01.dbf                                    1733.8125     368.875   220.8125
-USERS                          /IJISJSS/oradata/users01.dbf                                      816.1875    492.5625        203
-INTERFACE_INDEX                /IJISJSS/oradata/interface_index01.dbf                          13098.9375    648.6875   646.9375
-QHUB_DATA                      /IJISJSS/oradata/qhub_data01.dbf                                     21648         932        932
-QHUB_INDEX                     /IJISJSS/oradata/qhub_index03.dbf                                    31148    1086.125       1086
-QHUB_INDEX                     /IJISJSS/oradata/qhub_index02.dbf                                    31360        1501       1501
-QHUB_INDEX                     /IJISJSS/oradata/qhub_index01.dbf                                    32044        1643       1344
-INTERFACE_DATA                 /IJISJSS/oradata/interface_data06.dbf                                22000        1967       1967
-INTERFACE_DATA                 /IJISJSS/oradata/interface_data05.dbf                                29000        2830       1607
-UNDOTBS1                       /IJISJSS/oradata/undotbs01.dbf                                       11680  11663.9375  3912.5625
-
-16 rows selected.
-
-
+```
+```
 SELECT DISTINCT OWNER, SEGMENT_NAME
 FROM DBA_EXTENTS
-WHERE FILE_ID =15;  --------------- 15 is the datafile number
+WHERE FILE_ID =(select file# from v$datafile where name ='&dbfile_name' );  
+```
 
-OWNER                          SEGMENT_NAME
------------------------------- ---------------------------------------------------------------------------------
-BPELADMIN                      IJIS_MESSAGE_AUDIT_IMA
-BPELADMIN                      SYS_IL0000091843C00010$$
-BPELADMIN                      XPKIJIS_MESSAGE_AUDIT_IMA
-BPELADMIN                      SYS_LOB0000091848C00004$$
-BPELADMIN                      SYS_LOB0000091843C00010$$
+## MOVE DATAFILES TO ASM
 
-select file# from v$datafile where name ='/ORADATA2/IJISAIT/interface_data04.dbf' 
-
-SELECT DISTINCT OWNER, SEGMENT_NAME
-FROM DBA_EXTENTS
-WHERE FILE_ID =(select file# from v$datafile where name ='/ORADATA2/IJISAIT/interface_data04.dbf' );  
-
-MOVE DATAFILES TO ASM
-------------------------
 for moving the datafile to ASM use rman, 
-
+```
 allocate channel c1 type disk format "+diskgroup"; 
 backup as copy datafile file#; 
 switch datafile to copy; 
-
+```
 
 1.Check datafiles for the tablespace
 ------------------------------------
+```
 SQL> select FILE_ID, FILE_NAME from dba_data_files where TABLESPACE_NAME='ROSBO';
-
+```
    FILE_ID
 ----------
 FILE_NAME
@@ -1467,8 +1333,8 @@ FILE_NAME
 /app/pdev20/product/10.2.0.5/db_1/dbs/PDEV20_DATA_01
 
 2. connect to RMAN and put tablespace [respective datafiles] offline 
-
-[oracle@csmper-cls18 ~]$ rman target /
+```
+$ rman target /
 
 Recovery Manager: Release 10.2.0.5.0 - Production on Sun Oct 5 09:44:05 2014
 
@@ -1529,7 +1395,8 @@ FILE_NAME
 --------------------------------------------------------------------------------
 +PDEV20_DATA_01/pdev20/datafile/rosbo.269.799948433
 +PDEV20_DATA_01/pdev20/datafile/rosbo.278.860147209
-
+```
+```
 col tablespace format A16
 SELECT /* + RULE */ df.tablespace_name "Tablespace",
 df.bytes / (1024 * 1024) "Size (MB)",
@@ -1543,10 +1410,10 @@ GROUP BY tablespace_name) df
 WHERE fs.tablespace_name (+) = df.tablespace_name
 GROUP BY df.tablespace_name,df.bytes
 Order by 4;
+```
 
---
--- Shows tablespace utilization
---
+###  Shows tablespace utilization
+```
 
 set pause off
 set pagesize 9999
@@ -1614,10 +1481,8 @@ FROM
 WHERE ts.tablespace_name = df.tablespace_name(+)
   and ts.tablespace_name = fs.tablespace_name(+)
 order by 5;
-
---
--- Shows tablespace utilization
---
+```
+```
 
 set pause off
 set pagesize 9999
@@ -1652,13 +1517,12 @@ FROM
 WHERE
   c.tablespace_name = a.tablespace_name
   and c.tablespace_name = b.tablespace_name(+);
-
-High Water Marks
-+++++++++++++++++
+```
+### High Water Marks
 --
 -- Show the High Water Mark for a given table, or all tables if ALL is specified for Table_Name.
 --
- 
+``` 
 SET LINESIZE 300
 SET SERVEROUTPUT ON
 SET VERIFY OFF
@@ -1697,12 +1561,11 @@ BEGIN
  
 END;
 /
+```
 
 
-
---
--- Shows tablespace object utilization
---
+### Shows tablespace object utilization
+```
 
 set pause off
 set pagesize 9999
@@ -1743,6 +1606,6 @@ where TABLESPACE_NAME like decode('&tsn','','%',upper('&tsn'))
   and SEGMENT_TYPE like decode('&typ','','%',upper('&typ'))
 order by bytes
 /
-
+```
 
 
