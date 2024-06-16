@@ -5022,3 +5022,153 @@ RELEASE CHANNEL ch2;
 }
 EOF
 ```
+
+```
+Server : ironper-orc04       [Primary Source Database is pprod4 on ironper-orc03]
+
+ 
+
+-------------------------BACKUP pices -----------------------------------------------------------------------
+
+Mine Quality 2(PPROD4 – IRONPER-ORC03)
+
+Datafile backup pieces taken 10 Oct 2014:
+
+piece handle HOT_BACKUP_RMAN_DB_PPROD4_0rpknn4u_1_860609694 Media: BS6088
+
+piece handle HOT_BACKUP_RMAN_DB_PPROD4_0qpknn4t_1_860609693 Media: BS6088
+
+Archivelogfile backup pieces taken 10 Oct 2014:
+
+piece Name: HOT_BACKUP_RMAN_AL_PPROD4_10pko4uk_1_860623828 Media: BS6088
+
+piece Name: HOT_BACKUP_RMAN_AL_PPROD4_0vpko4uk_1_860623828 Media: BS6088
+
+piece Name: HOT_BACKUP_RMAN_AL_PPROD4_11pko57t_1_860624125 Media: BS6088
+
+Archivelogfile backup pieces taken 12 Oct 2014:
+
+piece Name: HOT_BACKUP_RMAN_AL_PPROD4_18pks7pc_1_860757804 Media: BS7786
+
+piece Name: HOT_BACKUP_RMAN_AL_PPROD4_19pks7pc_1_860757804 Media: BS7786
+
+piece Name: HOT_BACKUP_RMAN_AL_PPROD4_1apks804_1_860758020 Media: BS7786
+
+------------------------------------------------------------------------------------------------------
+
+ 
+
+Set env parameters:
+
+ORACLE_HOME=/app/ptest4/product/9.2.0
+
+ORACLE_SID=pprod4
+
+NLS_DATE_FORMAT='Mon DD YYYY HH24:MI:SS'
+
+RMAN> set dbid=1674672812;
+
+RMAN> STARTUP NOMOUNT pfile = '/app/ptest4/product/9.2.0/dbs/initpprod4.ora'
+
+ 
+
+For Controlfile
+
+--------------------
+
+ 
+
+pprod4_restCont.sh
+
+ 
+
+#!/usr/bin/ksh
+
+TODAY=`date +%y%m%d_%H%M`
+
+ORACLE_HOME=/app/ptest4/product/9.2.0
+
+export ORACLE_HOME
+
+ORACLE_SID=pprod4
+
+export ORACLE_SID
+
+NLS_DATE_FORMAT='Mon DD YYYY HH24:MI:SS'
+
+export NLS_DATE_FORMAT
+
+rman target / msglog /app/ptest4/product/9.2.0/dbs/contri_pprod4_$TODAY.out append << EOF
+
+run{
+
+ALLOCATE CHANNEL ch01 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
+
+RESTORE CONTROLFILE from 'c-1674672812-20141012-01';
+
+RELEASE CHANNEL ch01;
+
+}
+
+EOF
+
+ 
+
+Restore datafile
+
+-------------------------
+
+more pprod4_restore.sh
+
+#!/usr/bin/ksh
+
+TODAY=`date +%y%m%d_%H%M`
+
+ORACLE_HOME=/app/ptest4/product/9.2.0
+
+export ORACLE_HOME
+
+ORACLE_SID=pprod4
+
+export ORACLE_SID
+
+NLS_DATE_FORMAT='Mon DD YYYY HH24:MI:SS'
+
+export NLS_DATE_FORMAT
+
+rman target / msglog /app/ptest4/product/9.2.0/dbs/restore_pprod4_$TODAY.out append << EOF
+
+run{
+
+ALLOCATE CHANNEL ch00 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
+
+ALLOCATE CHANNEL ch01 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
+
+ALLOCATE CHANNEL ch02 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
+
+ALLOCATE CHANNEL ch03 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
+
+ALLOCATE CHANNEL ch04 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
+
+set until 'Oct 12 2014 10:00:00';
+
+restore database;
+
+switch datafile all;
+
+recover database;
+
+RELEASE CHANNEL ch00;
+
+RELEASE CHANNEL ch01;
+
+RELEASE CHANNEL ch02;
+
+RELEASE CHANNEL ch03;
+
+RELEASE CHANNEL ch04;
+
+}
+
+EOF
+```
