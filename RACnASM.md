@@ -8319,3 +8319,84 @@ Archive destination            USE_DB_RECOVERY_FILE_DEST
 Oldest online log sequence     45864
 Current log sequence           45866 
 ```
+### Delete a Database
+```
+1. node list
+select host_name from gv$INSTANCE;
+
+2. Create stage directory
+  mkdir /tmp/$DBUNNAME
+
+3. Delete database entries from oratab
+cp /etc/oratab /tmp/oratab.new
+
+modify /tmp/oratab.new  [ delete entry ]
+
+cp /tmp/oratab.new /etc/oratab
+
+4. Delete all database backups
+
+  connect target /;
+  connect catalog $CATALOGOWNER/$PWDCATALOG\@$SRVCATALOG;
+  resync catalog;
+  delete force noprompt obsolete;
+  crosscheck archivelog all;
+  delete noprompt archivelog all;
+  crosscheck backup;
+  delete noprompt expired backup;
+  delete noprompt backup;
+  unregister database noprompt;
+  exit;
+
+Unregister additional DBID's and its incarnations
+
+sqlplus $CATALOGOWNER/$PWDCATALOG\@$SRVCATALOG
+set head off; 
+set feed off;
+select 'DBID|'||DBID from rc_database where name = '$DBNAME';;
+spool off;
+
+alter system set cluster_database=false scope=spfile;
+srvctl stop database -d $DBUNNAME";
+startup nomount
+
+
+        connect target /;
+        connect catalog $CATALOGOWNER/$PWDCATALOG\@$SRVCATALOG;
+        set dbid=$DBID;;
+        delete force noprompt obsolete;;
+        crosscheck archivelog all;;
+        delete force noprompt archivelog all;;
+        crosscheck backup;;
+        delete force noprompt expired backup;;
+        delete force noprompt backup;;
+        unregister database noprompt;;
+        exit;;
+
+srvctl start database -d $DBUNNAME";
+
+dbca -silent -deletedatabase -sourcedb $DBUNNAME -sid $DBNAME"
+
+
+Delete database related files from ASM\n";
+
+$cmd = "sudo su - grid -c 'ORAENV_ASK=NO;ORACLE_SID=$ASMSID; . oraenv >/dev/null; asmcmd rm -rf */$DBUNNAME/*'";
+print "$cmd\n";
+system($cmd);
+
+Removing clusterware database resource
+
+srvctl remove database -d $DBUNNAME -noprompt";
+
+Dropping database related files
+find /u01/ -type l -iname \"*$DBNAME*\" -exec rm -f {} \\;
+find /u01/ -type f -iname \"*$DBNAME*\" -exec rm -f {} \\;
+find /u01/ -type d -iname \"*$DBNAME*\" -exec rm -rf {} \\;
+
+Modify sidlist in listener.ora after removal of database
+Remove entries the local tnsnames.ora
+
+Unregister the databases and it's instanes from EM
+
+emcli delete_target -name=$DBUNNAME -type=rac_database";
+```
