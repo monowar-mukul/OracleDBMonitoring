@@ -182,7 +182,33 @@ FROM SYS.SCHEDULER$_CREDENTIAL C, SYS.OBJ$ O, SYS.USER$ U
 WHERE U.USER# = O.OWNER# 
   AND C.OBJ#  = O.OBJ# ;
 
-  
+  ```
+Last login info:
+col USERNAME for a15
+col OS_USERNAME for a15
+col USERHOST for a15
+col ACTION_NAME for a15
+set pages 200
+set lines 100
+
+SQL > alter session set nls_date_format=’DD-MON-YY HH24:MI:SS’;
+
+SQL > select USERNAME,OS_USERNAME,USERHOST,TIMESTAMP,ACTION_NAME,
+LOGOFF_TIME from dba_audit_trail where username=’&USERNAME’ order by USERHOST;
+
+SELECT TO_CHAR(TIMESTAMP#,'MM/DD/YY HH:MI:SS') TIMESTAMP,
+USERID, AA.NAME ACTION FROM SYS.AUD$ AT, SYS.AUDIT_ACTIONS AA
+WHERE AT.ACTION# = AA.ACTION
+and AA.name='LOGON'
+and userid in
+('&User_id')
+ORDER BY TIMESTAMP# DESC;
+select OS_USERNAME,action_name,USERNAME,to_char(timestamp, 'DD MON YYYY hh24:mi') logon_time,
+to_char(logoff_time,'DD MON YYYY hh24:mi') logoff
+from dba_audit_session where username ='&user'
+AND (timestamp > (sysdate - 61))
+order by logon_time,username,timestamp,logoff_time;
+```
 
 
 
