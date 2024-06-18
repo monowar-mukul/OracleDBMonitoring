@@ -18,8 +18,8 @@ change archivelog all validate;
 OEM Repository database logs: /omr_backup/scripts/rman/logs
 oracle@iorsdb02-adm:TPBH1_1:/iormcl01_backup/scripts/rman
 
-$ sqlplus  OWNER_RMN/recover_bhp1@SRVPRMN1RMN    SRVPRMN2RMN
-OWNER_RMN@SRVPRMN1RMN SQL> @/iormcl01_backup/scripts/rman/rman_check_recently_backup.sql
+$ sqlplus  OWNER_RMN/<password>@<servicename>    SRVPRMN2RMN
+OWNER_RMN@<servicename> SQL> @/iormcl01_backup/scripts/rman/rman_check_recently_backup.sql
 
  sqlplus sys@tmjs1_02 as sysdba
  cd /omr_backup/scripts/shell/
@@ -144,7 +144,7 @@ RELEASE CHANNEL c4;
 }
 
 MINESTAR
-rman target sys/mine1star catalog owner_rmn/recover_bhp1@srvprmn2rmn
+rman target sys/mine1star catalog owner_rmn/<password>@srvprmn2rmn
 RMAN> 
 run {
 set archivelog destination to 'F:\mstarData';
@@ -340,7 +340,7 @@ Backup_Info
 
 
 
-sqlplus  OWNER_RMN/recover_bhp1@SRVPRMN1RMN
+sqlplus  OWNER_RMN/<password>@<servicename>
 
 --
 -- Display RMAN backup information from dictionary 
@@ -2483,7 +2483,7 @@ You can use below command to check used/free space for flash recovery area:
 Offer below command in sql promt to increase the size of FRA. It will resolve the problem.
     ALTER SYSTEM SET db_recovery_file_dest_size=12G SCOPE=BOTH ;
 
-$ /iormcl01_backup/scripts/rman/rman_os_backup_bhpb.sh -r srvprmn1rmn -a -d PPRM7
+$ /iormcl01_backup/scripts/rman/rman_os_backup_bhpb.sh -r <servicename> -a -d PPRM7
 Run with default parallel of 1
 
 Databases backuped on this node ... we hope :-)
