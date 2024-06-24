@@ -1,34 +1,6 @@
 
 RMAN 
-
-To mark a backup piece, copy, or archive redo log as available or unavailable:
-
-Issue a change ... unavailable command to mark a backup or copy as UNAVAILABLE. 
-change datafilecopy '/oracle/backup/cf_c.f' unavailable;
-change backupset 12 unavailable;
-change archivelog '/u01/oradata/V816//arch/_410.arc' unavailable
-If a previously unavailable file is reinstated, issue change ... available to change its status back to AVAILABLE.
-change datafilecopy '/oracle/backup/cf_c.f' available;
-change backupset 12 available;
-change archivelog '/u01/oradata/V816/arch/_410.arc' available
-Note:
-The common mistake is migrating or removing archived redo log files without using RMAN which rises error RMAN-6089 during the backup or restore operation. It may be not feasible to make archived redo logs unavailable with above approach after massive file deletion. To notify the recovery catalog about missing archived redo logs, a change archivelog all validate command will be more suitable.
-change archivelog all validate;
-
-OEM Repository database logs: /omr_backup/scripts/rman/logs
-oracle@iorsdb02-adm:TPBH1_1:/iormcl01_backup/scripts/rman
-
-$ sqlplus  OWNER_RMN/<password>@<servicename>    SRVPRMN2RMN
-OWNER_RMN@<servicename> SQL> @/iormcl01_backup/scripts/rman/rman_check_recently_backup.sql
-
- sqlplus sys@tmjs1_02 as sysdba
- cd /omr_backup/scripts/shell/
- vi bhpb_cap_planning_sites_msr.sh
- sh -x bhpb_cap_planning_sites_msr.sh TMJS1_02
-
-Upgrade database from 11g --> 12c
-http://allthingsoracle.com/upgrading-a-database-using-recovery-manager-rman-duplicate-command-in-oracle-12c/
-
+```
 Spool LOG
 spool log to '/tmp/rman/backuplog.f';
 backup datafile 1;
@@ -36,115 +8,68 @@ spool log off;
 
 $ rman | tee rman.log
 $ rman target / log=rman_output.log
+```
 
+### Different option to configure
+```
 RMAN> configure device type disk clear;
 RMAN> configure device type disk backup type to backupset;
 RMAN> configure device type disk backup type to compressed backupset;
-RMAN> configure backup optimization on;
-
-Multiple copies
-==================
-RMAN> configure datafile backup copies for device type disk to 2;
-RMAN> configure datafile backup copies for device type sbt to 2;
-RMAN> configure channel device type disk format '/save1/%U','/save2/%U','save3/%U';
-
-TAG
-=====
-RMAN> backup as copy tag users_bkp tablespace users;
-configure channel device type disk maxpiecesize 1g;
+RMAN> configure channel device type disk maxpiecesize 1g;
 RMAN> configure retention policy to redundancy 2;
 RMAN> show retention policy;
-
 RMAN> configure default device type clear; # reverts to the default device type (DISK)
 RMAN> configure channel device type sbt clear; # erases all options that were set for the sbt channel
 RMAN> configure channel 1 device type disk clear; # erases configuration values set specifically for channel 1.
+RMAN> configure backup optimization on;
+RMAN> CONFIGURE DB_UNIQUE_NAME PIIB1_01 CONNECT IDENTIFIER 'PIIB1_01';
+RMAN> CONFIGURE DB_UNIQUE_NAME PIIB1_02 CONNECT IDENTIFIER 'PIIB1_02';
+RMAN> RESYNC CATALOG FROM DB_UNIQUE_NAME PIIB1_02;
+```
 
-RMAN’s Debug Output
-=========================
+### Multiple copies
+```
+RMAN> configure datafile backup copies for device type disk to 2;
+RMAN> configure datafile backup copies for device type sbt to 2;
+RMAN> configure channel device type disk format '/save1/%U','/save2/%U','save3/%U';
+```
+###TAG
+```
+RMAN> backup as copy tag users_bkp tablespace users;
+```
+
+### Debug Output
+```
 $ rman target / debug=all log=rman_output.log
 The following example enables debugging just for I/O activities:
 $ rman target / debug=io
+```
 
+### Backup of Archivelog related information
+```
+connect catalog rcat/Password@rcat
 
-RMAN> CONFIGURE DB_UNIQUE_NAME PIIB1_01 CONNECT IDENTIFIER 'PIIB1_01';
-
-new RMAN configuration parameters:
-CONFIGURE DB_UNIQUE_NAME 'PIIB1_01' CONNECT IDENTIFIER  'PIIB1_01';
-new RMAN configuration parameters are successfully stored
-starting full resync of recovery catalog
-full resync complete
-
-RMAN> CONFIGURE DB_UNIQUE_NAME PIIB1_02 CONNECT IDENTIFIER 'PIIB1_02';
-
-new RMAN configuration parameters:
-CONFIGURE DB_UNIQUE_NAME 'PIIB1_02' CONNECT IDENTIFIER  'PIIB1_02';
-new RMAN configuration parameters are successfully stored
-starting full resync of recovery catalog
-full resync complete
-
-RMAN> RESYNC CATALOG FROM DB_UNIQUE_NAME PIIB1_02;
-
-resyncing from database with DB_UNIQUE_NAME PIIB1_02
-
-SELECT * FROM v$rman_configuration;
-
-SYS@PIIB13 SQL> SET SERVEROUTPUT ON
-SYS@PIIB13 SQL> EXEC DBMS_BACKUP_RESTORE.DELETECONFIG(10);
-
-PL/SQL procedure successfully completed.
-SYS@PIIB13 SQL> EXEC DBMS_BACKUP_RESTORE.DELETECONFIG(9);
-
-PL/SQL procedure successfully completed.
-
-
-  
-
-
-
-archivelog size & Other info 
-
-
-
-connect catalog rcat/rcat_bhpb@rcat
-
-$ rmac
 > sql "alter session set nls_date_format=''DD-MON-YYYY HH24:MI:SS''";
-LIST BACKUP OF ARCHIVELOG TIME between "TO_DATE('09/18/2015 22:00:00', 'MM/DD/YYYY hh24:mi:ss')" and "TO_DATE('09/18/2015 23:00:00','MM/DD/YYYY hh24:mi:ss')";
-
+> LIST BACKUP OF ARCHIVELOG TIME between "TO_DATE('09/18/2015 22:00:00', 'MM/DD/YYYY hh24:mi:ss')" and "TO_DATE('09/18/2015 23:00:00','MM/DD/YYYY hh24:mi:ss')";
 > LIST BACKUP OF DATABASE COMPLETED BETWEEN '18-SEP-2015 22:16:00' AND '18-SEP-2015 23:30:00';
 > LIST BACKUP OF ARCHIVELOG FROM TIME "SYSDATE-6/24";
-
-MAC
-----------
+```
+```
 RMAN> crosscheck backup of database;
 RMAN> delete expired backup;
 RMAN> CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF 1 DAYS;
 RMAN> crosscheck backup of archivelog all;
 RMAN> show all;
-
-Delete Archivelog Backups
+```
+#### Delete Archivelog Backups
 The following command can be used to manage the backup of the archive log when storage space needs to be released.
+```
 RMAN>DELETE BACKUP OF archivelog UNTIL TIME=’sysdate-3;
-
+```
 
 --- >                set archivelog destination to /tmp/arch_restore’;
-RMAN> 
-run {
-allocate channel c1 type disk;
-allocate channel c2 type disk;
-allocate channel c3 type disk;
-allocate channel c4 type disk;
-restore archivelog
-from time = "to_date('07-01-2016:13:30:00','DD-MM-YYYY:HH24:MI:SS')"
-until time = "to_date('07-01-2016:16:15:00','DD-MM-YYYY:HH24:MI:SS')";
-RELEASE CHANNEL c1;
-RELEASE CHANNEL c2;
-RELEASE CHANNEL c3;
-RELEASE CHANNEL c4;
-}
-
-MINESTAR
-rman target sys/mine1star catalog owner_rmn/<password>@srvprmn2rmn
+```
+rman target sys/pass catalog owner_rmn/<password>@srvprmn2rmn
 RMAN> 
 run {
 set archivelog destination to 'F:\mstarData';
@@ -160,32 +85,32 @@ RELEASE CHANNEL c2;
 RELEASE CHANNEL c3;
 RELEASE CHANNEL c4;
 }
-
+```
+```
 run{
 set archivelog destination to 'F:\mstarData';
 ALLOCATE CHANNEL ch1 device type disk;
 restore archivelog from logseq=2831 until logseq=2835  thread=1;
 RELEASE CHANNEL ch1;
 }
-
+```
+```
 run{
 ALLOCATE CHANNEL ch1 device type disk;
 restore archivelog sequence 89920;
 RELEASE CHANNEL ch1;
 }
+```
+### SCN based
 
-archivelog sequence 89920;
-----
-Got the SCN with the following:
+## Got the SCN with the following:
+```
 column NEXT_CHANGE# format 99999999
 select max(NEXT_CHANGE#)-1 n from v$backup_archivelog_details;
 
-             N
---------------
- 6000370454042
-
-TAPE BACKUP
------------------------
+```
+#### TAPE BACKUP
+```
 RUN {
 ALLOCATE CHANNEL ch1 TYPE 'SBT_TAPE'
 PARMS='ENV=(NB_ORA_SERVER=ironper-bak01d,NB_ORA_CLIENT=csmper-cls08b,NB_ORA_POLICY=IronOre-DB-Cluster-Unix-ORA)';
@@ -205,7 +130,8 @@ RELEASE CHANNEL ch3;
 RELEASE CHANNEL ch4;
 RELEASE CHANNEL ch5;
 }
-
+```
+```
 run {
     backup format 'J:\backup\pqa7\pqa7_archivelog_bkp_%U_%T'
        archivelog until time 'sysdate-3' delete input;
@@ -213,31 +139,16 @@ run {
 
 > delete noprompt archivelog until time "to_date(SYSDATE-4)" backed up 1 times to disk;
 > restore archivelog sequence between 2249 and 2251 thread 1;
-
-Archived redo logs for a day
-+++++++++++++++++++++++++
+```
+### Archived redo logs for a day
+```
 select count(1), avg(blocks*block_size)/1024 MB
 from v$archived_log
 where completion_time between sysdate-1 and sysdate;
+```
 
-Suppose the output comes back as follows:
-COUNT(1)            MB
----------- ----------------------
-10                    103657472
-
-between two weeks ago and last week
-=================================
-RMAN> backup archivelog from time "sysdate-15" until time "sysdate-7";
-run {
-    backup format 'J:\backup\pqa7\pqa7_archivelog_bkp_%U_%T'
-       archivelog until time 'sysdate-3' delete input;
-    }
-
-RMAN> backup archivelog sequence 99 delete input; # specifies a particular log sequence number
-RMAN> backup archivelog sequence between 99 and 199 thread 1 delete input; # specifies range of records by log sequence numbers
-
-Retaining Backups for a Long Time [archival backups]
----------------------------------------------------------------------------------------------------
+### Retaining Backups for a Long Time [archival backups]
+```
 run
 {
 backup database
@@ -245,22 +156,22 @@ tag quarterly
 keep until time 'sysdate+180'
 restore point 2013Q1;
 }
+```
 
-Backing Up Only Those Files Previously Not Backed Up
-===================================================
+### Backing Up Only Those Files Previously Not Backed Up
+```
 RMAN> backup database not backed up;
 RMAN> backup device type sbt archivelog all not backed up 2 times;
 RMAN> backup database not backed up since time 'sysdate-31';
 RMAN> report need backup;
 RMAN> show retention policy;
-RMAN configuration parameters for database with db_unique_name PTST1 are:
-CONFIGURE RETENTION POLICY TO REDUNDANCY 1; # default
 RMAN> CONFIGURE RETENTION POLICY TO NONE;
 RMAN> report need backup;
 RMAN> report unrecoverable;
-
-connect catalog rcat/rcat_bhpb@rcat
-rman target sys@minestar_ya_p
+```
+```
+connect catalog rcat/xxxxxxb@rcat
+rman target sys@xxxx
 run {
   CONFIGURE BACKUP OPTIMIZATION ON;
   CONFIGURE DEFAULT DEVICE TYPE TO DISK;
@@ -272,31 +183,15 @@ run {
   backup as compressed backupset archivelog all not backed up;
   delete force noprompt archivelog until time "to_date(SYSDATE-(2/24))" backed up 1 times to disk;
 }
+```
 
-run{
-set archivelog destination to 'E:\mstarData\fast_recovery_area\TMJS1_01\ARCHIVELOG\2016_03_02’;
-ALLOCATE CHANNEL c1 type disk;
-allocate channel c2 type disk;
-allocate channel c3 type disk;
-restore archivelog from logseq=34279 until logseq=34317;
-RELEASE CHANNEL c1;
-RELEASE CHANNEL c2;
-RELEASE CHANNEL c3;
-}
-  
-
-
-
-BACKUP USER to monitor backup for databases 
-
-
-
-BACKUP USER to monitor backup for databases
-++++++++++++++++++++++++++++++++++
+### BACKUP USER to monitor backup for databases
+```
 set lines 200 pages 2000
-create user cscbkp identified by cschyd123;
-grant connect,resource,dba to cscbkp;
-
+create user mstbkp identified by xxxx;
+grant connect,resource,dba to mstbkp;
+```
+```
 CREATE OR REPLACE FORCE VIEW "SYS"."RMAN_REPORT"
 ("DB_NAME","INPUT_TYPE", "STATUS", "START_TIME", "END_TIME", "HRS", "SUM_BYTES_BACKED_IN_GB","SUM_BACKUP_PIECES_IN_GB", "OUTPUT_DEVICE_TYPE") AS
 select a.NAME,
@@ -310,7 +205,8 @@ OUTPUT_BYTES/1024/1024/1024 SUM_BACKUP_PIECES_IN_GB,
 OUTPUT_DEVICE_TYPE
 FROM V_$RMAN_BACKUP_JOB_DETAILS,v$database a
 order by a.name,SESSION_KEY;
-
+```
+```
 CREATE OR REPLACE FORCE VIEW "RMAN_REPORT_DAILY"
 ("DB_NAME", "INPUT_TYPE", "STATUS", "START_TIME", "END_TIME")
 AS
@@ -321,25 +217,24 @@ union
 select name,INPUT_TYPE,STATUS,TO_CHAR(START_TIME,'mm/dd/yy hh24:mi') start_time,TO_CHAR(END_TIME,'mm/dd/yy hh24:mi') end_time
 FROM V$RMAN_BACKUP_JOB_DETAILS,v$database where status in ('COMPLETED','COMPLETED WITH WARNINGS') and INPUT_TYPE='ARCHIVELOG' and OUTPUT_DEVICE_TYPE='SBT_TAPE' AND END_TIME=(SELECT MAX(END_TIME) FROM
 V$RMAN_BACKUP_JOB_DETAILS WHERE STATUS in ('COMPLETED','COMPLETED WITH WARNINGS') AND INPUT_TYPE='ARCHIVELOG' and OUTPUT_DEVICE_TYPE='SBT_TAPE');
-
-create synonym cscbkp.RMAN_REPORT for sys.RMAN_REPORT;
-create synonym cscbkp.RMAN_REPORT_DAILY for sys.RMAN_REPORT_DAILY;
-grant select on sys.RMAN_REPORT_DAILY to cscbkp;
-grant select on sys.rman_report to cscbkp;
-
-conn cscbkp/cschyd123;
+```
+```
+create synonym mstbkp.RMAN_REPORT for sys.RMAN_REPORT;
+create synonym mstbkp.RMAN_REPORT_DAILY for sys.RMAN_REPORT_DAILY;
+grant select on sys.RMAN_REPORT_DAILY to mstbkp;
+grant select on sys.rman_report to mstbkp;
+```
+```
+conn mstbkp/pass3;
 show user
 select * from RMAN_REPORT_DAILY;
 select * from rman_report where input_type<>'ARCHIVELOG';
-
+```
   
 
+### Backup_Info 
 
-
-Backup_Info 
-
-
-
+```
 sqlplus  OWNER_RMN/<password>@<servicename>
 
 --
@@ -373,13 +268,10 @@ FROM   V$RMAN_BACKUP_JOB_DETAILS
 where START_TIME in (select max(START_TIME) from V$RMAN_BACKUP_JOB_DETAILS WHERE INPUT_TYPE != 'ARCHIVELOG')
 ORDER BY SESSION_KEY
 /
+```
 
-Backup Type Dest     Status         Start Time      End Time        Duration   Size In    Bytes/Sec  Size Out   Bytes/Sec
------------ -------- -------------- --------------- --------------- ---------- ---------- ---------- ---------- ----------
-DB INCR     DISK     COMPLETED      02/28/16 18:00  02/28/16 18:04  00:04:14       5.57G     22.44M    884.00M      3.48M
-
-If not catalog then run under the database which backup is in progress
-SQL> 
+### Without catalog then run under the database which backup is in progress
+```
 COLUMN CLIENT_INFO FORMAT a30
 COLUMN SID FORMAT 999
 COLUMN SPID FORMAT 9999
@@ -389,16 +281,10 @@ FROM V$PROCESS p, V$SESSION s
 WHERE p.ADDR = s.PADDR
 AND CLIENT_INFO LIKE 'rman%'
 ;
-
- SID SPID                     CLIENT_INFO
----- ------------------------ ------------------------------
- 122 9960                     rman channel=c1
- 121 10235                    rman channel=c2
- 120 10236                    rman channel=c3
-
-To monitor job progress:
+```
+### To monitor job progress:
 Before starting the job, create a script file (called, for this example, longops) containing the following SQL statement:
-
+```
 SQL> SELECT SID, SERIAL#, CONTEXT, SOFAR, TOTALWORK,
        ROUND(SOFAR/TOTALWORK*100,2) "%_COMPLETE"
 FROM V$SESSION_LONGOPS
@@ -407,38 +293,11 @@ WHERE OPNAME LIKE 'RMAN%'
   AND TOTALWORK != 0
   AND SOFAR <> TOTALWORK
 ;  
-
-RESTORE DATABASE;
-
-While the job is running, start SQL*Plus connected to the target database, and execute the longops script to check the progress of the RMAN job. If you repeat the query while the restore progresses, then you see output such as the following:
-
-SQL> @longops
-       SID    SERIAL#    CONTEXT      SOFAR  TOTALWORK %_COMPLETE
----------- ---------- ---------- ---------- ---------- ----------
-         8         19          1      10377      36617      28.34
-
-SQL> @longops
-       SID    SERIAL#    CONTEXT      SOFAR  TOTALWORK % COMPLETE
----------- ---------- ---------- ---------- ---------- ----------
-         8         19          1      35849      36617       97.9
-
-SQL> @longops
-no rows selected
-
-If you run the script at intervals of two minutes or more and the %_COMPLETE column does not increase, then RMAN is encountering a problem. Refer to "Monitoring RMAN Interaction with the Media Manager" to obtain more information.
-
-If you frequently monitor the execution of long-running tasks, you could create a shell script or batch file under your host operating system that runs SQL*Plus to execute this query repeatedly.
-
-To obtain the complete list of sbt events, you can use the following query:
-
-select name from v$event_name where name like '%sbt%';
-
-Before making a call to any of functions in the media management API, the server adds a row in V$SESSION_WAIT, with the STATE column including the string WAITING. The V$SESSION_WAIT.SECONDS_IN_WAIT column shows the number of seconds that the server has been waiting for this call to return. After an sbt function is returned from the media manager, this row disappears.
-
-A row in V$SESSION_WAIT corresponding to an sbt event name does not indicate a problem, because the server updates these rows at runtime. The rows appear and disappear as calls are made and returned. However, if the SECONDS_IN_WAIT column is high, then the media manager may be hung.
+```
+### RESTORE DATABASE;
 
 To monitor the sbt events, you can run the following SQL query:
-
+```
 COLUMN EVENT FORMAT a10
 COLUMN SECONDS_IN_WAIT FORMAT 999
 COLUMN STATE FORMAT a20
@@ -449,20 +308,11 @@ FROM V$SESSION_WAIT sw, V$SESSION s, V$PROCESS p
 WHERE sw.EVENT LIKE 's%bt%'
 AND s.SID=sw.SID
 AND s.PADDR=p.ADDR;
+```
 
-no rows selected
+### LAST BACKUP OF DATAFILES:
 
-Examine the SQL output to determine which sbt functions are waiting. For example, the following output indicates that RMAN has been waiting for the sbtbackup function to return for ten minutes:
-
-SPID EVENT             SEC_WAIT   STATE                CLIENT_INFO
----- ----------------- ---------- -------------------- ------------------------------
-8642 Backup: sbtbackup 600        WAITING              rman channel=ORA_SBT_TAPE_1
-
-
-
-LAST BACKUP OF DATAFILES:
-
-SYS@QRAH11 SQL>
+```
 set pagesize 1000
 column file#  heading 'File#'      format 999 
 column name   heading 'File name'  format a55           
@@ -480,24 +330,10 @@ SELECT dbf.file#,substr(dbf.name,1,55) name,
           AND dbf.file# = b.file#
         GROUP BY dbf.file#,substr(dbf.name,1,55)
         ORDER BY days DESC;
+```
 
-File# File name                                               Days
------ ------------------------------------------------------- ------------------------------
-   93 +DATA/qrah1_01/datafile/rh_schedule_data.4320.890049185        .84
-   66 +DATA/qrah1_01/datafile/rh_schedule_data.4284.890049461        .84
-   86 +DATA/qrah1_01/datafile/utility_data.4355.890048669            .84
-   59 +DATA/qrah1_01/datafile/rh_schedule_data.4290.890049413        .84
-   45 +DATA/qrah1_01/datafile/rh_schedule_data.4291.890049413        .84
---
-  123 +DATA/qrah1_01/datafile/utility_data.4338.890048989            .84
-  101 +DATA/qrah1_01/datafile/rh_schedule_data.4296.890049377        .84
-   92 +DATA/qrah1_01/datafile/rh_schedule_data.4317.890049225        .84
-  127 +DATA/qrah1_01/datafile/utility_data.4325.890049129            .84
-
-114 rows selected.
-
-The following SQL query demonstrates the internal checks that Oracle performs to determine whether media recovery is required:
-
+### The following SQL query demonstrates the internal checks that Oracle performs to determine whether media recovery is required:
+```
 SELECT
 a.name,
 a.checkpoint_change#,
@@ -511,35 +347,38 @@ END STATUS
 FROM v$datafile a, -- control file SCN for datafile
 v$datafile_header b -- datafile header SCN
 WHERE a.file# = b.file#;
+```
 
-RMANjobs&Scripts
+### RMANjobs&Scripts
 
-FROM CATALOG:
-
+Target:
+```
+select session_key,input_type,status, to_char(start_time,'yyyy-mm-dd hh24:mi') start_time,to_char(end_time,'yyyy-mm-dd hh24:mi') end_time,output_bytes_display,time_taken_display
+from V$RMAN_BACKUP_JOB_DETAILS
+order by session_key desc;
+```
+Catalog DB:
+```
+select session_key,input_type,status, to_char(start_time,'yyyy-mm-dd hh24:mi') start_time,to_char(end_time,'yyyy-mm-dd hh24:mi') end_time,output_bytes_display,time_taken_display
+from RC_RMAN_BACKUP_JOB_DETAILS
+order by session_key desc;
+```
+```
 select input_type,status, to_char(start_time,'yyyy-mm-dd hh24:mi') start_time,to_char(end_time,'yyyy-mm-dd hh24:mi') end_time
 from RC_RMAN_BACKUP_JOB_DETAILS
 where DB_NAME like '%POEM%'
 order by session_key desc;
-
-
+```
+```
 select r.sequence#,r.set_stamp,p.handle,p.tag,p.start_time,p.completion_time,r.first_change#,r.next_change#
 from RC_BACKUP_PIECE p, RC_BACKUP_REDOLOG r
 where r.set_stamp = p.set_stamp 
 and r.set_count = p.set_count
 and r.DB_NAME like '%PSOC%'
 order by sequence# desc;
-
-
-SNAPSHOT Check
-
-oracle@iormdb01-adm:PSOC11:/iormcl01_backup/PSOC1
-$ cd .snapshot
-$ ls -la
-Go the last one - to get the oldest backup
-$ cd SP_2_28946_45844_1448283630
-$ ls -la
- 
----------------------------------------------------------------------------------------------------
+```
+### SNAPSHOT Check
+```
 
 select ctime "Date",
        decode(backup_type, 'L', 'Archive Log', 'D', 'Full', 'Incremental') backup_type,
@@ -553,33 +392,10 @@ select ctime "Date",
        and bp.status = 'A'
        group by trunc(bp.completion_time), backup_type)
 order by 1, 2;
+```
 
-
-Date                BACKUP_TYPE                          Size MB
-------------------- --------------------------------- ----------
-15-05-2016:00:00:00 Archive Log                           905.77
-16-05-2016:00:00:00 Incremental                             1.81
-17-05-2016:00:00:00 Incremental                             1.81
-18-05-2016:00:00:00 Incremental                             1.83
-19-05-2016:00:00:00 Incremental                             1.81
-20-05-2016:00:00:00 Incremental                             1.81
-21-05-2016:00:00:00 Full                                    1.81
-26-05-2016:00:00:00 Archive Log                         23655.16
-26-05-2016:00:00:00 Incremental                          1594.82
-27-05-2016:00:00:00 Archive Log                         23559.98
-27-05-2016:00:00:00 Full                                  368.06
-
-Date                BACKUP_TYPE                          Size MB
-------------------- --------------------------------- ----------
-27-05-2016:00:00:00 Incremental                          1751.48
-28-05-2016:00:00:00 Archive Log                           670.69
-28-05-2016:00:00:00 Full                                 5111.79
-
-14 rows selected.
-
-
-List the most recent Level 0 backups
-
+### List the most recent Level 0 backups
+```
 SELECT DISTINCT TO_CHAR((b.CHECKPOINT_TIME), 'YYYY-MM-DD HH:MI.SS') t
 FROM v$backup_datafile b, v$tablespace ts, v$datafile f
 WHERE b.incremental_level = 0
@@ -588,73 +404,52 @@ WHERE b.incremental_level = 0
   AND f.ts#=ts.ts#
 GROUP BY b.checkpoint_time
 ORDER BY 1;
+```
 
----------------------------------------------------------
-2016-05-28 01:02.34
-
-Query the details for a single archive log:
-
+### Query the details for a single archive log:
 
 Target :
-
+```
 select r.sequence#,r.set_stamp,p.handle,p.tag,p.start_time,p.completion_time,r.first_change#,r.next_change#
 from V$BACKUP_PIECE p, V$BACKUP_REDOLOG r
 where r.set_stamp = p.set_stamp
 and r.set_count = p.set_count
 and r.sequence# = 743399;
-
+```
 Here the archive log # that I am checking is 743399.
 
 Catalog DB:
-
+```
 select r.sequence#,r.set_stamp,p.handle,p.tag,p.start_time,p.completion_time,r.first_change#,r.next_change#
 from RC_BACKUP_PIECE p, RC_BACKUP_REDOLOG r
 where r.set_stamp = p.set_stamp 
 and r.set_count = p.set_count
 and r.sequence# = 743399;
+```
 
-Find last archive log backed up:
+### Find last archive log backed up:
 
 Target:
-
+```
 select r.sequence#,r.set_stamp,p.handle,p.tag,p.start_time,p.completion_time,r.first_change#,r.next_change#
 from V$BACKUP_PIECE p, V$BACKUP_REDOLOG r
 where r.set_stamp = p.set_stamp 
 and r.set_count = p.set_count
 order by sequence# desc;
-
+```
 Catalog DB:
-
+```
 select r.sequence#,r.set_stamp,p.handle,p.tag,p.start_time,p.completion_time,r.first_change#,r.next_change#
 from RC_BACKUP_PIECE p, RC_BACKUP_REDOLOG r
 where r.set_stamp = p.set_stamp 
 and r.set_count = p.set_count
 order by sequence# desc;
+```
 
-Backup Job Details:
 
-Target:
+### Display RMAN backup information from dictionary 
 
-select session_key,input_type,status, to_char(start_time,'yyyy-mm-dd hh24:mi') start_time,to_char(end_time,'yyyy-mm-dd hh24:mi') end_time,output_bytes_display,time_taken_display
-from V$RMAN_BACKUP_JOB_DETAILS
-order by session_key desc;
-
-Catalog DB:
-
-select session_key,input_type,status, to_char(start_time,'yyyy-mm-dd hh24:mi') start_time,to_char(end_time,'yyyy-mm-dd hh24:mi') end_time,output_bytes_display,time_taken_display
-from RC_RMAN_BACKUP_JOB_DETAILS
-order by session_key desc;
-
---------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Connect to the Database
-
-SYS@DPBH2_1 SQL> set pages 25
-
---
--- Display RMAN backup information from dictionary 
---
-
+```
 set lines 150
 set pages 25
 COL INPUT_TYPE FORMAT a11 heading "Backup Type"
@@ -682,15 +477,10 @@ FROM   V$RMAN_BACKUP_JOB_DETAILS
 where START_TIME in (select max(START_TIME) from V$RMAN_BACKUP_JOB_DETAILS WHERE INPUT_TYPE != 'ARCHIVELOG')
 ORDER BY SESSION_KEY
 /
+```
 
-Backup Type Dest     Status         Start Time      End Time        Duration   Size In    Bytes/Sec  Size Out   Bytes          /Sec
------------ -------- -------------- --------------- --------------- ---------- ---------- ---------- ---------- -----          -----
-DB INCR     DISK     COMPLETED      10/22/15 18:07  10/22/15 18:07  00:00:20      21.44M      1.07M     29.79M      1          .49M
-
-
-
-rman_bkup_last_err.sql
-++++++++++++++++++++++++++
+### rman_bkup_last_err.sql
+```
 --
 -- Display RMAN backup information from dictionary 
 --
@@ -723,10 +513,10 @@ where START_TIME in (select max(START_TIME) from V$RMAN_BACKUP_JOB_DETAILS WHERE
   AND STATUS not in ('COMPLETED','RUNNING')
 ORDER BY SESSION_KEY
 /
+```
 
-
-rman_bkup_last_tape.sql
-+++++++++++++++++++++++
+### rman_bkup_last_tape.sql
+```
 --
 -- Display RMAN backup information from dictionary 
 --
@@ -766,9 +556,10 @@ where r.END_TIME in (select max(a.END_TIME) from V$RMAN_BACKUP_JOB_DETAILS a WHE
  AND (r.END_TIME < sysdate - 1  or r.STATUS not in ('COMPLETED','RUNNING'))
 ORDER BY SESSION_KEY
 /
+```
 
-rman_error.sq;
-++++++++++++++++
+### rman_error.sql
+```
 --
 -- display RMAN errors from output for job - only available since bounce of DB (i.e. in memory)
 --
@@ -816,11 +607,12 @@ SELECT SID, SPID, CLIENT_INFO
   FROM V$PROCESS p, V$SESSION s 
   WHERE p.ADDR = s.PADDR 
   AND CLIENT_INFO LIKE '%id=rman%';
+```
 
-Monitoring RMAN Job Progress
-================================
+### Monitoring RMAN Job Progress
+
 how many RMAN jobs have been issued, the status of each job, what time they started and completed, what types of jobs they were, and so on. You would issue a query as follows: 
-
+```
 col STATUS format a9
 col hrs format 999.99
 select SESSION_KEY, INPUT_TYPE, STATUS,
@@ -829,13 +621,9 @@ to_char(END_TIME,'mm/dd/yy hh24:mi')   end_time,
 elapsed_seconds/3600                   hrs
 from V$RMAN_BACKUP_JOB_DETAILS
 order by session_key;l
+```
 
-
-SESSION_KEY INPUT_TYPE    STATUS    START_TIME     END_TIME           HRS
------------ ------------- --------- -------------- -------------- -------
-          1 DATAFILE FULL FAILED    11/08/13 15:37 11/08/13 15:37     .00
-          5 DB FULL       RUNNING   11/08/13 15:54 11/08/13 16:09     .26
-
+```
 SQL> select sid, serial#, sofar, totalwork, opname,
 round(sofar/totalwork*100,2) "% Complete"
 from v$session_longops
@@ -843,15 +631,12 @@ where opname LIKE 'RMAN%'
 and opname NOT LIKE '%aggregate%'
 and totalwork != 0
 and sofar <> totalwork;
-
-       SID    SERIAL#      SOFAR  TOTALWORK             OPNAME                                                           % Complete
----------------------------------------------------------------- -----------------------------------------------------------------------------------------------------------------
-        65        123              2396208   51443910         RMAN: full datafile backup                                             4.66
-
-
+```
+```
 SQL> select type, item, units, sofar, total from v$recovery_progress;
-
+```
 the rate of the backup produced and how fast data was read and written by the process. This information helps you diagnose any slowness in the RMAN jobs. 
+```
 col ins format a10
 col outs format a10
 select SESSION_KEY,
@@ -862,46 +647,40 @@ OUTPUT_BYTES_PER_SEC_DISPLAY outs,
 TIME_TAKEN_DISPLAY
 from V$RMAN_BACKUP_JOB_DETAILS
 order by session_key;  
-
-SESSION_KEY  OPT         COMPRESSION_RATIO         INS                 OUTS                  TIME_TAKEN_DISPLAY
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-          1                   NO                  1                                  0.00K                  0.00K                      00:00:00
-          5                   NO         5.60962133                             19.62M             3.50M                     00:17:38
+```
 
 
 Next, use the V$SESSION and V$PROCESS views to identify which database server
 sessions correspond to RMAN channels:
-
+```
 SQL> SELECT b.sid, b.serial#, a.spid, b.client_info
 FROM v$process a, v$session b
 WHERE a.addr = b.paddr
 AND b.client_info LIKE '%rman%';
+```
 
-     SID    SERIAL# SPID   CLIENT_INFO
-----------------------------------------------------------------
-        65        123 26073     rman channel=ORA_DISK_1
+### Measuring Backup Performance
 
-Measuring Backup Performance
-=============================
 determine whether backups are taking longer and longer.
-
+```
 SQL> SELECT session_recid, input_bytes_per_sec_display,
 output_bytes_per_sec_display,
 time_taken_display, end_time
  FROM v$rman_backup_job_details
  ORDER BY end_time;
-
-RMAN Command History
-================================
+```
+### RMAN Command History
+```
 SQL> select  sid, recid, output
  from v$rman_output
  order by recid
  /
+```
 
 You can also join V$RMAN_OUTPUT to V$RMAN_STATUS to get additional information.
 This useful query shows the type of command RMAN is running, its current status, and its
 associated output messages:
-
+```
 SQL> select
  a.sid,
  a.recid,
@@ -914,12 +693,13 @@ SQL> select
  and a.rman_status_stamp = b.stamp
  order by a.recid
  /
+```
 
 Script – Query the RMAN catalog to list backup completion status
 ####################################################################################
 
 Note run this query connected as the owner of the RMAN catalog
-
+```
 set lines 80
 
 set pages 250
@@ -942,20 +722,8 @@ group by a.name,dbid,b.bck_type
 ) group by db,dbid
 ORDER BY least(to_date(DBBKP,'DD/MM/YYYY HH24:MI'),to_date(ARCBKP,'DD/MM/YYYY HH24:MI'))
 /
-
-OUTPUT
-===============
-Thu Jan 03                                                             page    1
-                              Daily Backup........
-
-NAME           DBID DBBKP            ARCBKP
--------- ---------- ---------------- ----------------
-PROD     4081318632 02/01/2013 14:49 02/01/2013 15:04
-IJISPROD 4288714669 03/01/2013 00:47 03/01/2013 00:48
-FMWPROD  1484995170 03/01/2013 04:04 03/01/2013 04:04
-FMAPPROD 1450765346 03/01/2013 05:03 03/01/2013 05:03
-
-
+```
+```
 ---------------------------------------------------------------------
 -- File Name    : archive-backup-size.sql
 -- Description  : Size for Archive Files backed up daily
@@ -969,7 +737,8 @@ to_char(FIRST_TIME, 'yy-mm-dd') date_backup
 FROM rc_backup_archivelog_details
 GROUP BY db_name,to_char(first_time, 'yy-mm-dd')
 ORDER BY db_name, 3;
-
+```
+```
 ---------------------------------------------------------------------
 -- File Name    : datafiles-backup-size.sql
 -- Replace
@@ -984,7 +753,8 @@ SELECT db_name,
 FROM rc_backup_datafile_details
 GROUP db_name,to_char(checkpoint_time, 'yy-mm-dd'), handle
 ORDER BY db_name, 3;
-
+```
+```
 ---------------------------------------------------------------------
 -- File Name    : backup-async-io-rate
 
@@ -1017,33 +787,9 @@ ROUND (SOFAR/TOTALWORK*100, 2) "% COMPLETE"
 FROM V$SESSION_LONGOPS
 WHERE OPNAME LIKE 'RMAN%' AND OPNAME NOT LIKE '%aggregate%'
 AND TOTALWORK! = 0 AND SOFAR <> TOTALWORK;
-
-SYS@PBDR11 SQL> /
-
-       SID    SERIAL#    CONTEXT      SOFAR  TOTALWORK % COMPLETE
----------- ---------- ---------- ---------- ---------- ----------
-        20         27          1   11735280   33241212       35.3
-       327         27          1   11493104   33240956      34.58
-       940         83          1    9488368   33242492      28.54
-       941         77          1    9423344   33241340      28.35
-
-
-
-------------------------------------------------------------------------------------------------------
-Need to test:
-
-select Distinct(A.Session_Stamp),A.Db_Name "DB Name",INPUT_TYPE,A.Device_Type,To_Char(B.Start_Time,'dd.mm.yyyy hh24:mi:ss') "Started", To_Char(B.End_Time,'dd.mm.yyyy hh24:mi:ss') "Ended",B.Time_Taken_Display "Duration",B.status "Status", B.Output_Bytes_Display "Backup Size"  
- From Rc_Backup_Set_Details A, Rc_Rman_Backup_Job_Details B,Rc_Database C   
-Where A.Session_Key = B.Session_Key  
- And A.Db_Key = C.Db_Key  
- And Input_Type Like '%INCR%'  
- AND a.db_name IN ('PLT10CR','PLT10DM','PLT11CR','PLT11DM')   
-Order By A.Db_Name;  
-
-This script will query the RMAN catalog and report on the backup status of every database in the catalog.
-
-FROM RMAN catalog database 
-
+```
+### FROM RMAN catalog database 
+```
 set lines 80
 set pages 250
 ttitle "Daily Backup........"
@@ -1066,15 +812,16 @@ group by a.name,dbid,b.bck_type
 ) group by db,dbid
 ORDER BY least(to_date(DBBKP,'DD/MM/YYYY HH24:MI'),
 to_date(ARCBKP,'DD/MM/YYYY HH24:MI'));
- 
-OEM
+ ```
+
+### OEM
 ----
 Extracting Backup success/failure reports from the OEM repository
 
 If OEM Grid control is being used to monitor a majority of your databases and if RMAN is being used to backup the databases (either to Tape or to disk), then a quick way to get backup status reports directly off the OEM repository database is to run a script similar to the below.
 
 In one of my client environments, there was no RMAN catalog being used and hence the need to pull this out from the OEM repository to report on a regular basis
-
+```
 set lines 200 pages 999
 col database_name format a40
 col host format a40
@@ -1086,7 +833,8 @@ col output_device_type format a10
 select DATABASE_NAME, host, status, to_char(start_time,'dd-MON-yyyy hh24:mi') start_time, to_char(end_time,'dd-MON-yyyy hh24:mi') end_time, input_type, output_device_type
 from mgmt$ha_backup
 order by host, database_name;
-
+```
+```
 --
 -- Display RMAN backup information from dictionary
 --
@@ -1153,10 +901,11 @@ FROM   V$RMAN_BACKUP_JOB_DETAILS j
 JOIN   s on j.session_recid = s.session_recid and j.session_stamp = s.session_stamp
 ORDER BY SESSION_KEY
 /
+```
 
-
-Get the SCN for the BACKUP for Database
+### Get the SCN for the BACKUP for Database
 ---------------------------------------------------------------------------------------------
+```
 sqlplus "/ as sysdba"
 select dbid from v$database;
 
@@ -1170,26 +919,9 @@ next_time  - (1/86440) > ( select max(completion_time)
 from bdf
 where dbinc_key = ( select curr_dbinc_key from db where db_id = &dbid ) )
 /
-
-The DBA has a limited window for running the RMAN backups
-RMAN> backup duration 6:00 database;
-RMAN> backup duration 6:00 partial database filesperset 1 ;
-
-To perform the backup in the shortest time possible, specify the minimize time option, as shown here:
-RMAN> backup
-duration 6:00 partial
-minimize time
-database
-filesperset 1;
-
-reduce the overhead
-
-RMAN> backup duration 6:00 partial
-minimize load
-database
-filesperset 1;
-
-For a specific date backup
+```
+### For a specific date backup
+```
 SELECT   D.FILE#, N.NAME, P.HANDLE ,P.device_type, P.media, P.TAG, P.status, TO_CHAR(P.START_TIME,'DD-MON-RR HH24:MI:SS') START_TIME, P.completion_time
 FROM   V$BACKUP_PIECE P, V$BACKUP_DATAFILE D , V$DATAFILE N
 WHERE   D.SET_STAMP = P.SET_STAMP 
@@ -1200,7 +932,8 @@ WHERE   D.SET_STAMP = P.SET_STAMP
 -- order by P.completion_time, D.file#;*/
 order by D.file#;
 
-
+```
+```
 select backup_type, incremental_level, round(sum(original_input_bytes)/1024/1024,2) "MB in",
  round(sum(output_bytes)/1024/1024,2) "MB out", status, min(start_time), max(completion_time),
  round((sum(output_bytes)/1024/1024)/((max(completion_time)-min(start_time))*86400), 1) "MB/s"
@@ -1208,31 +941,21 @@ select backup_type, incremental_level, round(sum(original_input_bytes)/1024/1024
  group by backup_type, incremental_level, status, session_key, session_recid, session_stamp
  order by 6
  /
-
+```
+```
 select b.sid, b.serial#, a.spid, b.client_info
 from v$process a, v$session b
 where a.addr=b.paddr and
 client_info like 'rman%'; 
-
-       SID    SERIAL# SPID                     CLIENT_INFO
----------- ---------- ------------------------ ----------------------------------------------------------------
-       215      25725 24712                    rman channel=ch1
-       246      46035 25568                    rman channel=ch2
-
-[oracle@csmper-cls08 ~]$ view /export/home/oracle/bin/tape_backup_control.sh
-[oracle@csmper-cls08 ~]$ view /home/oracle/bin/nbuhotback_daily
-
-ORATAB=/export/home/oracle/bin/oratab_bkup
-
-cd /opt/oracle/product/admin/cron/
-/app/${ORACLE_SID}/admin/cron/logs 
-
+```
+```
 set linesize 200
 SELECT SESSION_KEY,TO_CHAR(START_TIME,'DD-MON-RR HH24:MI:SS') START_TIME,
 TO_CHAR(END_TIME,'DD-MON-RR HH24:MI:SS') END_TIME,ROUND(INPUT_BYTES/1048576) INPUT_BYTES ,
 ROUND(OUTPUT_BYTES/1048576) OUTPUT_BYTES,STATUS,INPUT_TYPE,ROUND(ELAPSED_SECONDS/60,2) ELAPSED_MINUTES
 FROM V$RMAN_BACKUP_JOB_DETAILS  ORDER BY SESSION_KEY;
-
+```
+```
 set linesize 200
 SELECT   D.FILE#, N.NAME, P.HANDLE ,P.device_type, P.media, P.TAG, P.status, TO_CHAR(P.START_TIME,'DD-MON-RR HH24:MI:SS') START_TIME, P.completion_time
 FROM   V$BACKUP_PIECE P, V$BACKUP_DATAFILE D , V$DATAFILE N
@@ -1243,7 +966,8 @@ WHERE   D.SET_STAMP = P.SET_STAMP
  order by P.completion_time, D.file#;
 -- P.completion_time =<>
 -- order by D.file#;
-
+```
+```
 set lines 200 pages 999
 col database_name format a40
 col host format a40
@@ -1260,7 +984,8 @@ where opname LIKE 'RMAN%'
 and opname NOT LIKE '%aggregate%'
 and totalwork != 0
 and sofar <> totalwork;
-
+```
+```
 > sql "alter session set nls_date_format=''DD-MON-YYYY HH24:MI:SS''";
 > LIST BACKUP OF DATABASE COMPLETED BETWEEN '10-OCT-2014 00:00:00' AND '12-OCT-2014 10:50:00';
 > LIST BACKUP OF ARCHIVELOG TIME between "TO_DATE('10/10/2014 22:00:00', 'MM/DD/YYYY hh24:mi:ss')" and "TO_DATE('12/10/2014 11:00:00','MM/DD/YYYY hh24:mi:ss')";
@@ -1291,9 +1016,11 @@ SELECT MIN(ROUND ( (total_mb - usable_file_mb) * 100 / total_mb, 2)) full_percen
              FROM gv$parameter@ptest20
             WHERE name LIKE '%archive%dest%' AND VALUE LIKE '%LOCATION%')
 where pct_used > '20';
+```
 
-Restore Archivelog
+### Restore Archivelog
 ----------------------
+```
 run{
 set archivelog destination to '/tmp/archbkp';
 ALLOCATE CHANNEL ch1 TYPE 'SBT_TAPE'
@@ -1301,10 +1028,11 @@ PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
 restore archivelog from logseq=120200 until logseq=120220;
 RELEASE CHANNEL c1;
 }
+```
 
-Begin/End Backup
+### Begin/End Backup
 backup_begin.sql
----------------------
+```
 set echo off
 set feed off
 set termout off
@@ -1321,18 +1049,21 @@ set feed on
 set termout on
 @hot_em.sql
 exit;
+```
 
-Check_bkp.sql
---------------
+### Check_bkp.sql
+```
 set lines 80      
 column name format a10
  
 SELECT t.name, d.file# as, b.status      
 FROM V$DATAFILE d, V$TABLESPACE t, V$BACKUP b       
 WHERE d.TS#=t.TS# AND b.FILE#=d.FILE#;
+```
 
 end_bkp.sql
 -----------
+```
 set echo off
 set feed off
 set termout off
@@ -1349,40 +1080,8 @@ set feed on
 set termout on
 @unhot_em.sql
 exit;
+```
 
-COLD BACKUP
-BLASTHOLES QA BACKUP
-++++++++++++++++++++
-
-Database Mount mode
-
-CONFIGURE CONTROLFILE AUTOBACKUP ON;
-CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '/app/teorcfpe/oradump/BACKUP_BHQA/%F.ctl';
-CONFIGURE CHANNEL DEVICE TYPE DISK FORMAT '/app/teorcfpe/oradump/BACKUP_BHQA/cold_bkp_%U';
-RMAN> run
- {
- allocate channel ch01 device type disk;
- allocate channel ch02 device type disk;
- backup database format '/app/teorcfpe/oradump/BACKUP_BHQA/cold_bkp_%U';
- release channel ch01;
- release channel ch02;
-}
-
-RMAN> restore database preview;
-
-Query database to determine recovery SCN
-SELECT
-      MIN(checkpoint_change#) start_scn,
-      GREATEST(MAX(checkpoint_change#),MAX(absolute_fuzzy_change#)) beyond_scn
-    FROM v$backup_datafile
-    WHERE incremental_level=(SELECT MAX(incremental_level) FROM v$backup_datafile WHERE incremental_level>=0)
-  
-
-startup nomount
-RMAN> restore controlfile from '/app/teorcfpe/oradump/BACKUP_BHQA/c-2226648814-20150325-00.ctl'
-RMAN> alter database mount;
-RMAN>restore database;
-SQL> select sequence#,first_change#,next_change# from v$log order by 1;
 
 BLOCKCHANGETRACKING
 Where is the block change tracking file. used for 
@@ -1459,8 +1158,8 @@ RMAN> configure device type sbt parallelism 3;
 Execute the backup, specifying the section size parameter:
 RMAN> backup section size 150m tablespace system;
 
-CATALOG and UNCATALOG
-
+### CATALOG and UNCATALOG
+```
 1) Catalog an archive log
 RMAN>CATALOG ARCHIVELOG '/oracle/oradata/arju/arc001_223.arc', '/oracle/oradata/arju/arc001_224.arc';
 
@@ -1485,9 +1184,10 @@ RMAN>CHANGE BACKUP OF TABLESPACE USERS UNCATALOG;
 8) Uncatalog a backuppiece
 RMAN>CHANGE BACKUPPIECE '/oradata2/oft7qq' UNCATALOG;
 
+```
 
-KILL BACKUP JOBS from OS
-==========================
+### KILL BACKUP JOBS from OS
+```
 $ sqlplus / as sysdba 
 
 ### Check what Session will be killed
@@ -1521,12 +1221,11 @@ SQL> ! kill -9 2516
 SQL> ! kill -9 2517
 SQL> ! kill -9 2497  
 
+```
 
+### delete 
 
-delete 
-
-
-
+```
 RMAN> delete backup;
 RMAN> delete backuppiece 999;
 RMAN> delete copy of controlfile like '/u01/%';
@@ -1539,9 +1238,11 @@ RMAN> delete archivelog all backed up 3 times to sbt;
 RMAN> delete archivelog until sequence = 999;
 RMAN> backup archivelog like '/arch%' delete input;
 RMAN> configure archivelog deletion policy to backed up 2 times to device type sbt;
+```
 
-Deleting Obsolete RMAN Backups
+### Deleting Obsolete RMAN Backups
 ==================================
+```
 RMAN> delete obsolete;
 RMAN> delete obsolete redundancy = 2;
 RMAN> delete obsolete recovery window of 14 days;
@@ -1559,10 +1260,14 @@ RUN
     RELEASE CHANNEL c1;
     RELEASE CHANNEL c2;
    }
-
+```
+```
 RMAN> connect target /
 RMAN> delete noprompt archivelog until time 'SYSDATE - 3';
+```
 
+### Issue
+```
 ORA-15028: ASM file '+//thread_1_seq_**** not dropped; currently being accessed
 
 In this case the solution was quite simple. The steps I followed were (bearing in mind that arc? processes are being restarted automatically by oracle):
@@ -1574,9 +1279,7 @@ kill -9 5607
 3.- check the process is started again before killing more:
 ps -ef | grep -i ora_arc9_prod1
 4.- perform 2 and 3 for all arc? running for your instance.
-  
-
-
+```  
 
 Duplicate database 
 
