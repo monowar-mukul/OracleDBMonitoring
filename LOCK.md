@@ -223,12 +223,14 @@ SELECT DECODE(request,0,'Holder: ','Waiter: ')||sid sess,
 ### Get the holder Session ID -- find out SID and serial
 ```
 select OSUSER, USERNAME, sid, serial#  from v$session where USERNAME='&usr';
-
+```
+```
  SELECT s.sid, s.serial#, s.username, s.osuser, p.spid, s.machine, p.terminal, s.program
     FROM v$session s, v$process p
     WHERE s.paddr = p.addr
     and s.sid=&SID ;
-
+```
+```
 SELECT USERNAME,
            TERMINAL,
            PROGRAM,
@@ -308,7 +310,7 @@ WHERE
   AND    S2.paddr           = P2.addr;
 ```
 
-### Run the "whatsql.sql" script to determine which SQL is being run     by the holding process.
+### Run the "whatsql.sql" script to determine which SQL is being run by the holding process.
 
 whatsql.sql
 ```
@@ -330,7 +332,8 @@ AND    s.sql_address    = x.address
 AND    s.sql_hash_value = x.hash_value
 ORDER
     BY S.sid
-
+```
+```
 select a.object_name,logon_time,
 		decode (o.locked_mode,0,'NONE', 1,'NULL', 2,'RS', 3,'RX', 4,'S', 5,'SRX', 6,'X') TYPE, 
 		o.oracle_username username, o.process, o.session_id,s.serial#, 
@@ -614,71 +617,28 @@ from   v$session
 where SID=393
 order by last_call_et;
 ```
-
+```
 SQL> alter session set nls_date_format = 'YYYY-MM-DD:HH24:MI:SS';
 SQL> select to_char(sysdate - last_call_et / 86400,'HH24:MI') from v$session where SID=393;
-
-TO_CH
------
-21:15
-
+```
 The column last_call_et in v$session tells how long the inactive sessions were inactive.
 LAST_CALL_ET is the amount of time in seconds since the session's last statement execution. 
 
-Get the locked row ROWID
-
+### Get the locked row ROWID
+```
 select do.object_name, row_wait_obj#, row_wait_file#, row_wait_block#, row_wait_row#, dbms_rowid.rowid_create ( 1, ROW_WAIT_OBJ#, ROW_WAIT_FILE#, ROW_WAIT_BLOCK#, ROW_WAIT_ROW# )
 from v$session s, dba_objects do
 where sid=543
 and s.ROW_WAIT_OBJ# = do.OBJECT_ID ;
+```
 
-set heading off
-set feedback off
-set pagesize 0
-
-spool /tmp/lock_inactive90dayusers.sql
-/
-spool off
-
-set feedback on
-set heading on
-set pagesize 24
-
-@@/tmp/lock_inactive90dayusers.sql
-
-quit
-/
-~
-~
-lockAccount.sql
-SET VERIFY OFF
-set echo on
-spool /U01/app/oracle/admin/JSSTST/scripts/lockAccount.log append
-BEGIN
- FOR item IN ( SELECT USERNAME FROM DBA_USERS WHERE ACCOUNT_STATUS IN ('OPEN', 'LOCKED', 'EXPIRED') AND USER
-NAME NOT IN (
-'SYS','SYSTEM') )
- LOOP
-  dbms_output.put_line('Locking and Expiring: ' || item.USERNAME);
-  execute immediate 'alter user ' ||
-         sys.dbms_assert.enquote_name(
-         sys.dbms_assert.schema_name(
-         item.USERNAME),false) || ' password expire account lock' ;
- END LOOP;
-END;
-/
-spool off
-
-
-=================
-                    *
-ERROR at line 1:
-ORA-00054: resource busy and acquire with NOWAIT specified or timeout expired
+### ORA-00054: resource busy and acquire with NOWAIT specified or timeout expired
 
 The most common reason for this are either 'SELECT FOR UPDATE ' or some uncommitted INSERT statements.
 
-SYS@DPDW1_1 SQL> SELECT O.OBJECT_NAME, S.SID, S.SERIAL#, P.SPID, S.PROGRAM,SQ.SQL_FULLTEXT, S.LOGON_TIME FROM V$LOCKED_OBJECT L, DBA_OBJECTS O, V$SESSION S, V$PROCESS P, V$SQL SQ WHERE L.OBJECT_ID = O.OBJECT_ID AND L.SESSION_ID = S.SID AND S.PADDR = P.ADDR AND S.SQL_ADDRESS = SQ.ADDRESS;
-
+``` SQL> SELECT O.OBJECT_NAME, S.SID, S.SERIAL#, P.SPID, S.PROGRAM,SQ.SQL_FULLTEXT, S.LOGON_TIME FROM V$LOCKED_OBJECT L, DBA_OBJECTS O, V$SESSION S, V$PROCESS P, V$SQL SQ WHERE L.OBJECT_ID = O.OBJECT_ID AND L.SESSION_ID = S.SID AND S.PADDR = P.ADDR AND S.SQL_ADDRESS = SQ.ADDRESS;
+```
+### Sample Output
 OBJECT_NAME
 ------------------------------------------------------------------------------------------------------------------------------------------------------
        SID    SERIAL# SPID
@@ -717,7 +677,7 @@ oracle@iorsdb02-adm.apac.ent.bhpbilliton.net (TN
 INSERT  INTO "PNIA_STAGING_MVMNT_CONTRIB" "A1" ("STAGING_RECORD_ID","STAGING_R   18-02-2016:15:10:22
 EC
 
-SOLUTION:
+### SOLUTION:
 We have 3 options to fix this error
       1.  Kill the DB session and get the tables unlocked
       2. Kill the application which holds this particular session(sql connection)
