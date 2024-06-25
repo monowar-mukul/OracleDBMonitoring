@@ -1,5 +1,5 @@
 ## Calculate UNDO_RETENTION  for given UNDO Tabespace
-
+```
 `SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
        SUBSTR(e.value,1,25) "UNDO RETENTION [Sec]",
        ROUND((d.undo_size / (to_number(f.value) *
@@ -24,15 +24,10 @@
 WHERE e.name = 'undo_retention'
   AND f.name = 'db_block_size'
 / 
-'
-
-ACTUAL UNDO SIZE [MByte] UNDO RETENTION [Sec]      OPTIMAL UNDO RETENTION [Sec]
------------------------- ------------------------- ----------------------------
-                   19640 900                                              27342
-
+'```
 
 ## Calculate Needed UNDO Size for given Database Activity 
-
+```
 SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
        SUBSTR(e.value,1,25) "UNDO RETENTION [Sec]",
        (TO_NUMBER(e.value) * TO_NUMBER(f.value) *
@@ -58,13 +53,10 @@ SELECT d.undo_size/(1024*1024) "ACTUAL UNDO SIZE [MByte]",
  WHERE e.name = 'undo_retention'
   AND f.name = 'db_block_size'
 /
+```
 
-ACTUAL UNDO SIZE [MByte] UNDO RETENTION [Sec]      NEEDED UNDO SIZE [MByte]
------------------------- ------------------------- ------------------------
-                   19640 900                                     646.488281
-
-## Identify active transactions in undo and rollback segments
-#####################################################
+#### Identify active transactions in undo and rollback segments
+```
 col o format a10
 col u format a10
 select osuser o, username u, sid,
@@ -78,7 +70,8 @@ and t.xidusn=r.segment_id(+)
 and s.sql_address=sa.address(+)
 And substr(sa.sql_text,1,200) is not null
 order by 3;
-
+```
+```
 col name format a8
 col username format a8
 col osuser format a8
@@ -95,20 +88,20 @@ from sys.v_$transaction t, sys.v_$rollname r, sys.v_$session s
 where t.xidusn = r.usn
 and t.ses_addr = s.saddr
 /
-
+```
 It is sometimes useful to know which users are accessing the rollback segments. This is important information when a user is continually filling the rollbacks and causing extents to be thrown.
 
-Statistics of the rollback segments currently used by instance 
-========================================================
+#### Statistics of the rollback segments currently used by instance 
+```
 SELECT T1.NAME, T2.EXTENTS, T2.RSSIZE, T2.OPTSIZE, T2.HWMSIZE,
 T2.XACTS, T2.STATUS
 FROM V$ROLLNAME T1, V$ROLLSTAT T2
 WHERE T1.USN = T2.USN AND
 T1.NAME LIKE '%RBS%';
- 
+``` 
 
 # rolbusrs.sql
-
+```
 SELECT r.name "Rollback Segment Name ",
                p.spid "System Process Id ",
                s.username||'(`||l.sid||')' "Oracle User Pid"
@@ -119,10 +112,9 @@ AND TRUNC (l.id1(+)/65536) = r.usn
 AND l.type(+) = 'TX'
 AND l.lmode(+) = 6
 ORDER BY r.name
-
-Segment online/offline and tablespace name
-++++++++++++++++++++++++++++++++++
-
+```
+### Segment online/offline and tablespace name
+```
 select 	SEGMENT_NAME,
 	OWNER,
 	TABLESPACE_NAME,
@@ -138,19 +130,20 @@ select 	SEGMENT_NAME,
 	INSTANCE_NUM
 from 	dba_rollback_segs
 order	by SEGMENT_NAME
+```
 
-
-Bringing a Rollback Segment Online: Example 
-This statements brings the rollback segment rbs_one online:
-
+### Bringing a Rollback Segment Online: Example 
+```
 ALTER ROLLBACK SEGMENT rbs_one ONLINE; 
-Resizing a Rollback Segment: Example 
-This statements shrinks the rollback segment rbs_one:
+```
+###Resizing a Rollback Segment: Example 
+```
 
 ALTER ROLLBACK SEGMENT rbs_one SHRINK TO 100M;
+```
 
 There are several v$ views that are helpful in viewing rollback segment activity.  While the contents of these views are very straightforward, most Remote DBA run pre-written scripts to see the performance of their rollback segments.
-
+```
 set pause off;
 set linesize 80;
 set pagesize 60;
@@ -178,34 +171,8 @@ select usn      c0,
 from v$rollstat; 
 
 spool off; 
-
-SQL> @rbs 
-
-Mon Jul 26                                                             page    1
-                                dbname Database
-                            Rollback Segment Access 
-
-Name sz now High WM extends # trans.  wraps Shrinks status
----- ------ ------- ------- -------- ------ ------- -------
-   0      0       0       0        0      0       0 ONLINE
-   1     60      60       0        0      4       0 ONLINE
-   2    100     100       0        0      4       0 ONLINE
-
-This first script displays all of the important columns in v$rollstat.  The most important columns here are the high water mark, the number of time the rollback segment extended, and the number of transactions currently within the rollback segment.  
-
-If we are experiencing rollback segment contention we might see a non-zero value for the “extends” column, and a non-zero value for the number of transactions currently using the rollback segment.  If either of these conditions exists, we would add additional rollback segments. 
-
-[NOTE:
-
-CREATE ROLLBACK SEGMENT "R09" 
-    TABLESPACE "RBS" 
-    STORAGE ( INITIAL 256K NEXT 128K OPTIMAL NULL MINEXTENTS 1 
-    MAXEXTENTS 32765)
-ALTER ROLLBACK SEGMENT "R09" ONLINE
-]
-
-Now let’s look at a script to display rollback segment contention.
-
+```
+```
 prompt
 prompt
 prompt **********************************************************
@@ -219,6 +186,8 @@ select class, count
 where class in ('system undo header','system undo block',
                 'undo header','undo block')
 group by class,count; 
+```
+```
 
 column "Tot # of Requests for Data" format 999,999,999,999,999
 select sum(value) "Tot # of Requests for Data" from v$sysstat where
@@ -236,7 +205,7 @@ column "Ratio" format 99.99999
 select name, waits, gets, waits/gets "Ratio"
   from v$rollstat a, v$rollname b
 where a.usn = b.usn;
-
+```
 **********************************************************
 Rollback Segment Section
 **********************************************************
