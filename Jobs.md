@@ -44,32 +44,12 @@ SELECT
  ORDER BY actual_start_date;
 
 ```
-### ===============11g=======================
-```
-SELECT j.LOG_ID, j.LOG_DATE, e.OWNER,
-DECODE(instr(e.NAME,'"'),0, e.NAME,substr(e.NAME,1,instr(e.NAME,'"')-1)),
-DECODE(instr(e.NAME,'"'),0,NULL,substr(e.NAME,instr(e.NAME,'"')+1)),
-e.STATUS, j.ERROR#, j.REQ_START_DATE, j.START_DATE, j.RUN_DURATION,
-j.INSTANCE_ID, j.SESSION_ID, j.SLAVE_PID, j.CPU_USED, e.DESTINATION,
-j.ADDITIONAL_INFO
-FROM scheduler$_job_run_details j, scheduler$_event_log e
-WHERE j.log_id = e.log_id and e.dbid is null
-AND e.type# = 66
-```
-The SCHEDULER$_EVENT_LOG table is the underlying table for dba_scheduler_job_log and dba_scheduler_window_log views .
 
-The SCHEDULER$_JOB_RUN_DETAILS table is the underlying table for *_scheduler_job_run_details views.
-
-The job_log views give an overview of the job history (if logging is on). The job_run_details views give more detailed information about individual runs of a job (cpu_used etc) again if logging is on.
-
-Before purge :
-``
-select * from all_scheduler_running_chains; --- should be zero
-``
 #### RUN THE JOB:
 ##########################################
 ```
 exec dbms_ijob.run ( 7 );
+-- where '7'is the job number.
 ```
 #### Create The JOB
 #################################################
@@ -78,8 +58,8 @@ Declare
 job_id number;
 begin
 DBMS_JOB.SUBMIT (job_id,
-what=> dbms_stats.gather_schema_stats(ownname => 'ELLIPSE' , estimate_percent => 10 , cascade => true);,
-next_date=> to_date('21-Feb-2009 02:10:00 PM','dd-Mon-YYYY hh:mi:ss PM'),
+what=> dbms_stats.gather_schema_stats(ownname => '&owner' , estimate_percent => 10 , cascade => true);,
+next_date=> to_date('&Date','dd-Mon-YYYY hh:mi:ss PM'),
 interval=> 'sysdate + 7 '
 );
 end;
@@ -90,30 +70,9 @@ end;
 ##################################################
 scheduled_dbms_jobs.sql
 ```
-set linesize 250
-col log_user       for a10
-col job            for 9999999  head 'Job'
-col broken         for a1       head 'B'
-col failures       for 99       head "fail"
-col last_date      for a18      head 'Last|Date'
-col this_date      for a18      head 'This|Date'
-col next_date      for a18      head 'Next|Date'
-col interval       for 9999.000 head 'Run|Interval'
-col what           for a60
 
-select j.log_user,
-     j.job,
-     j.broken,
-     j.failures,
-     j.last_date||':'||j.last_sec last_date,
-     j.this_date||':'||j.this_sec this_date,
-     j.next_date||':'||j.next_sec next_date,
-     j.next_date - j.last_date interval,
-     j.what
-from (select dj.LOG_USER, dj.JOB, dj.BROKEN, dj.FAILURES, 
-             dj.LAST_DATE, dj.LAST_SEC, dj.THIS_DATE, dj.THIS_SEC, 
-             dj.NEXT_DATE, dj.NEXT_SEC, dj.INTERVAL, dj.WHAT
-        from dba_jobs dj) j;
+
+
 
 ```
 #### What Jobs are Actually Running
@@ -208,7 +167,7 @@ AND l.elapsed_seconds > 1
 ```
 select * from (  select opname, target, sofar, totalwork,units, elapsed_seconds, message  
 		from v$session_longops  
-		where sid = <sid> and serial# = <serial#>  
+		where sid = &sid and serial# = &serial
 		order by start_time desc)
 where rownum <=1;
 ```
@@ -231,9 +190,7 @@ where job_name='BSLN_MAINTAIN_STATS_JOB'
 order by log_date desc;
 
 SQL> select owner, job_name, enabled, LAST_START_DATE, NEXT_RUN_DATE from DBA_SCHEDULER_JOBS WHERE job_name like '%PURGE%';
-
-SQL> exec dbms_scheduler.disable('CDC_STG_PUB.CDC$_DEFAULT_PURGE_JOB');
-```
+````
 
 ### ENABLE:
 ---------------------------
@@ -261,6 +218,9 @@ END;
 SELECT client_name, window_name, jobs_created, jobs_started, jobs_completed FROM dba_autotask_client_history WHERE client_name like '%stats%';
 
 SELECT client_name, status FROM dba_autotask_operation;
+
+SELECT * FROM dba_autotask_schedule;
+
 ```
 The tasks that run for these autotask ‘clients’ are named as follows:
 
@@ -284,21 +244,21 @@ from dba_autotask_job_history
 where client_name ='auto space advisor '
 order by 1,2;
 
-SELECT * FROM dba_autotask_schedule;
 ```
-disable all the automated tasks, issue the following command::
-
+### disable all the automated tasks, issue the following command::
+```
 SQL> EXEC dbms_auto_task_admin.disable;
 SQL> SELECT client_name, status FROM dba_autotask_operation;
 SQL> EXEC dbms_auto_task_admin.disable( 'auto optimizer stats collection', NULL, NULL );
-
+```
 ### BROKEN JOBS
 ```
 select 'exec dbms_job.broken(job =>'||job||', next_date=>'||interval||', broken =>false)' 
-from dba_jobs where schema_user ='PRODOWNER' and broken='Y';
+from dba_jobs
+where schema_user ='&user' and broken='Y';
 ```
 ```
-select 'exec dbms_job.run(job =>'||job||')' from dba_jobs where schema_user ='REPORTS' and broken='Y';
+select 'exec dbms_job.run(job =>'||job||')' from dba_jobs where schema_user ='&usr' and broken='Y';
 ```
 ```
 set echo off verify off feedback off head off pagesize 0
@@ -308,10 +268,8 @@ where broken = 'Y'
 and schema_user = 'USERNAME'
 /
 ```
-> exec dbms_ijob.broken(job =>121, next_date=>SYSDATE + 1/24, broken =>false)
 
 ### Create an Oracle job to run a stored procedure every hour
-If you need to run an Oracle Stored Procedure every hour you can either setup a job via the Cron tab or you can create a an Oracle Job to do this for you.
 Here is a simple example, you can use the different parameters to cater for your needs:
 
 ```
@@ -329,113 +287,6 @@ END;
 /
 ```
 
-### Procedure:
-```
-CREATE OR REPLACE PROCEDURE Schema.proc_update_message_flow
-IS
-cursor flow_cur is
-SELECT source,target,business_event,segment,service,last_24hour_count,last_hour_count FROM "Message_Volume_View1";
-flow_rec flow_cur%rowtype;
-BEGIN
-for flow_rec in flow_cur
-LOOP
-update Message_data_flow set FLOW_LAST_HOUR = flow_rec.last_hour_count where source = flow_rec.source and target = flow_rec.target and business_event = flow_rec.business_event and segment = flow_rec.segment and service = flow_rec.service;
-update Message_data_flow set FLOW_LAST_24HOUR = flow_rec.last_24hour_count where source = flow_rec.source and target = flow_rec.target and business_event = flow_rec.business_event and segment = flow_rec.segment and service = flow_rec.service;
-commit;
-end LOOP;
-END proc_update_message_flow;
-/
-```
-
-### JOB
-```
-BEGIN
-  DBMS_SCHEDULER.CREATE_JOB (
-   job_name        =>  'UpdateFlow',
-   job_type        =>  'STORED_PROCEDURE',
-   job_action      =>  'ICCSYSDB.proc_update_message_flow',
-   start_date      => to_date('18/03/2016 13:30:00', 'dd/mm/yyyy hh24:mi:ss'),
-   repeat_interval => 'FREQ=MINUTELY;INTERVAL=5',
-   enabled         => true);
-END;
-/
-```
-```
-BEGIN 
---remove job
-SYS.DBMS_SCHEDULER.DROP_JOB (job_name => 'BusinessSum');
-END; 
-/
-```
-
-### PARTITION:
-
-```
-CREATE OR REPLACE PROCEDURE ICCSYSDB."DELETE_OLD_PARTITION" (
-    TABLE_NAME IN VARCHAR,
-    DAYS_OLD IN NUMBER,
-    STATUS OUT VARCHAR2)
-IS
-
-v_sql              varchar2(500);
-psql              varchar2(500);
-v_date            date;
-v_partition_name  user_tab_partitions.partition_name%TYPE;
-v_high_value      user_tab_partitions.high_value%TYPE;
-c1 sys_refcursor;
-
-BEGIN
-
---DBMS_OUTPUT.PUT_LINE ('TABLE_NAME : ' || TABLE_NAME ); 
---DBMS_OUTPUT.PUT_LINE ('DAYS_OLD : ' || DAYS_OLD );  
-psql  := 'select PARTITION_NAME, HIGH_VALUE  from user_tab_partitions where table_name = ''' ||  TABLE_NAME || ''' and  PARTITION_NAME != ''P0'' ' ;
- 
-OPEN  c1 for psql;
-  LOOP
-    FETCH c1 INTO v_partition_name, v_high_value;
-   -- DBMS_OUTPUT.PUT_LINE ('v_partition_name  : ' || v_partition_name );
-    EXIT WHEN c1%NOTFOUND;
-    v_date := to_date(SUBSTR(v_high_value,11,19),'YYYY-MM-DD HH24:MI:SS');
-   IF v_date < (sysdate - DAYS_OLD ) then
-      v_sql := 'alter table ' || TABLE_NAME || ' drop  partition ' || v_partition_name || ' update indexes' ;
-      execute immediate v_sql;
-      --DBMS_OUTPUT.PUT_LINE ('v_sql  : ' || v_sql );
-    END IF;
-  END LOOP;
-  CLOSE c1;
-  STATUS := 'Success' ; 
-  --DBMS_OUTPUT.PUT_LINE ('executed  : ' || STATUS );
-END;
-/
-```
-
-### ---> another procedure to call the DELETE_OLD_PARTITION
-```
-CREATE OR REPLACE PROCEDURE ICCSYSDB."DELETE_OLD_EVENT_DATA" 
-IS
-status_msg              varchar(10);
-status_payload          varchar(10);
-BEGIN
- DELETE_OLD_PARTITION ('WMB_MSGS',6,status_msg);
- DELETE_OLD_PARTITION ('WMB_BINARY_DATA',6,status_payload);
- DBMS_OUTPUT.PUT_LINE ('executed STATUS_MSG : ' || status_msg );
- DBMS_OUTPUT.PUT_LINE ('executed STATUS_BINARY_DATA : ' || status_payload );
-END;
-/
-```
-```
-BEGIN
-  DBMS_SCHEDULER.CREATE_JOB (
-   job_name        =>  'Drop_Old_Partition',
-   job_type        =>  'STORED_PROCEDURE',
-   job_action      =>  'ICCSYSDB.DELETE_OLD_EVENT_DATA',
-   start_date      => to_date('27/05/2016 13:30:00', 'dd/mm/yyyy hh24:mi:ss'),
-   repeat_interval => 'FREQ=WEEKLY;',
-   enabled         => true);
-END;
-/
-
-```
 ### Long Running Jobs
 
 ```
@@ -475,25 +326,7 @@ AND    s.serial# = sl.serial#
 ORDER BY progress_pct
 /
 ```
-```
-set lines 132
-set pages 60
-col opname format a35
-SELECT opname
-, sid
-, serial#
-, context
-, sofar
-, totalwork
-, decode(totalwork,0,0
-         ,round(sofar/totalwork*100,2)) "% Complete"
-, time_remaining / 60 "Minutes Remaining"
-FROM v$session_longops
-WHERE 
-  totalwork != 0
-  and sofar <> totalwork
-/
-```
+
 ```
 set lines 200
 col OPNAME for a25
@@ -533,43 +366,4 @@ FROM gv$session_longops l
 LEFT OUTER JOIN v$sql s on s.hash_value=l.sql_hash_value and s.address=l.sql_address and s.child_number=0
 WHERE l.OPNAME NOT LIKE 'RMAN%' AND l.OPNAME NOT LIKE '%aggregate%' AND l.TOTALWORK != 0 AND l.sofar<>l.totalwork AND l.time_remaining > 0
 /
-```
-```
-column  sid         format   a10    heading 'Sid/Serial'
-column  operation   format   a11    heading 'Acao'
-column  object      format   a35    heading 'Objeto'
-column  executado   format   99999999 heading 'BLK|Lidos'
-column  total       format   99999999 heading 'BLK|Total'
-column  pct         format   990.90   heading 'PCT(%)'
-column  rate        format   a08      heading 'Rate|Mb/Min'
-column  l_update    format   a11    heading 'Dt Start'
-column  t_elap      format   a11 heading 'Elapsed|DD:HH:MI:SS'
-column  t_remain    format   a11 heading 'Remaining|DD:HH:MI:SS'
-
-column  unidade     format   a3     heading 'Uni'
-
-accept SesID prompt 'Informe Sid: '
-
-select to_char(sid) || ',' || ltrim(to_char(serial#)) sid,
-       decode(opname,'Hash Join',    'Hash Join',
-              'Index Fast Full Scan','Index Scan',
-              'Sort Output',         'Sort Output',
-              'Sort/Merge',          'Sort Merge',
-              'Table Scan',          'Table Scan',
-              '-') operation,
-       target object,
-       sofar executado,
-       totalwork total,
-       trunc((sofar/totalwork)*100,2) pct,
-       to_char(60*sofar*8192/(24*60*(last_update_time - start_time))/1024/1024/60, '9990.90') Rate,
---       decode(units,'Blocks','Blk','-') unidade,
-       to_char(start_time, 'DD/MM HH24:MI') l_update,
-       trunc(elapsed_seconds/86400)|| ':'
-            || to_char(to_date(mod(elapsed_seconds,86400), 'SSSSS'), 'HH24:MI:SS') t_elap,
-       trunc(time_remaining/86400)|| ':'
-            || to_char(to_date(mod(time_remaining,86400), 'SSSSS'), 'HH24:MI:SS') t_remain
-from v$session_longops
-where time_remaining > 0
-  and sid like nvl('&sesid','%')
-;
 ```
