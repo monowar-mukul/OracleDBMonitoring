@@ -270,6 +270,7 @@ ORDER BY SESSION_KEY
 /
 ```
 
+
 ### Without catalog then run under the database which backup is in progress
 ```
 COLUMN CLIENT_INFO FORMAT a30
@@ -1097,28 +1098,18 @@ FILENAME                                           STATUS                       
 -------------------------------------------------- ------------------------------ ----------
 +DATA/qpdw1_01/changetracking/ctf.2257.888149015   ENABLED                           21.0625
 
-alert_log now:
---------------------------------
-alter database enable block change tracking using file '/ORADATA/MIGDBL2S/BLCKCT/blk.trc'
-Block change tracking file is current.
-Starting background process CTWR
-Thu Jan 03 11:14:14 2013
-CTWR started with pid=34, OS id=842
-Block change tracking service is active.
-Completed: alter database enable block change tracking using file '/ORADATA/MIGDBL2S/BLCKCT/blk.trc'
 
-CTWR [shared area in Large Pool called 'CTWR dba buffer' ] will track addresses of blocks which have changed since the last backup in the change tracking file from now on.
-RMAN can use this information for the next incremental backup. It will be able to find out which block must be written to the backupset by just reading the change tracking file.
-RMAN will not have to read the entire datafiles into the SGA in order to find out which blocks must be backed up as it had to do before 10g.
 
-To check whether the block change tracking file is being used or not, use the below command .
---------------------------------------------------------------------------------------------------------------------------------------------
-SQL> select  file#,  avg(datafile_blocks), avg(blocks_read),  avg(blocks_read/datafile_blocks) * 100 as  "% read for backup"  
+### To check whether the block change tracking file is being used or not, use the below command .
+```
+select  file#,  avg(datafile_blocks), avg(blocks_read),  avg(blocks_read/datafile_blocks) * 100 as  "% read for backup"  
 from v$backup_datafile  where incremental_level > 0  
 and  used_change_tracking = 'YES'  
 group by file#   
 order by file# ;
-
+```
+```
+Example Output:
      FILE# AVG(DATAFILE_BLOCKS) AVG(BLOCKS_READ) % read for backup
 ---------- -------------------- ---------------- -----------------
          1               450560       1879.58333        .417166045
@@ -1130,7 +1121,8 @@ order by file# ;
         58                61440       3087.92308        5.02591647
 
 
-encrypt backup
+### encrypt backup
+```
 1. Configure the Oracle Encryption Wallet (Oracle Wallet
 SQL> alter system set encryption key identified by "welcome1";
 
@@ -1138,11 +1130,12 @@ Configure encrypted backups using the configure command, as shown in the followi
 example:
 RMAN> configure encryption for database on;
 RMAN> backup database;
+```
 
-Password Encryption without wallet
-====================================
+### Password Encryption without wallet
+
 If you don’t want to configure an Oracle Wallet, you can still perform encrypted backups by using the set encryption command. This method is called password encryption of backups
-
+```
 RMAN> set encryption on identified by monowar only;
 
 executing command: SET encryption
@@ -1152,12 +1145,14 @@ RMAN> configure encryption for database off;
 new RMAN configuration parameters:
 CONFIGURE ENCRYPTION FOR DATABASE OFF;
 new RMAN configuration parameters are successfully stored
+```
 
-Faster backup
+### Faster backup
+```
 RMAN> configure device type sbt parallelism 3;
 Execute the backup, specifying the section size parameter:
 RMAN> backup section size 150m tablespace system;
-
+```
 ### CATALOG and UNCATALOG
 ```
 1) Catalog an archive log
@@ -1191,7 +1186,7 @@ RMAN>CHANGE BACKUPPIECE '/oradata2/oft7qq' UNCATALOG;
 $ sqlplus / as sysdba 
 
 ### Check what Session will be killed
-
+```
 select s.sid, s.serial#, s.username,
        to_char(s.logon_time,'DD-MON HH24:MI:SS') logon_time,
        p.pid oraclepid, p.spid "ServerPID", s.process "ClientPID",
@@ -1201,15 +1196,16 @@ from  v$session s, v$process p
 where s.paddr=p.addr
 and s.program like 'rman%'
 order by s.sid
-
-### Generate simple command
+```
+### Generate command
+```
 select '! kill -9 '||p.spid  kill_rman_process
 from  v$session s, v$process p
 where s.paddr=p.addr
 and s.program like 'rman%'
 order by s.sid
-
-
+```
+```
 KILL_RMAN_PROCESS
 ----------------------------------
 ! kill -9 2516
@@ -1281,861 +1277,9 @@ ps -ef | grep -i ora_arc9_prod1
 4.- perform 2 and 3 for all arc? running for your instance.
 ```  
 
-Duplicate database 
 
-
-
-/etc/opt/omni/server/cell
-create restoredevdev script here.
-
-EX: 
-
-mm4383@omni cell $ more restoredev
-"MSL5000_drive0" "DJJ_djjbux02_rmt0"
-
-FOR REERESH JJETRN ------------
-
-ON PRODUCTION : to get SCN
-
-sys@jjeprd> alter session set nls_date_format = 'YYYY-MM-DD:HH24:MI:SS';
-Session altered.
-Recovery Manager complete.
-oracle@vrduxgsl01.viccnv: /oracle/admin/vicprd/pfile 
-> rman
-Recovery Manager: Release 10.2.0.4.0 - Production on Wed Nov 12 17:27:46 2008
-Copyright (c) 1982, 2007, Oracle.  All rights reserved.
-RMAN> connect target
-connected to target database: VICCNV (DBID=3619222732)
-RMAN> connect catalog rman/recman00@recman
-connected to recovery catalog database
-RMAN> sql 'alter session set NLS_DATE_FORMAT="YYYY-MM-DD HH24:MI:SS"';
-sql statement: alter session set NLS_DATE_FORMAT="YYYY-MM-DD HH24:MI:SS"
-RMAN>list backup of archivelog all completed between '09-OCT-2008' and '12-OCT-08';
-
-FROM DISK BACKUP
------------------------------------------------
-list backup of archivelog all device type disk completed between '09-OCT-08' and '12-OCT-08';
-
-
-Refresh Script:
-
-#!/bin/ksh
-
-##############################################################################
-##
-## Refresh script generated by genrefresh on Wed Aug 22 08:12:57 EST 2007
-##
-## REFRESH:    jjeprd --> jjetrn
-##
-## PARAMETERS: 
-##   custid=jje
-##   srcfix=prd
-##   dstfix=trn
-##   refresh_type=rman
-##   media_type=sbt_tape
-##   removedbf=false
-##   db_file_name_convert=
-##   log_file_name_convert=/dbetrn1/oracle/jjetrn
-##   db_tempfile_name_convert=
-##   log_size=
-##   tempfile_size=
-##   srccat_connect=rman/recman00@recman
-##   dst_connect=/ as sysdba
-##   src_connect=sys/dFrkovj1@jjeprd as sysdba
-##   dstcat_connect=
-##   num_aux_chan=5
-##   pre_refresh=/oracle/admin/jjetrn/refresh/trn_from_tape/pre_refresh.ksh
-##   post_refresh=/oracle/admin/jjetrn/refresh/trn_from_tape/post_refresh.ksh
-##   until_time=
-##   nls_date_format="DD-MON-RRRR:HH24:MI:SS"
-##   exppar=/oracle/admin/jjetrn/refresh/trn_from_tape/exp_80s.par
-##
-##############################################################################
-
-chmod 740 $0
-
-if [ "${1}" != "verify" ]; then 
-   echo "run >>>>  nohup ${0} verify > refresh.log & <<<<"
-   exit 1
-fi
-
-echo "\n[jjetrn] - Started: $( date )\n"
-
-echo ""
-echo "#########################################################################"
-echo "## Setup environment"
-echo "#########################################################################"
-echo ""
-
-ORACLE_SID=jjetrn
-ORACLE_HOME=/oracle/product/9.2.0.7
-PATH=${PATH}:${ORACLE_HOME}/bin
-NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1
-NLS_DATE_FORMAT=""DD-MON-RRRR:HH24:MI:SS""
-
-export ORACLE_SID ORACLE_HOME PATH NLS_LANG NLS_DATE_FORMAT
-
-echo ""
-echo "#########################################################################"
-echo "## Check user has SYSDBA privs"
-echo "#########################################################################"
-echo ""
-
-if [ -f ${ORACLE_HOME}/rdbms/lib/config.s ]; then
-  dbagrp=$(awk '/15/ {print $6}' ${ORACLE_HOME}/rdbms/lib/config.s | sed 's/"\([a-zA-Z]*\)\\[0]"/\1/')
-  [ -z "${dbagrp}" ] && dbagrp=$(awk '/.string/ {print $2}' ${ORACLE_HOME}/rdbms/lib/config.s | uniq | sed 's/"//g')
-elif [ -f ${ORACLE_HOME}/rdbms/lib/config.c ]; then
-  dbagrp=$(awk '/#define SS_DBA_GRP/ { print $3 }' ${ORACLE_HOME}/rdbms/lib/config.c | sed 's/"//g')
-else
-  echo "WARNING: Cannot find file SYSDBA config file"
-  exit 1
-fi
-
-echo "DBA Group: ${dbagrp}"
-
-match=0
-for group in $(groups); do
-  [ ${group} = ${dbagrp} ] && match=1 && break
-done
-
-if [ ${match} -ne 1 ]; then 
-  echo "ABORT: User does not have SYSDBA privs"
-  exit 1
-else
-  echo "INFORMATION: User verified with SYSDBA privs"
-fi
-
-echo ""
-echo "#########################################################################"
-echo "## Run pre refresh script."
-echo "#########################################################################"
-echo ""
-
-echo "Running pre refresh"
-. /oracle/admin/jjetrn/refresh/trn_from_tape/pre_refresh.ksh
-
-
-echo ""
-echo "#########################################################################"
-echo "## Restart auxiliary database in nomount mode."
-echo "#########################################################################"
-echo ""
-
-
-echo ""
-echo "## Attempting to shutdown destination database in abort mode"
-
-sqlplus "/ as sysdba" <<!
-   set echo on
-   shutdown abort
-!
-
-if [ $? -ne 0 ]; then
-   echo ABORT: Database Shutdown failed!
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo ""
-echo "## Attempting to startup destination database in nomount mode"
-
-sqlplus "/ as sysdba" <<!
-   set echo on
-   whenever sqlerror exit 1
-   whenever oserror exit 1
-   startup nomount
-!
-
-if [ $? -ne 0 ]; then
-   echo ABORT: Database Startup failed!
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo ""
-echo "#########################################################################"
-echo "## Run RMAN duplicate"
-echo "#########################################################################"
-echo ""
-
-
-rman <<!
-connect catalog rman/recman00@recman
-connect target sys/dFrkovj1@jjeprd 
-connect auxiliary / 
-run {
-set command id to 'mms_dp_rman';
-allocate auxiliary channel chan_1 type 'sbt_tape';
-allocate auxiliary channel chan_2 type 'sbt_tape';
-allocate auxiliary channel chan_3 type 'sbt_tape';
-allocate auxiliary channel chan_4 type 'sbt_tape';
-allocate auxiliary channel chan_5 type 'sbt_tape';
-set until scn 1407903874; ## 24-MAR-08
-set newname for datafile 1 to '/dbetrn1/oracle/jjetrn/jjetrn_system_01.dbf';
-set newname for datafile 2 to '/dbetrn1/oracle/jjetrn/jjetrn_tab_034_034_4m_01.dbf';
-set newname for datafile 3 to '/dbetrn3/oracle/jjetrn/jjetrn_tab_000_799_4m_01.dbf';
-set newname for datafile 4 to '/dbetrn1/oracle/jjetrn/jjetrn_tab_800_899_4m_01.dbf';
-set newname for datafile 5 to '/dbetrn2/oracle/jjetrn/jjetrn_tab_900_zzz_4m_01.dbf';
---
-set newname for datafile 41 to '/dbetrn4/oracle/jjetrn/jjetrn_idx_000_zzz_128K_02.dbf';
-duplicate target database to jjetrn
-LOGFILE
-  GROUP 1(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0101dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0102dbf'
-  ) SIZE 75M,
- --
-  GROUP 6(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0601dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0602dbf'
-  ) SIZE 75M   
-;
-}
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: RMAN script failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-
-echo ""
-echo "#########################################################################"
-echo "## Add TEMPFILE to Locally Managed temporary tablespace"
-echo "#########################################################################"
-echo ""
-
-sqlplus "/ as sysdba" <<!
-set echo on
-whenever sqlerror exit 1
-whenever oserror exit 1
-   alter tablespace TEMP add tempfile '/dbetrn2/oracle/jjetrn/jjetrn_temp_01.dbf' size 1000M;
-   exit
-!
-if [ $? -ne 0 ]; then
-   echo "ABORT: Failed to add tempfile."
-   echo "   rm -f /tmp/jjetrn.rman_running"
-   exit 1
-fi
-echo ""
-
-sqlplus "/ as sysdba" <<!
-set echo on
-whenever sqlerror exit 1
-whenever oserror exit 1
-   alter tablespace TEMP add tempfile '/dbetrn4/oracle/jjetrn/jjetrn_temp_02.dbf' size 450M;
-   exit
-!
-if [ $? -ne 0 ]; then
-   echo "ABORT: Failed to add tempfile."
-   echo "   rm -f /tmp/jjetrn.rman_running"
-   exit 1
-fi
-echo ""
-
-
-echo ""
-echo "#########################################################################"
-echo "## Grant SYSDBA privs"
-echo "#########################################################################"
-echo ""
-
-
-sqlplus "/ as sysdba" <<!
-   set echo on
-   whenever sqlerror exit 1;
-   whenever oserror exit 1;
-   grant sysdba to BACKUPUSER;
-   exit
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: grant SYSDBA privs failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-
-echo ""
-echo "#########################################################################"
-echo "## Update global names"
-echo "#########################################################################"
-echo ""
-
-sqlplus "/ as sysdba" <<!
-set echo on
-whenever sqlerror exit 1;
-whenever oserror exit 1;
-   alter database rename global_name to JJETRN;
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: Update of global names failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-
-echo ""
-echo "#########################################################################"
-echo "## Run post refresh script"
-echo "#########################################################################"
-echo ""
-
-echo "Running post refresh"
-. /oracle/admin/jjetrn/refresh/trn_from_tape/post_refresh.ksh
-
-if [ $? -ne 0 ]; then
-   echo ABORT: Post refresh script failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo ""
-echo "#########################################################################"
-echo "## Show new DBID"
-echo "#########################################################################"
-echo ""
-
-sqlplus -s "sys/dFrkovj1@jjeprd as sysdba" <<!
-   whenever sqlerror exit 1;
-   whenever oserror exit 1;
-   select name,dbid
-    from v\$database;
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: Select of Source database failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-sqlplus -s "/ as sysdba" <<!
-   whenever sqlerror exit 1;
-   whenever oserror exit 1;
-   select name,dbid
-    from v\$database;
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: Select of Destination database failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo "\n[jjetrn] - Completed: $( date )\n"
-
-ON PRODUCTION : to get SCN
------------------------------------------------------------------
-sys@jjeprd> alter session set nls_date_format = 'YYYY-MM-DD:HH24:MI:SS';
-Session altered.
-
-11g:
-=============
-In Oracle 10g version or earlier, while duplicating a database using RMAN, we had to connect to the Target database along with the Auxiliary Database. In oracle 11g, there is a new feature available, where in the duplication from the Target Database to the Auxiliary Database can be done using RMAN without connecting to the Target database or to the Catalog Database. Only thing what is required the full backup of the Target database. Below is the details on how to go ahead with duplicating the database without connecting to the Target Database or to the Auxiliary Database.
-
-Step 1:
- Take the incremental level 0 backup of the Target database using RMAN.
- In my case, I had the backup of my target database (TESTP) taken at the location /u02/monowar/bkp
-
-[oracle@prod bkp]$ pwd
-/u02/monowar/bkp
-ls -l
-
-*.bak
-*.bak
-
-Step 2:
- Copy these backup pieces from the Target server (location  /u02/monowar/bkp) to the auxiliary server (location /u03/monowar/bkp)
- Also, copy the pfile (initTESTP.ora) of the Target database to the Auxiliary server.
-
-Copying Backup Pieces:
-$ scp *.bak oracle@dev: /u03/monowar/bkp
-Copying pfile of Target Database to Auxiliary Server:
-Step 3:
-
-On the Auxiliary server, edit the pfile that was copied earlier to the desired entries (dump locations, control file location, datafile locations, if using ASM then specify the desired disk group) and rename it to the desired instance name file (init<SID>.ora). Below is the sample I had it done.
-
-*.audit_file_dest=‘/u01/app/oracle/admin/testcl/adump’
-*.control_files=’+DATA’
-*.db_create_file_dest=’+DATA’
-*.db_name=’testcl
-
-Step 4:
-
-Create a password file for the Auxiliary Database using the ORAPWD utility.
-Step 5:
-
-Start the auxiliary instance using the modified by pfile.
-Put oratab entry
-[oracle@dev ~]$ export ORACLE_HOME=/u01/app/oracle/product/11.2.0/dbhome_1
- [oracle@dev ~]$ export ORACLE_SID=testdb
- [oracle@dev ~]$ sqlplus sys/oracle as sysdba
-SQL> startup nomount pfile='?/dbs/inittestcl.ora';
-
-Step 6:
-
-Connect the auxiliary instance through RMAN and start the duplication.
- The duplication is done by specifying the location of the backup pieces. The command to be used is DUPLICATE DATABASE TO ‘<auxiliary dbname>’ BACKUP LOCATION ‘<location of the backup pieces on the auxiliary server>’
-
-[oracle@dev ~]$ rman auxiliary /
-RMAN> duplicate database to ‘testcl’ backup location ‘/u03/monowar/bkp’;
-check
---------
-/etc/opt/omni/server/cell
-create restoredevdev script here.
-
-EX: 
-
-mm4383@omni cell $ more restoredev
-"MSL5000_drive0" "DJJ_djjbux02_rmt0"
-
-FOR REERESH JJETRN ------------
-
-ON PRODUCTION : to get SCN
-
-sys@jjeprd> alter session set nls_date_format = 'YYYY-MM-DD:HH24:MI:SS';
-Session altered.
-Recovery Manager complete.
-oracle@vrduxgsl01.viccnv: /oracle/admin/vicprd/pfile 
-> rman
-Recovery Manager: Release 10.2.0.4.0 - Production on Wed Nov 12 17:27:46 2008
-Copyright (c) 1982, 2007, Oracle.  All rights reserved.
-RMAN> connect target
-connected to target database: VICCNV (DBID=3619222732)
-RMAN> connect catalog rman/recman00@recman
-connected to recovery catalog database
-RMAN> sql 'alter session set NLS_DATE_FORMAT="YYYY-MM-DD HH24:MI:SS"';
-sql statement: alter session set NLS_DATE_FORMAT="YYYY-MM-DD HH24:MI:SS"
-RMAN>list backup of archivelog all completed between '09-OCT-2008' and '12-OCT-08';
-
-FROM DISK BACKUP
------------------------------------------------
-list backup of archivelog all device type disk completed between '09-OCT-08' and '12-OCT-08';
-
-
-Refresh Script:
-
-#!/bin/ksh
-
-##############################################################################
-##
-## Refresh script generated by genrefresh on Wed Aug 22 08:12:57 EST 2007
-##
-## REFRESH:    jjeprd --> jjetrn
-##
-## PARAMETERS: 
-##   custid=jje
-##   srcfix=prd
-##   dstfix=trn
-##   refresh_type=rman
-##   media_type=sbt_tape
-##   removedbf=false
-##   db_file_name_convert=
-##   log_file_name_convert=/dbetrn1/oracle/jjetrn
-##   db_tempfile_name_convert=
-##   log_size=
-##   tempfile_size=
-##   srccat_connect=rman/recman00@recman
-##   dst_connect=/ as sysdba
-##   src_connect=sys/dFrkovj1@jjeprd as sysdba
-##   dstcat_connect=
-##   num_aux_chan=5
-##   pre_refresh=/oracle/admin/jjetrn/refresh/trn_from_tape/pre_refresh.ksh
-##   post_refresh=/oracle/admin/jjetrn/refresh/trn_from_tape/post_refresh.ksh
-##   until_time=
-##   nls_date_format="DD-MON-RRRR:HH24:MI:SS"
-##   exppar=/oracle/admin/jjetrn/refresh/trn_from_tape/exp_80s.par
-##
-##############################################################################
-
-chmod 740 $0
-
-if [ "${1}" != "verify" ]; then 
-   echo "run >>>>  nohup ${0} verify > refresh.log & <<<<"
-   exit 1
-fi
-
-echo "\n[jjetrn] - Started: $( date )\n"
-
-echo ""
-echo "#########################################################################"
-echo "## Setup environment"
-echo "#########################################################################"
-echo ""
-
-ORACLE_SID=jjetrn
-ORACLE_HOME=/oracle/product/9.2.0.7
-PATH=${PATH}:${ORACLE_HOME}/bin
-NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1
-NLS_DATE_FORMAT=""DD-MON-RRRR:HH24:MI:SS""
-
-export ORACLE_SID ORACLE_HOME PATH NLS_LANG NLS_DATE_FORMAT
-
-echo ""
-echo "#########################################################################"
-echo "## Check user has SYSDBA privs"
-echo "#########################################################################"
-echo ""
-
-if [ -f ${ORACLE_HOME}/rdbms/lib/config.s ]; then
-  dbagrp=$(awk '/15/ {print $6}' ${ORACLE_HOME}/rdbms/lib/config.s | sed 's/"\([a-zA-Z]*\)\\[0]"/\1/')
-  [ -z "${dbagrp}" ] && dbagrp=$(awk '/.string/ {print $2}' ${ORACLE_HOME}/rdbms/lib/config.s | uniq | sed 's/"//g')
-elif [ -f ${ORACLE_HOME}/rdbms/lib/config.c ]; then
-  dbagrp=$(awk '/#define SS_DBA_GRP/ { print $3 }' ${ORACLE_HOME}/rdbms/lib/config.c | sed 's/"//g')
-else
-  echo "WARNING: Cannot find file SYSDBA config file"
-  exit 1
-fi
-
-echo "DBA Group: ${dbagrp}"
-
-match=0
-for group in $(groups); do
-  [ ${group} = ${dbagrp} ] && match=1 && break
-done
-
-if [ ${match} -ne 1 ]; then 
-  echo "ABORT: User does not have SYSDBA privs"
-  exit 1
-else
-  echo "INFORMATION: User verified with SYSDBA privs"
-fi
-
-echo ""
-echo "#########################################################################"
-echo "## Run pre refresh script."
-echo "#########################################################################"
-echo ""
-
-echo "Running pre refresh"
-. /oracle/admin/jjetrn/refresh/trn_from_tape/pre_refresh.ksh
-
-
-echo ""
-echo "#########################################################################"
-echo "## Restart auxiliary database in nomount mode."
-echo "#########################################################################"
-echo ""
-
-
-echo ""
-echo "## Attempting to shutdown destination database in abort mode"
-
-sqlplus "/ as sysdba" <<!
-   set echo on
-   shutdown abort
-!
-
-if [ $? -ne 0 ]; then
-   echo ABORT: Database Shutdown failed!
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo ""
-echo "## Attempting to startup destination database in nomount mode"
-
-sqlplus "/ as sysdba" <<!
-   set echo on
-   whenever sqlerror exit 1
-   whenever oserror exit 1
-   startup nomount
-!
-
-if [ $? -ne 0 ]; then
-   echo ABORT: Database Startup failed!
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo ""
-echo "#########################################################################"
-echo "## Run RMAN duplicate"
-echo "#########################################################################"
-echo ""
-
-
-rman <<!
-connect catalog rman/recman00@recman
-connect target sys/dFrkovj1@jjeprd 
-connect auxiliary / 
-run {
-set command id to 'mms_dp_rman';
-allocate auxiliary channel chan_1 type 'sbt_tape';
-allocate auxiliary channel chan_2 type 'sbt_tape';
-allocate auxiliary channel chan_3 type 'sbt_tape';
-allocate auxiliary channel chan_4 type 'sbt_tape';
-allocate auxiliary channel chan_5 type 'sbt_tape';
-set until scn 1407903874; ## 24-MAR-08
-set newname for datafile 1 to '/dbetrn1/oracle/jjetrn/jjetrn_system_01.dbf';
-set newname for datafile 2 to '/dbetrn1/oracle/jjetrn/jjetrn_tab_034_034_4m_01.dbf';
-set newname for datafile 3 to '/dbetrn3/oracle/jjetrn/jjetrn_tab_000_799_4m_01.dbf';
-set newname for datafile 4 to '/dbetrn1/oracle/jjetrn/jjetrn_tab_800_899_4m_01.dbf';
-set newname for datafile 5 to '/dbetrn2/oracle/jjetrn/jjetrn_tab_900_zzz_4m_01.dbf';
-set newname for datafile 6 to '/dbetrn3/oracle/jjetrn/jjetrn_tab_000_zzz_128K_01.dbf';
-set newname for datafile 7 to '/dbetrn1/oracle/jjetrn/jjetrn_idx_000_799_4m_01.dbf';
-set newname for datafile 8 to '/dbetrn3/oracle/jjetrn/jjetrn_idx_800_899_4m_01.dbf';
-set newname for datafile 9 to '/dbetrn1/oracle/jjetrn/jjetrn_idx_900_zzz_4m_01.dbf';
-set newname for datafile 10 to '/dbetrn2/oracle/jjetrn/jjetrn_idx_000_zzz_128K_01.dbf';
-set newname for datafile 11 to '/dbetrn1/oracle/jjetrn/jjetrn_gatekeeper_128K_01.dbf';
-set newname for datafile 12 to '/dbetrn1/oracle/jjetrn/jjetrn_tools_128K_01.dbf';
-set newname for datafile 13 to '/dbetrn1/oracle/jjetrn/jjetrn_users_128K_01.dbf';
-set newname for datafile 14 to '/dbetrn1/oracle/jjetrn/jjetrn_rbs_01.dbf';
-set newname for datafile 15 to '/dbetrn2/oracle/jjetrn/jjetrn_rbs_big_01.dbf';
-set newname for datafile 16 to '/dbetrn2/oracle/jjetrn/jjetrn_idx_034_034_4m_01.dbf';
-set newname for datafile 17 to '/dbetrn3/oracle/jjetrn/jjetrn_tab_034_034_4m_03.dbf';
-set newname for datafile 18 to '/dbetrn2/oracle/jjetrn/jjetrn_tab_099_099_128k_01.dbf';
-set newname for datafile 19 to '/dbetrn2/oracle/jjetrn/jjetrn_idx_800_899_4m_02.dbf';
-set newname for datafile 20 to '/dbetrn2/oracle/jjetrn/jjetrn_idx_099_099_128k_01.dbf';
-set newname for datafile 21 to '/dbetrn3/oracle/jjetrn/jjetrn_tab_000_zzz_128K_02.dbf';
-set newname for datafile 22 to '/dbetrn1/oracle/jjetrn/jjetrn_statspack_128K_01.dbf';
-set newname for datafile 23 to '/dbetrn1/oracle/jjetrn/jjetrn_tab_800_899_4m_02.dbf';
-set newname for datafile 24 to '/dbetrn1/oracle/jjetrn/jjetrn_tab_034_034_4m_02.dbf';
-set newname for datafile 25 to '/dbetrn3/oracle/jjetrn/jjetrn_tab_034_034_4m_04.dbf';
-set newname for datafile 26 to '/dbetrn2/oracle/jjetrn/jjetrn_tab_800_899_4m_03.dbf';
-set newname for datafile 27 to '/dbetrn3/oracle/jjetrn/jjetrn_idx_900_zzz_4m_02.dbf';
-set newname for datafile 28 to '/dbetrn2/oracle/jjetrn/jjetrn_tab_000_799_4m_02.dbf';
-set newname for datafile 29 to '/dbetrn2/oracle/jjetrn/jjetrn_tab_900_zzz_4m_02.dbf';
-set newname for datafile 30 to '/dbetrn2/oracle/jjetrn/jjetrn_tab_034_034_4m_05.dbf';
-set newname for datafile 31 to '/dbetrn3/oracle/jjetrn/jjetrn_idx_900_zzz_4m_03.dbf';
-set newname for datafile 32 to '/dbetrn4/oracle/jjetrn/jjetrn_idx_034_034_4m_02.dbf';
-set newname for datafile 33 to '/dbetrn4/oracle/jjetrn/jjetrn_tab_034_034_4m_06.dbf';
-set newname for datafile 34 to '/dbetrn4/oracle/jjetrn/jjetrn_idx_900_zzz_4m_04.dbf';
-set newname for datafile 35 to '/dbetrn4/oracle/jjetrn/jjetrn_tab_800_899_4m_04.dbf';
-set newname for datafile 36 to '/dbetrn4/oracle/jjetrn/jjetrn_tab_000_zzz_128K_03.dbf';
-set newname for datafile 37 to '/dbetrn4/oracle/jjetrn/jjetrn_idx_800_899_4m_03.dbf';
-set newname for datafile 38 to '/dbetrn4/oracle/jjetrn/jjetrn_tab_034_034_4m_07.dbf';
-set newname for datafile 39 to '/dbetrn4/oracle/jjetrn/jjetrn_tab_000_799_4m_03.dbf';
-set newname for datafile 40 to '/dbetrn4/oracle/jjetrn/jjetrn_idx_000_799_4m_02.dbf';
-set newname for datafile 41 to '/dbetrn4/oracle/jjetrn/jjetrn_idx_000_zzz_128K_02.dbf';
-duplicate target database to jjetrn
-LOGFILE
-  GROUP 1(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0101dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0102dbf'
-  ) SIZE 75M,
-  GROUP 2(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0201dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0202dbf'
-  ) SIZE 75M,
-  GROUP 3(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0301dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0302dbf'
-  ) SIZE 75M,
-  GROUP 4(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0401dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0402dbf'
-  ) SIZE 75M,
-  GROUP 5(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0501dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0502dbf'
-  ) SIZE 75M,
-  GROUP 6(
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0601dbf',
-    '/dbetrn1/oracle/jjetrn/jjetrn_redo_0602dbf'
-  ) SIZE 75M   
-;
-}
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: RMAN script failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-
-echo ""
-echo "#########################################################################"
-echo "## Add TEMPFILE to Locally Managed temporary tablespace"
-echo "#########################################################################"
-echo ""
-
-sqlplus "/ as sysdba" <<!
-set echo on
-whenever sqlerror exit 1
-whenever oserror exit 1
-   alter tablespace TEMP add tempfile '/dbetrn2/oracle/jjetrn/jjetrn_temp_01.dbf' size 1000M;
-   exit
-!
-if [ $? -ne 0 ]; then
-   echo "ABORT: Failed to add tempfile."
-   echo "   rm -f /tmp/jjetrn.rman_running"
-   exit 1
-fi
-echo ""
-
-sqlplus "/ as sysdba" <<!
-set echo on
-whenever sqlerror exit 1
-whenever oserror exit 1
-   alter tablespace TEMP add tempfile '/dbetrn4/oracle/jjetrn/jjetrn_temp_02.dbf' size 450M;
-   exit
-!
-if [ $? -ne 0 ]; then
-   echo "ABORT: Failed to add tempfile."
-   echo "   rm -f /tmp/jjetrn.rman_running"
-   exit 1
-fi
-echo ""
-
-
-echo ""
-echo "#########################################################################"
-echo "## Grant SYSDBA privs"
-echo "#########################################################################"
-echo ""
-
-
-sqlplus "/ as sysdba" <<!
-   set echo on
-   whenever sqlerror exit 1;
-   whenever oserror exit 1;
-   grant sysdba to BACKUPUSER;
-   exit
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: grant SYSDBA privs failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-
-echo ""
-echo "#########################################################################"
-echo "## Update global names"
-echo "#########################################################################"
-echo ""
-
-sqlplus "/ as sysdba" <<!
-set echo on
-whenever sqlerror exit 1;
-whenever oserror exit 1;
-   alter database rename global_name to JJETRN;
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: Update of global names failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-
-echo ""
-echo "#########################################################################"
-echo "## Run post refresh script"
-echo "#########################################################################"
-echo ""
-
-echo "Running post refresh"
-. /oracle/admin/jjetrn/refresh/trn_from_tape/post_refresh.ksh
-
-if [ $? -ne 0 ]; then
-   echo ABORT: Post refresh script failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo ""
-echo "#########################################################################"
-echo "## Show new DBID"
-echo "#########################################################################"
-echo ""
-
-sqlplus -s "sys/dFrkovj1@jjeprd as sysdba" <<!
-   whenever sqlerror exit 1;
-   whenever oserror exit 1;
-   select name,dbid
-    from v\$database;
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: Select of Source database failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-sqlplus -s "/ as sysdba" <<!
-   whenever sqlerror exit 1;
-   whenever oserror exit 1;
-   select name,dbid
-    from v\$database;
-!
-if [ $? -ne 0 ]; then
-   echo ABORT: Select of Destination database failed.
-   rm -f /tmp/jjetrn.rman_running
-   exit 1
-fi
-
-echo "\n[jjetrn] - Completed: $( date )\n"
-
-
-ON PRODUCTION : to get SCN
------------------------------------------------------------------
-sys@jjeprd> alter session set nls_date_format = 'YYYY-MM-DD:HH24:MI:SS';
-Session altered.
-
-11g:
-=============
-In Oracle 10g version or earlier, while duplicating a database using RMAN, we had to connect to the Target database along with the Auxiliary Database. In oracle 11g, there is a new feature available, where in the duplication from the Target Database to the Auxiliary Database can be done using RMAN without connecting to the Target database or to the Catalog Database. Only thing what is required the full backup of the Target database. Below is the details on how to go ahead with duplicating the database without connecting to the Target Database or to the Auxiliary Database.
-
-Step 1:
- Take the incremental level 0 backup of the Target database using RMAN.
- In my case, I had the backup of my target database (TESTP) taken at the location /u02/monowar/bkp
-
-[oracle@prod bkp]$ pwd
-/u02/monowar/bkp
-ls -l
-
-*.bak
-*.bak
-
-Step 2:
- Copy these backup pieces from the Target server (location  /u02/monowar/bkp) to the auxiliary server (location /u03/monowar/bkp)
- Also, copy the pfile (initTESTP.ora) of the Target database to the Auxiliary server.
-
-Copying Backup Pieces:
-$ scp *.bak oracle@dev: /u03/monowar/bkp
-Copying pfile of Target Database to Auxiliary Server:
-Step 3:
-
-On the Auxiliary server, edit the pfile that was copied earlier to the desired entries (dump locations, control file location, datafile locations, if using ASM then specify the desired disk group) and rename it to the desired instance name file (init<SID>.ora). Below is the sample I had it done.
-
-*.audit_file_dest=‘/u01/app/oracle/admin/testcl/adump’
-*.control_files=’+DATA’
-*.db_create_file_dest=’+DATA’
-*.db_name=’testcl
-
-Step 4:
-
-Create a password file for the Auxiliary Database using the ORAPWD utility.
-Step 5:
-
-Start the auxiliary instance using the modified by pfile.
-Put oratab entry
-[oracle@dev ~]$ export ORACLE_HOME=/u01/app/oracle/product/11.2.0/dbhome_1
- [oracle@dev ~]$ export ORACLE_SID=testdb
- [oracle@dev ~]$ sqlplus sys/oracle as sysdba
-SQL> startup nomount pfile='?/dbs/inittestcl.ora';
-
-Step 6:
-
-Connect the auxiliary instance through RMAN and start the duplication.
- The duplication is done by specifying the location of the backup pieces. The command to be used is DUPLICATE DATABASE TO ‘<auxiliary dbname>’ BACKUP LOCATION ‘<location of the backup pieces on the auxiliary server>’
-
-[oracle@dev ~]$ rman auxiliary /
-RMAN> duplicate database to ‘testcl’ backup location ‘/u03/monowar/bkp’;
-
-Check
------------
-$ sqlplus / as sysdba
-SQL> select status,instance_name from v$instance;
-SQL> select name from v$database;
-
-  
-
-
-
-Error Messages 
-
-
-
-debug enabled 
-
+### debug enabled 
+```
 $export NLS_DATE_FORMAT="DD-MON-RRRR HH24:MI:SS" 
 $rman target sys/<password>@<tns string of target > catalog <catalog schema>/<password>@<tns string> auxiliary sys/<password>@<tns string> debug all trace=debug-duplicate.trc log =duplicate.log 
 set echo on; 
@@ -2148,9 +1292,11 @@ debug-duplicate.trc
 duplicate.log 
 alert log of target and auxiliary database 
 
+```
 
-RMAN Duplicate  [ORA-19625 ORA-1517 ]
+### RMAN Duplicate  [ORA-19625 ORA-1517 ]
 --------------------------------------------------- 
+```
 When doing a Active Duplicate Database, the command to copy the logfiles from source to target are issued correctly. 
 However, log does not appear in the directory on the target database. 
 This has previously when doing an 'Active Duplicate". 
@@ -2186,20 +1332,8 @@ You can use below command to check used/free space for flash recovery area:
 Offer below command in sql promt to increase the size of FRA. It will resolve the problem.
     ALTER SYSTEM SET db_recovery_file_dest_size=12G SCOPE=BOTH ;
 
-$ /iormcl01_backup/scripts/rman/rman_os_backup_bhpb.sh -r <servicename> -a -d PPRM7
-Run with default parallel of 1
-
-Databases backuped on this node ... we hope :-)
-
-srvpprm7rmn
-
-
-OK   : 04:03:46-04:07:45 -  arch backup on srvpprm7rmn succeeded.
-See /iormcl01_backup/log/rman/arch_20151128_summary.log for removed logfiles
-
-Trust is good, control is better.
-
-
+```
+```
 released channel: dev_0
 RMAN-00571: ===========================================================
 RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
@@ -2220,7 +1354,8 @@ Recovery Manager complete.
 SOLVE:
 RMAN> list incarnation of database;
 RMAN> register database;
-
+```
+```
 RMAN-00571: ===========================================================
 RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
 RMAN-00571: ===========================================================
@@ -2234,6 +1369,7 @@ starting full resync of recovery catalog
 full resync complete
 
 ==========================================================
+```
 RMAN> register database;
 
 RMAN-00571: ===========================================================
@@ -2270,52 +1406,13 @@ RMAN> connect target
 connected to target database: FMAPPROD (DBID=1450765346)
 
 RMAN> delete expired archivelog all;
-
-released channel: ORA_DISK_1
-allocated channel: ORA_DISK_1
-channel ORA_DISK_1: SID=138 device type=DISK
-List of Archived Log Copies for database with db_unique_name FMAPPROD
-=====================================================================
-
-Key     Thrd Seq     S Low Time
-------- ---- ------- - ---------
-271     1    274     X 03-NOV-10
-        Name: /IJISPRODARCH1/fmapprod/1_274_729188006.arc
-
-273     1    275     X 03-NOV-10
-        Name: /IJISPRODARCH1/fmapprod/1_275_729188006.arc
-
-272     1    276     X 03-NOV-10
-        Name: /IJISPRODARCH1/fmapprod/1_276_729188006.arc
-
-275     1    277     X 03-NOV-10
-        Name: /IJISPRODARCH1/fmapprod/1_277_729188006.arc
-
-274     1    278     X 03-NOV-10
-        Name: /IJISPRODARCH1/fmapprod/1_278_729188006.arc
-
-276     1    279     X 03-NOV-10
-        Name: /IJISPRODARCH1/fmapprod/1_279_729188006.arc
-
-Do you really want to delete the above objects (enter YES or NO)? YES
-deleted archived log
-archived log file name=/IJISPRODARCH1/fmapprod/1_274_729188006.arc RECID=271 STAMP=734091322
-deleted archived log
-archived log file name=/IJISPRODARCH1/fmapprod/1_275_729188006.arc RECID=273 STAMP=734117404
-deleted archived log
-archived log file name=/IJISPRODARCH1/fmapprod/1_276_729188006.arc RECID=272 STAMP=734117403
-deleted archived log
-archived log file name=/IJISPRODARCH1/fmapprod/1_277_729188006.arc RECID=275 STAMP=734126403
-deleted archived log
-archived log file name=/IJISPRODARCH1/fmapprod/1_278_729188006.arc RECID=274 STAMP=734126402
-deleted archived log
-archived log file name=/IJISPRODARCH1/fmapprod/1_279_729188006.arc RECID=276 STAMP=734140834
-Deleted 6 EXPIRED objects
+```
 
 Then run backup 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-SCENARIO: 
 
+SCENARIO: 
+```
 Starting backup at 07/28/2009 [00:17:49]
 current log archived
 released channel: dev_0
@@ -2595,13 +1692,6 @@ With the Partitioning and Oracle Data Mining options
 JServer Release 9.2.0.8.0 - Production
 
 SQL> Select distinct DBID from rc_database;
-
-      DBID
-----------
-1450765346
-1484995170
-4081318632
-4288714669
 
 SQL> Select dbid,name ,DBINC_KEY,RESETLOGS_CHANGE# from rc_database ;
 
