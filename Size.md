@@ -217,8 +217,10 @@ from V$RECOVERY_FILE_DEST;
 ```
 
 Sample Output:
+```
 SQL> /
 
 NAME                 Allocated Space(GB) Used Space(GB) SPACE_RECLAIMABLE (GB) Estimated Space (GB)
 -------------------- ------------------- -------------- ---------------------- --------------------
 +FRA                                 220           27.2                   1.74                12.42
+```
