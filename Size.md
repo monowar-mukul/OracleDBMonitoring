@@ -204,3 +204,21 @@ GROUP BY SUBSTR(segment_type, 0, 5);
 ```
 
 
+#### FRA 
+```
+set linesize 500
+col NAME for a50
+select name, ROUND(SPACE_LIMIT/1024/1024/1024,2) "Allocated Space(GB)", 
+round(SPACE_USED/1024/1024/1024,2) "Used Space(GB)",
+round(SPACE_RECLAIMABLE/1024/1024/1024,2) "SPACE_RECLAIMABLE (GB)" ,
+(select round(ESTIMATED_FLASHBACK_SIZE/1024/1024/1024,2) 
+from V$FLASHBACK_DATABASE_LOG) "Estimated Space (GB)"
+from V$RECOVERY_FILE_DEST;
+```
+
+Sample Output:
+SQL> /
+
+NAME                 Allocated Space(GB) Used Space(GB) SPACE_RECLAIMABLE (GB) Estimated Space (GB)
+-------------------- ------------------- -------------- ---------------------- --------------------
++FRA                                 220           27.2                   1.74                12.42
