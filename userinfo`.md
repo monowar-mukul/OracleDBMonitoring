@@ -1,25 +1,29 @@
 ### Create user
+``
   CREATE USER PI_READONLY
   IDENTIFIED BY PI_READONLY
   DEFAULT TABLESPACE USERS
   TEMPORARY TABLESPACE TEMP
   PROFILE &profile_DEFAULT
   ACCOUNT UNLOCK;
-
+```
+```
 set long 150
 set linesize 150
 set longchunksize 150
 select 'alter user '||username||' identified by values '||REGEXP_SUBSTR(DBMS_METADATA.get_ddl ('USER',USERNAME), '''[^'']+''')||';' from dba_users
-
+```
+```
 alter session set nls_date_format = 'DY DD-MON-RRRR';
 select username, account_status from dba_users where username like '%ARI%';
-
+```
 USERNAME                      ACCOUNT_STATUS
 ------------------------------------------------------------------------------------------------
 ARIS71			EXPIRED
 
+```
 select spare4 from sys.user$ where name='ARIS71';
-
+```
 SPARE4
 ---------------------------------------------------------------------------------------------------------------------------------------
 S:22153917B658C47DE9FDB9C18CEC5E129F03C07C1456B08E325A4288D367
@@ -34,16 +38,17 @@ USERNAME		ACCOUNT_STATUS
 ----------------------------------------------------------
 ARIS71			OPEN
 
+```
 select  username
   ,       account_status
    ,       expiry_date
   ,       sysdate
 from dba_users
 where username='&usr';
-
+```
 
 ### User Clone 
-
+```
 set pages 0 feed off verify off lines 500
 accept oldname prompt "Enter user to model new user to: "
 accept newname prompt "Enter new user name: "
@@ -80,9 +85,9 @@ where grantee = upper('&&oldname');
  from sys.dba_role_privs
  where grantee = upper('&&oldname')
 and default_role = 'YES';
-
+```
 ### Copy all the privileges from a source environment
-
+```
 set head off
 set pages 0
 set long 9999999
@@ -97,44 +102,50 @@ select dbms_metadata.get_granted_ddl( 'ROLE_GRANT', '&user' ) from dual
 union all
     select dbms_metadata.get_granted_ddl( 'TABLESPACE_QUOTA', '&user' ) from dual;
 spool off;
-
+```
 Password Expire
 ==============
+```
 ALTER PROFILE SPER_PROFILE_TEMPORARY LIMIT
   FAILED_LOGIN_ATTEMPTS 3
   PASSWORD_LIFE_TIME UNLIMITED;
-
-
+```
+```
 select 'alter user "'||username||'" identified by Password01 account unlock;' from dba_users where username not in ('SYS','SYSTEM','SYSMAN','OUTLN','SCOTT','ADAMS','JONES','CLARK','BLAKE','HR','OE','SH','DEMO','ANONYMOUS','AURORA$ORB$UNAUTHENTICATED',
 'AWR_STAGE','CSMIG','CTXSYS','DBSNMP','DIP','DMSYS','EXFSYS','LBACSYS','MDSYS ','ORACLE_OCM','ORDPLUGINS','ORDPLUGINS','ORDSYS ','PERFSTAT ','TRACESVR',
 'TSMSYS ','XDB','OLAPSYS','WMSYS','MDSYS','OWBSYS','OWBSYS_AUDIT','XS$NULL');
-
+```
+```
 set long 1000000
  select dbms_metadata.get_ddl('USER','BACKUP') from dual;
  select dbms_metadata.get_granted_ddl('SYSTEM_GRANT','BACKUP') from dual;
  select dbms_metadata.get_granted_ddl('OBJECT_GRANT','BACKUP') from dual;
  select dbms_metadata.get_granted_ddl('ROLE_GRANT','BACKUP') from dual; 
-
+```
 ----Second User 
-
+```
 select ' ,' || username || ' : ' || username || '_X' cmd
 from dba_users
 where username in ('ODS','ROSODS')
-
+```
+```
 select 'create user '  || username || '_x identified by values ''' || password || ''';' cmd 
 from dba_users
 where username in ('ODS','ROSODS')
 order by username;
-
+```
+```
 select 'grant ' || privilege || ' on ' || owner  ||'.' || table_name || ' to ' || grantee || '_X;' CMD  
 from dba_tab_privs
 where grantee  in ('ODS','ROSODS')  
-
+```
+```
 select 'REMAP_SCHEMA=' || username || ':' || username || '_2' cmd
 from dba_users
 where username not in in ('SYS','SYSTEM','OUTLN','SCOTT','ADAMS','JONES','CLARK','BLAKE','HR','OE','SH','DEMO','ANONYMOUS','AURORA$ORB$UNAUTHENTICATED',
 'AWR_STAGE','CSMIG','CTXSYS','DBSNMP','DIP','DMSYS','EXFSYS','LBACSYS','MDSYS ','ORACLE_OCM','ORDPLUGINS','ORDPLUGINS','ORDSYS ','PERFSTAT ','TRACESVR',
 'TSMSYS ','XDB ');
+```
 
 impdp 
 -------------
@@ -164,24 +175,25 @@ REMAP_SCHEMA=,ROSBOAUDIT : ROSBOAUDIT_X
 
 decrypt 
 
-
+```
 
 exec DBMS_SCHEDULER.CREATE_CREDENTIAL(
   credential_name => 'local_credential', 
   username => 'oracle',  password => 'welcome1'); 
-
+```
+```
 select o.object_name credential_name, username, password 
  FROM SYS.SCHEDULER$_CREDENTIAL c, DBA_OBJECTS o
  WHERE c.obj# = o.object_id;
-
+```
 Nothing to blame here, but I mentioned, the password can be decrypted. So let's do so:
-
+```
 SELECT u.name CREDENTIAL_OWNER, O.NAME CREDENTIAL_NAME, C.USERNAME, 
   DBMS_ISCHED.GET_CREDENTIAL_PASSWORD(O.NAME, u.name) pwd
 FROM SYS.SCHEDULER$_CREDENTIAL C, SYS.OBJ$ O, SYS.USER$ U
 WHERE U.USER# = O.OWNER# 
   AND C.OBJ#  = O.OBJ# ;
-
+```
   ```
 Last login info:
 col USERNAME for a15
@@ -212,418 +224,8 @@ order by logon_time,username,timestamp,logoff_time;
 
 
 
-DefaultSchema 
-
-
-
-DEFAULT SCHEMA
-USER NAME	DEFAULT TABLESPACE	TEMPORARY TABLESPACE	LOCKED?	DBA?
-ANONYMOUS
-SYSAUX	TEMP	YES	
-APEX_030200
-SYSAUX	TEMP	YES	
-APEX_PUBLIC_USER
-USERS	TEMP	YES	
-APPQOSSYS
-SYSAUX	TEMP	YES	
-BI
-USERS	TEMP	YES	
-CTXSYS
-SYSAUX	TEMP	YES	
-DBSNMP
-SYSTEM	TEMP		
-DIP
-USERS	TEMP	YES	
-EXFSYS
-SYSAUX	TEMP	YES	
-FLOWS_FILES
-SYSAUX	TEMP	YES	
-HR
-USERS	TEMP	YES	
-IX
-USERS	TEMP	YES	
-MDDATA
-USERS	TEMP	YES	
-MDSYS
-SYSAUX	TEMP	YES	
-MGMT_VIEW
-SYSTEM	TEMP		
-OE
-USERS	TEMP	YES	
-OLAPSYS
-SYSAUX	TEMP	YES	
-ORACLE_OCM
-USERS	TEMP	YES	
-ORDDATA
-SYSAUX	TEMP	YES	
-ORDPLUGINS
-SYSAUX	TEMP	YES	
-ORDSYS
-SYSAUX	TEMP	YES	
-OUTLN
-SYSTEM	TEMP	YES	
-OWBSYS
-SYSAUX	TEMP	YES	
-OWBSYS_AUDIT
-SYSAUX	TEMP	YES	
-PM
-USERS	TEMP	YES	
-SCOTT
-USERS	TEMP	YES	
-SH
-USERS	TEMP	YES	
-SI_INFORMTN_SCHEMA
-SYSAUX	TEMP	YES	
-SPATIAL_CSW_ADMIN_USR
-USERS	TEMP	YES	
-SPATIAL_WFS_ADMIN_USR
-USERS	TEMP	YES	
-SYS
-SYSTEM	TEMP		YES
-SYSMAN
-SYSAUX	TEMP		
-SYSTEM
-SYSTEM	TEMP		YES
-WMSYS
-SYSAUX	TEMP	YES	
-XDB
-SYSAUX	TEMP	YES	
-XS$NULL
-USERS	TEMP	YES	
-SCHEMA OVERVIEW
-
-ANONYMOUS
-•	Purpose: 
-•	Account that allows HTTP access to Oracle XML DB. It is used in place of the APEX_PUBLIC_USER account when the Embedded PL/SQL Gateway (EPG) is installed in the database. EPG is a Web server that can be used with Oracle Database. It provides the necessary infrastructure to create dynamic applications. See also XDB.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/catqm.sql
-
-APEX_030200
-•	Purpose: 
-•	Part of the Oracle Application Express Suite - (Oracle APEX, previously named Oracle HTML DB) which is a freeware software development environment. It allows a fast development cycle to be achieved to create web based applications. The account owns the Application Express schema and metadata. See also APEX_PUBLIC_USER and FLOW_FILES.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/apex/apexins.sql
-
-APEX_PUBLIC_USER
-•	Purpose: 
-•	Part of the Oracle Application Express Suite - (Oracle APEX, previously named Oracle HTML DB) which is a freeware software development environment. It allows a fast development cycle to be achieved to create web based applications. This minimally privileged account is used for Application Express configuration with Oracle HTTP Server and mod_plsql. See also APEX_030200 and FLOW_FILES.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/apex/apexins.sql
-
-APPQOSSYS
-•	Purpose: 
-•	Used for storing/managing all data and metadata required by Oracle Quality of Service Management.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_ADMIN/rdbms/admin/catqos.sql
-
-BI
-•	Purpose: 
-•	The account that owns the Business Intelligence schema included in the Oracle Sample Schemas. See also HR, OE, SH, IX and PM.
-•	Safe To Remove: 
-•	Yes – run $ORACLE_HOME/demo/schema/drop_sch.sql
-•	Recreation Script: 
-•	$ORACLE_HOME/demo/schema/bus_intelligence/bi_main.sql
-
-CTXSYS
-•	Purpose: 
-•	The account used to administer Oracle Text. Oracle Text enables the building of text query applications and document classification applications. It provides indexing, word and theme searching, and viewing capabilities for text.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ctx/admin/ctxsys.sql
-
-DBSNMP
-•	Purpose: 
-•	The account used by the Management Agent component of Oracle Enterprise Manager to monitor and manage the database. Password is created at installation or database creation time.
-•	Safe To Remove: 
-•	Yes – run $ORACLE_HOME/rdbms/admin/catnsnmp.sql
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/catsnmp.sql
-
-DIP
-•	Purpose: 
-•	The account used by the Directory Integration Platform (DIP) to synchronize the changes in Oracle Internet Directory with the applications in the database.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/catdip.sql
-
-EXFSYS
-•	Purpose: 
-•	The account used internally to access the EXFSYS schema, which is associated with the Rules Manager and Expression Filter feature. This feature enables the building of complex PL/SQL rules and expressions. The EXFSYS schema contains the Rules Manager and Expression Filter DDL, DML, and associated metadata.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/exfsys.sql
-
-FLOW_FILES
-•	Purpose: 
-•	Part of the Oracle Application Express Suite - (Oracle APEX, previously named Oracle HTML DB) which is a freeware software development environment. It allows a fast development cycle to be achieved to create web based applications. This account owns the Application Express uploaded files. See also APEX_030200 and APEX_PUBLIC_USER.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/apex/apexins.sql
-
-HR
-•	Purpose: 
-•	The account that owns the Human Resources schema included in the Oracle Sample Schemas. See also BI, OE, SH, IX and PM.
-•	Safe To Remove: 
-•	Yes – run $ORACLE_HOME/demo/schema/drop_sch.sql
-•	Recreation Script: 
-•	$ORACLE_HOME/demo/schema/human_resources/hr_main.sql
-
-IX
-•	Purpose: 
-•	The account that owns the Information Transport schema included in the Oracle Sample Schemas. See also BI, HR, OE, SH and PM.
-•	Safe To Remove: 
-•	Yes – run $ORACLE_HOME/demo/schema/drop_sch.sql
-•	Recreation Script: 
-•	$ORACLE_HOME/demo/schema/info_exchange/ix_main.sql
-
-MDDATA
-•	Purpose: 
-•	The schema used by Oracle Spatial for storing Geocoder and router data. See also SPATIAL_CSW_ADMIN_USR , SPATIAL_WFS_ADMIN_USR and MDSYS.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/md/admin/catmd.sql
-
-MDSYS
-•	Purpose: 
-•	The Oracle Spatial and Oracle Multimedia Locator administrator account. See also SPATIAL_CSW_ADMIN_USR , MDDATA and SPATIAL_WFS_ADMIN_USR.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ord/admin/ordinst.sql
-
-MGMT_VIEW
-•	Purpose: 
-•	An account used by Oracle Enterprise Manager Database Control. Password is randomly generated at installation or database creation time. Users do not need to know this password.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/sysman/admin/emdrep/bin/RepManager
-
-OE
-•	Purpose: 
-•	The account that owns the Order Entry schema included in the Oracle Sample Schemas. See also BI, HR, SH, IX and PM.
-•	Safe To Remove: 
-•	Yes – run $ORACLE_HOME/demo/schema/drop_sch.sql
-•	Recreation Script: 
-•	$ORACLE_HOME/ demo/schema/order_entry/oe_main.sql
-
-OLAPSYS
-•	Purpose: 
-•	The account that owns the OLAP Catalog (CWMLite). This account has been deprecated, but is retained for backward compatibility.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/olap/admin/amdsys.sql
-
-ORACLE_OCM
-•	Purpose: 
-•	This account contains the instrumentation for configuration collection used by the Oracle Configuration Manager.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/catocm.sql
-
-ORDDATA
-•	Purpose: 
-•	This account contains the Oracle Multimedia DICOM data model.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ord/admin/ordisysc.sql
-
-ORDPLUGINS
-•	Purpose: 
-•	The Oracle Multimedia user. Plug-ins supplied by Oracle and third-party, format plug-ins are installed in this schema. Oracle Multimedia enables Oracle Database to store, manage, and retrieve images, audio, video, DICOM format medical images and other objects, or other heterogeneous media data integrated with other enterprise information. See also ORDSYS and SI_INFORMTN_SCHEMA.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ord/admin/ordinst.sql
-
-ORDSYS
-•	Purpose: 
-•	The Oracle Multimedia administrator account. See also ORDPLUGINS and SI_INFORMTN_SCHEMA.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ord/admin/ordinst.sql
-
-OUTLN
-•	Purpose: 
-•	The account that supports plan stability. Plan stability prevents certain database environment changes from affecting the performance characteristics of applications by preserving execution plans in stored outlines. OUTLN acts as a role to centrally manage metadata associated with stored outlines.
-•	Safe To Remove: 
-•	No
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/sql.bsq. Recover from backup or recreate the database.
-
-OWBSYS
-•	Purpose: 
-•	The account for administrating the Oracle Warehouse Builder repository. Access this account during the installation process to define the base language of the repository and to define Warehouse Builder workspaces and users. A data warehouse is a relational or multidimensional database that is designed for query and analysis. See also OWBSYS_AUDIT.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/owb/UnifiedRepos/cat_owb.sql
-
-OWBSYS_AUDIT
-•	Purpose: 
-•	This account is used by the Warehouse Builder Control Center Agent to access the heterogeneous execution audit tables in the OWBSYS schema.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/owb/UnifiedRepos/cat_owb.sql
-
-PM
-•	Purpose: 
-•	The account that owns the Product Media schema included in the Oracle Sample Schemas. See also BI, HR, OE, SH and IX.
-•	Safe To Remove: 
-•	Yes – run $ORACLE_HOME/demo/schema/drop_sch.sql
-•	Recreation Script: 
-•	$ORACLE_HOME/demo/schema/product_media/pm_main.sql
-
-SCOTT
-•	Purpose: 
-•	An account used by Oracle sample programs and examples.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/utlsampl.sql
-
-SH
-•	Purpose: 
-•	The account that owns the Sales History schema included in the Oracle Sample Schemas and is only available for Enterprise Edition installations. See also BI, HR, OE, IX and PM.
-•	Safe To Remove: 
-•	Yes – run $ORACLE_HOME/demo/schema/drop_sch.sql
-•	Recreation Script: 
-•	$ORACLE_HOME/demo/schema/sales_history/sh_main.sql
-
-SI_INFORMTN_SCHEMA
-•	Purpose: 
-•	The account that stores the information views for the SQL/MM Still Image Standard. See also ORDPLUGINS and ORDSYS.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ord/admin/ordinst.sql
-
-SPATIAL_CSW_ADMIN_USR
-•	Purpose: 
-•	The Catalog Services for the Web (CSW) account. It is used by the Oracle Spatial CSW cache manager to load all record type metadata, and record instances from the database into the main memory for the record types that are cached. See also SPATIAL_WFS_ADMIN_USR, MDDATA and MDSYS.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/md/admin/sdocswpv.sql
-
-SPATIAL_WFS_ADMIN_USR
-•	Purpose: 
-•	The Web Feature Service (WFS) account. It is used by the Oracle Spatial WFS cache manager to load all feature type metadata, and feature instances from the database into main memory for the feature types that are cached. See also SPATIAL_CSW_ADMIN_USR , MDDATA and MDSYS.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/md/admin/sdowfspv.sql
-
-SYS
-•	Purpose: 
-•	An account used to perform database administration tasks. Password is created at installation or database creation time.
-•	Safe To Remove: 
-•	No
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/sql.bsq. Recover from backup or recreate the database.
-
-SYSMAN
-•	Purpose: 
-•	The account used to perform Oracle Enterprise Manager database administration tasks. The SYS and SYSTEM accounts can also perform these tasks. Password is created at installation or database creation time.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	Created as part of the dbconsole or Enterprise Manager build.
-
-SYSTEM
-•	Purpose: 
-•	A default generic database administrator account for Oracle databases. For production systems, Oracle recommends creating individual database administrator accounts and not using the generic SYSTEM account for database administration operations. Password is created at installation or database creation time.
-•	Safe To Remove: 
-•	No
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/sql.bsq. Recover from backup or recreate the database.
-
-WMSYS
-•	Purpose: 
-•	The account used to store the metadata information for Oracle Workspace Manager.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/owmctab.plb
-
-XDB
-•	Purpose: 
-•	The account used for storing Oracle XML DB data and metadata. See also ANONYMOUS.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/catqm.sql
-
-XS$NULL
-•	Purpose: 
-•	An internal account that represents the absence of a user in a session. Because XS$NULL is not a user, this account can only be accessed by the Oracle Database instance. XS$NULL has no privileges and no one can authenticate as XS$NULL, nor can authentication credentials ever be assigned to XS$NULL.
-•	Safe To Remove: 
-•	No
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/sql.bsq. Recover from backup or recreate the database.
-
-OTHER ADMINISTRATIVE SCHEMA
-The schema listed below are not installed by default, but can be built using the creation script(s) cited and any necessary additional steps as prescribed by the appropriate Oracle manual.
-
-LBACSYS
-•	Purpose: 
-•	The account used to administer Oracle Label Security (OLS). It is created only when the Label Security custom option is installed.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/rdbms/admin/catlbacs.sql
-
-WK_TEST
-•	Purpose: 
-•	The instance administrator for the default instance, WK_INST. After unlocking this account and assigning this user a password, then the cached schema password must also be updated using the administration tool Edit Instance Page. Ultra Search provides uniform search-and-location capabilities over multiple repositories, such as Oracle databases, other ODBC compliant databases, IMAP mail servers, HTML documents managed by a Web server, files on disk, and more. See also WKSYS
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ultrasearch/admin/wk0csys.sql
-
-WKSYS
-•	Purpose: 
-•	An Ultra Search database super-user. WKSYS can grant super-user privileges to other users, such as WK_TEST. All Oracle Ultra Search database objects are installed in the WKSYS schema. See also WK_TEST
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ultrasearch/admin/wk0csys.sql
-
-WKPROXY
-•	Purpose: 
-•	An administrative account of Application Server Ultra Search.
-•	Safe To Remove: 
-•	Yes
-•	Recreation Script: 
-•	$ORACLE_HOME/ultrasearch/admin/wk0csys.sql
-ADDITIONAL INFORMATION
-•	Further information can be found in Metalink article 160861.1.
-  
-
-
-
 For Export 
-
-
-
+```
 set lines 2000
 set heading off
 spool exp_accounts.txt
@@ -684,23 +286,19 @@ from dba_users where username not in (
 ,'OWBSYS_AUDIT'
 ,'APEX_030200'
 ,'APPQOSSYS'
-,'CSCBKP'
-,'CSCDBADMIN'
-,'CSCMONITOR'
-,'MCGRPB9'
 )
 and username not like 'APAC%'
-and profile not in ('CSC_PROF_DBADMIN')
+and profile not in ('&profile')
 ;
 spool off
-  
+ ``` 
 
 
 
 Identical objects 
 
 
-
+```
 column owner format a10
 column object_name format a30
 select a.owner,b.object_name,b.owner,b.object_name
@@ -710,12 +308,12 @@ and   b.owner not in ('SYS','SYSTEM')
 and   a.owner <> b.owner
 and   a.object_type = b.object_type
 and   a.object_name = b.object_name;  
-
+```
 
 
 Move tablespace 
 
-
+```
 
 1. Create a new tablespace
 
@@ -745,13 +343,13 @@ Run move table script
 @mvtables.sql
 4. Recompile the objects
 @?/rdbms/admin/utlrp.sql  
-
+```
 
 
 Profile/Password 
 
 
-
+```
 How to recover password in oracle 10g?
 You can query with the table user_history$. The password history is store in this table.
 
@@ -760,8 +358,8 @@ Oracle only tracks the date that the password will expire based on when it was l
 SELECT user$.NAME, user$.PASSWORD, user$.ptime, user_history$.password_date
 FROM SYS.user_history$, SYS.user$
 WHERE user_history$.user# = user$.user#;
-
-
+```
+```
 SELECT name,
  ctime,
  ptime
@@ -771,86 +369,24 @@ SELECT name,
 SELECT sid, authentication_type, osuser 
 FROM V$SESSION_CONNECT_INFO
 where AUTHENTICATION_TYPE='OS';
+```
 
-CREATE USER jkoopmann IDENTIFIED EXTERNALLY; 
-
-SQL> alter profile QWIC_PROFILE limit password_reuse_max unlimited;
-
-Profile altered.
-
-SQL> alter user QWICBATCH identified by qw1c0ps;
-
-User altered.
-
-SQL> alter profile QWIC_PROFILE limit password_reuse_max 13;
-
-Profile altered.
-
-SQL> alter profile QWIC_PROFILE limit password_reuse_time 366;
-
-Profile altered.
-
-SQL> conn /
-Connected. 
-SQL> alter user qwicbatch identified externally; 
-
-SQL>
- select username, password, account_status
-from dba_users
-where username like '%QWICBATCH%';
-
-USERNAME                       PASSWORD
------------------------------- ------------------------------
-ACCOUNT_STATUS
---------------------------------
-QWICBATCH                      A04CC5824372CD0B
-OPEN
-
-SQL> conn QWICBATCH/qw1c0ps
-Connected.
-SQL> conn /as sysdba
-Connected.
-SQL> alter user qwicbatch identified externally;
-
-User altered.
-
-SQL> alter system set os_authent_prefix='' scope=spfile;
-
-System altered.
-
-SQL> show parameter os _au
-
-NAME                                 TYPE        VALUE
------------------------------------- ----------- ------------------------------
-optimizer_index_cost_adj             integer     25
-os_authent_prefix                    string      ops$
-os_roles                             boolean     FALSE
-remote_os_authent                    boolean     FALSE
-remote_os_roles                      boolean     FALSE
-timed_os_statistics                  integer     0
-
-SQL> alter system set remote_os_authent=TRUE scope=spfile;
-
-System altered.
-
-SQL> grant create session, dba to OPS$QWICBATCH;
-
-Grant succeeded.
-
-HAS THE PA SSWORD EVER CHANGED?
+## HAS THE PA SSWORD EVER CHANGED?
+```
 select name,to_char(ctime,'dd-mon-yy hh24:mi:ss')
 ,to_char(ptime,'dd-mon-yy hh24:mi:ss'),length(password)
 from user$
 where password is not null
 and password not in ('GLOBAL','EXTERNAL')
 and ctime=ptime;
-
+```
 In this script the CTIME column contains the timestamp of when the user was created. The PTIME column contains
 the timestamp of when the password was changed. If the CTIME and PTIME are identical, then the password has
 never changed.
 
 all passwords that will soon expire
 =================================
+```
 set pagesize  500
 set linesize  200
 set trimspool on
@@ -865,7 +401,8 @@ from dba_users
 where expiry_date < sysdate+30
 and account_status IN ( 'OPEN', 'EXPIRED(GRACE)' );
 /
- 
+```
+```
 select username as "USER NAME", 
        account_status
 from dba_users
@@ -874,20 +411,22 @@ where
 order by username;
  
 /
-
+```
 CTIME is the date the user was created.
 LTIME is the date the user was last locked. (Note that it doesn't get NULLed when you unlock the user).
 PTIME is the date the password was last changed.
 LCOUNT is the number of failed login
 
+```
  alter session set nls_date_format='HH24:MI:SS DD/MM/YYYY';
 select ctime,ltime,ptime from user$ where name = 'MTSSYS';
 select ctime,ltime,ptime from user$ where name = 'MTSSYS' where ;
+```
 
 MTSSYS/mtssys
 
 Must Run this Query after connecting by Sys user
-
+```
 SELECT user$.NAME, user$.PASSWORD, user$.ptime, user_history$.password_date
 FROM SYS.user_history$, SYS.user$
 WHERE user_history$.user# = user$.user#
@@ -907,12 +446,12 @@ where
 order by
   username,
   osuser;  
-
+```
 
 
 schema-Information 
 
-
+```
 
 --
 -- Shows dba_users info
@@ -1019,10 +558,11 @@ SELECT grantee,
        decode(grantable, 'YES',' WITH GRANT OPTION') privilege
 FROM sys.dba_tab_privs
 WHERE grantee &comp ;
-
+```
 ---------------
-REM This script displays privileges by grantee
+#### REM This script displays privileges by grantee
 REM It includes ROLES,SYSTEM,and OBJECT privileges
+```
 set verify off
 set pagesize 60
 set linesize 80
@@ -1118,15 +658,18 @@ FROM DBA_USERS
 
 spool off
 exit
-
+```
 
 
 SCHEMA SIZE
 =====================
+```
 select sum( bytes )/1024/1024 total_size_mb
 from dba_segments
 where owner = 'INTERFACE'
+```
 
+```
 --
 -- Shows schema objects
 --
@@ -1164,7 +707,8 @@ where OWNER like decode('&own','','%',upper('&own'))
   and OBJECT_TYPE like decode('&typ','','%',upper('&typ'))
 order by LAST_DDL_TIME
 /
-
+```
+```
 --
 -- Shows profiles
 --
@@ -1195,7 +739,8 @@ where profile like decode('&pro','','%',upper('&pro'))
   and resource_name like decode('&res','','%',upper('&res'))
 order by profile
 /
-
+```
+```
 set verify off
 set pagesize 0
 set linesize 80
@@ -1238,10 +783,11 @@ UNION
 SELECT 'grant '|| grantee || ' ' || privilege ||' on '|| owner||'.'||table_name|| decode(grantable, 'YES',' WITH GRANT OPTION') || ';'
 FROM sys.dba_tab_privs
 WHERE grantee &comp ;
+```
 
 OTHERS
 --------
-
+```
 set linesize 132
 set verify off
 -- set feedback off
@@ -1269,8 +815,11 @@ select grantee,privilege,admin_option from sys.DBA_SYS_PRIVS where grantee=upper
 prompt
 prompt Role privileges for &&grantee_nm....
 select grantee,granted_role,admin_option from sys.DBA_ROLE_PRIVS where grantee=upper('&&grantee_nm') order by 1, 2; 
+```
 
-Given a db user name list the count of objects based on object type and the amount of space used by each object type 
+### Given a db user name list the count of objects based on object type and the amount of space used by each object type 
+
+```
 SET LINESIZE 200
 SET PAGESIZE 9999
 
@@ -1306,14 +855,13 @@ owner
 , segment_type
 
 / 
-  
+```  
 
 
 
 Tables 
 
-
-
+```
 --
 -- Shows table counts for an owner
 --
@@ -1352,15 +900,18 @@ SET TERM ON
 @@tabcount_&&user..sql
 SET VERIFY ON FEED ON
 
+```
 
-
+```
 select table_name,
    to_number(extractvalue(xmltype(dbms_xmlgen.getxml('select count(*) X from '||table_name))
               ,'/ROWSET/ROW/X')) count
     from dba_tables
   where owner = '&owner'
+```
 
 --------------------- Otherwise ----------------
+```
 create or replace
 function get_rows( p_tname in varchar2 ) return number
 as
@@ -1373,7 +924,8 @@ from ‘ || p_tname INTO l_columnValue;
 return l_columnValue;
 end;
 /
-
+```
+```
 select table_name,
    to_number(extractvalue(xmltype(dbms_xmlgen.getxml('select count(*) X from '||table_name))
               ,'/ROWSET/ROW/X')) count
@@ -1384,7 +936,8 @@ select  table_name, get_rows cnt
 from dba_tables
   where owner = '&owner'
 /
-
+```
+```
 COunt ROWS
 set termout off echo off feed off trimspool on head off 
 spool counts.log;
@@ -1394,7 +947,7 @@ select 'SELECT '''||table_name||','',
 from '||table_name||';' from user_tables;
 spool off;
 set termout on;
-
+```
 
 
 
@@ -1404,7 +957,7 @@ NUM_ROWS from the USER_TABLES view:
 SQL > select table_name, num_rows from user_tables;
 
 partitioned tables [show row counts by partition]
-
+```
 UNDEFINE user
 SET SERVEROUT ON SIZE 1000000 VERIFY OFF
 SPO part_count_&&user..txt
@@ -1426,12 +979,12 @@ END LOOP;
 END;
 /
 SPO OFF  
-
+```
 
 
 User copy/drop/Metadata 
 
-
+```
 
 set heading off; 
 set echo off; 
@@ -1476,15 +1029,17 @@ spool off
 
 set term on
 set feed on
-
+```
+```
 spool run_drop
 @run_drop.sql
 spool off
 exit;
-
+```
 ---------------------
 USERS METADATA
 ------------------
+```
 set echo off
 set heading off
 set feedback off
@@ -1540,7 +1095,8 @@ define eol = chr(13)||chr(10)
 prompt Extracting: &&sch_obj_name@&_CONNECT_IDENTIFIER into  &&sch_obj_name..&_CONNECT_IDENTIFIER..sql
 
 spool &&sch_obj_name..&_CONNECT_IDENTIFIER..sql
-
+```
+```
 rem --------------------------------------------------;
 rem objects ddl 
 rem --------------------------------------------------;
@@ -1573,7 +1129,7 @@ select  '/* owner=' || oo.owner || ',object_name='|| case when oo.object_type = 
     oo.object_name not like 'BIN$%' and
     oo.subobject_name is null 
   order by oo.object_name, oo.object_type;
-  
+  ```
 -- constraints, ordered  
 select '/* owner=' || owner || ',object_name=' || table_name || ',object_type=CONSTRAINT,status=' || status || ' */ ' || &&eol || 
     dbms_metadata.get_ddl(case constraint_type when 'R' then 'REF_CONSTRAINT' else 'CONSTRAINT' end , constraint_name, owner)
@@ -1583,8 +1139,8 @@ select '/* owner=' || owner || ',object_name=' || table_name || ',object_type=CO
     constraint_type in ('C', 'P', 'U', 'R') and
     constraint_name not like 'BIN$%'
   order by owner, table_name, constraint_name;
-
-
+```
+```
 rem --------------------------------------------------;
 rem user grants
 rem --------------------------------------------------;
@@ -1665,7 +1221,7 @@ select max('main_object_type=' || replace(object_type, ' ', '_'))
 quit
 
 
-
+```
 
 
   
@@ -1675,7 +1231,7 @@ quit
 User Security and review 
 
 
-
+```
 Alter user &usr identified by &pass account unlock; 
 
 
@@ -1944,12 +1500,12 @@ SELECT b.username, 'User (Direct)'
 FROM dba_sys_privs a, dba_users b
  WHERE a.privilege = 'RESTRICTED SESSION'
 AND a.grantee = b.username;  
-
+```
 
 
 whocanaccesswhat 
 
-
+```
 
 ---cams.versions_audit ====> put the table_name [ example S086.MSF700]
 
@@ -2040,12 +1596,68 @@ order by 1, 3, 4
 / 
 clear breaks 
 
+```
 
-============================================
-
-select owner, TABLE_NAME, PRIVILEGE
-from dba_tab_privs
-where GRANTEE='PUBLIC'
-AND GRANTOR='S086'
-
- 
+### QUERY TO GET SIZE OF ALL TABLES IN AN ORACLE DATABASE SCHEMA
+``` 
+SELECT * FROM 
+(
+SELECT
+OWNER, 
+OBJECT_NAME, 
+OBJECT_TYPE, 
+TABLE_NAME, 
+--ROUND(BYTES)/1024/1024 AS MB,
+ROUND(BYTES) / 1024 / 1024 / 1024 AS GB,
+--ROUND(100*RATIO_TO_REPORT(ROUND(BYTES) / 1024 / 1024 / 1024) OVER(),2) AS GB_PERCENT,
+ROUND(100*RATIO_TO_REPORT(BYTES) OVER (), 2) PERCENTAGE,
+TABLESPACE_NAME, 
+EXTENTS, 
+INITIAL_EXTENT,
+ROUND(SUM(BYTES/1024/1024/1024) OVER (PARTITION BY TABLE_NAME)) AS TOTAL_TABLE_GB
+--ROUND(SUM(BYTES)/1024/1024/1024) OVER (PARTITION BY TABLE_NAME)) AS TOTAL_TABLE_GB
+FROM 
+(
+--TABLES
+SELECT OWNER, SEGMENT_NAME AS OBJECT_NAME, 'TABLE' AS OBJECT_TYPE,
+SEGMENT_NAME AS TABLE_NAME, BYTES,
+TABLESPACE_NAME, EXTENTS, INITIAL_EXTENT
+FROM DBA_SEGMENTS /*DBA_SEGMENTS*/
+WHERE SEGMENT_TYPE IN ('TABLE', 'TABLE PARTITION', 'TABLE SUBPARTITION')
+UNION ALL
+--INDEXES
+SELECT I.OWNER, I.INDEX_NAME AS OBJECT_NAME, 'INDEX' AS OBJECT_TYPE,
+I.TABLE_NAME, S.BYTES,
+S.TABLESPACE_NAME, S.EXTENTS, S.INITIAL_EXTENT
+FROM DBA_INDEXES I /*DBA_INDEXES*/
+, DBA_SEGMENTS S /*DBA_SEGMENTS*/
+WHERE S.SEGMENT_NAME = I.INDEX_NAME
+AND S.OWNER = I.OWNER
+AND S.SEGMENT_TYPE IN ('INDEX', 'INDEX PARTITION', 'INDEX SUBPARTITION')
+--LOB SEGMENTS
+UNION ALL
+SELECT L.OWNER, L.COLUMN_NAME AS OBJECT_NAME, 'LOB_COLUMN' AS OBJECT_TYPE,
+L.TABLE_NAME, S.BYTES,
+S.TABLESPACE_NAME, S.EXTENTS, S.INITIAL_EXTENT
+FROM DBA_LOBS L, /*DBA_LOBS*/
+DBA_SEGMENTS S /*DBA_SEGMENTS*/
+WHERE S.SEGMENT_NAME = L.SEGMENT_NAME
+AND S.OWNER = L.OWNER
+AND S.SEGMENT_TYPE = 'LOBSEGMENT'
+--LOB INDEXES
+UNION ALL
+SELECT L.OWNER, L.COLUMN_NAME AS OBJECT_NAME, 'LOB_INDEX' AS OBJECT_TYPE,
+L.TABLE_NAME, S.BYTES,
+S.TABLESPACE_NAME, S.EXTENTS, S.INITIAL_EXTENT
+FROM DBA_LOBS L, /*DBA_LOBS*/
+DBA_SEGMENTS S /*DBA_SEGMENTS*/
+WHERE S.SEGMENT_NAME = L.INDEX_NAME
+AND S.OWNER = L.OWNER
+AND S.SEGMENT_TYPE = 'LOBINDEX'
+)
+WHERE OWNER IN UPPER('&SCHEMA_NAME')
+)
+--WHERE TOTAL_TABLE_MB > 10
+ORDER BY TOTAL_TABLE_GB DESC, GB DESC
+/
+```
