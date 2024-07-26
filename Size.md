@@ -20,6 +20,13 @@ from    (select bytes
 group by free.p
 /
 ```
+Sample Output
+```
+Database Size        Used space           Free space
+-------------------- -------------------- --------------------
+115 GB               85 GB                30 GB
+
+```
 ```
 SELECT 'Database Size' "*****"
       ,round(sum(round(sum(nvl(fs.bytes/1024/1024,0)))) / 
@@ -43,6 +50,14 @@ GROUP BY df.tablespace_name, df.file_id, df.bytes,
    df.autoextensible
 ORDER BY df.file_id;
 ```
+Sample Output
+```
+*****              %Free      %Used    Mb Free    Mb Used       Size
+------------- ---------- ---------- ---------- ---------- ----------
+Database Size         22         78      30568  107221.25  137789.25
+
+```
+
 ## Size (Datafiles, temp files and redo members)
 ```
 select 'Data Files' type, sum(bytes)/1024/1024/1024 szgb,count(*) cnt
@@ -56,6 +71,15 @@ from v$logfile lf, v$log l
 where l.group#=lf.group# group by substr(member,1,instr(member,'/',1,2)-1)
 /
 ```
+Sample Output
+```
+TYPE              SZGB        CNT
+----------- ---------- ----------
+Data Files  104.708252         16
+Redo Member     .78125          4
+Temp Files          10          1
+```
+
 ### Schema Size 
 
 ```
@@ -159,7 +183,7 @@ SELECT segment_name "Object", segment_type "Type"
          (SUM(bytes)/1024) "Kb"
       ,SUM(bytes) "Bytes", SUM(blocks) "Blocks"
 FROM dba_extents
-WHERE owner = 'PRODOWNER' AND segment_type IN ('TABLE','INDEX')
+WHERE owner = '&User' AND segment_type IN ('TABLE','INDEX')
 GROUP BY segment_name, segment_type
 ORDER BY segment_name, segment_type DESC;
 ``` 
@@ -202,6 +226,13 @@ GROUP BY segment_type
 ORDER BY size_mb DESC) 
 GROUP BY SUBSTR(segment_type, 0, 5);
 ```
+Sample Output:
+```
+SEGME    SIZE_MB PERC
+----- ---------- -----------------------------------------
+INDEX      46373 64.83%
+TABLE      25158 35.17%
+```
 
 
 #### FRA 
@@ -218,9 +249,100 @@ from V$RECOVERY_FILE_DEST;
 
 Sample Output:
 ```
-SQL> /
-
 NAME                 Allocated Space(GB) Used Space(GB) SPACE_RECLAIMABLE (GB) Estimated Space (GB)
 -------------------- ------------------- -------------- ---------------------- --------------------
 +FRA                                 220           27.2                   1.74                12.42
 ```
+
+
+### Check Object Growth Report
+```
+select * from (select to_char(end_interval_time, 'MM/DD/YY') mydate, sum(space_used_delta) / 1024 / 1024 "Space used (MB)", avg(c.bytes) / 1024 / 1024 "Total Object Size (MB)",
+round(sum(space_used_delta) / sum(c.bytes) * 100, 2) "Percent of Total Disk Usage"
+from
+dba_hist_snapshot sn,
+dba_hist_seg_stat a,
+dba_objects b,
+dba_segments c
+where begin_interval_time > trunc(sysdate) - &days_back
+and sn.snap_id = a.snap_id
+and b.object_id = a.obj#
+and b.owner = c.owner
+and b.object_name = c.segment_name
+and c.segment_name = '&segment_name'
+group by to_char(end_interval_time, 'MM/DD/YY'))
+order by to_date(mydate, 'MM/DD/YY')
+/
+```
+### Database Growth
+```
+SELECT SUBSTR(B.END_INTERVAL_TIME,1,9) DAY,SUM(A.SPACE_ALLOCATED_DELTA)/1024/1024/1024 "Size GB"
+FROM DBA_HIST_SEG_STAT A,DBA_HIST_SNAPSHOT B
+WHERE A.SNAP_ID=B.SNAP_ID
+GROUP BY SUBSTR(B.END_INTERVAL_TIME,1,9)
+ORDER BY TO_DATE(SUBSTR(B.END_INTERVAL_TIME,1,9),'DD-MON-YY')
+/
+```
+Sample Output:
+```
+DAY          Size GB
+--------- ----------
+16/JUL/24 .007568359
+17/JUL/24 .295166016
+18/JUL/24 .248901367
+19/JUL/24 .225830078
+20/JUL/24 .264526367
+21/JUL/24 .213012695
+22/JUL/24 .442260742
+23/JUL/24    .203125
+24/JUL/24 .223144531
+25/JUL/24 .246337891
+26/JUL/24 .133544922
+
+11 rows selected.
+```
+
+```
+
+SET LINESIZE 200
+SET PAGESIZE 200
+COL "Database Size" FORMAT a13
+COL "Used Space" FORMAT a11
+COL "Used in %" FORMAT a11
+COL "Free in %" FORMAT a11
+COL "Database Name" FORMAT a13
+COL "Free Space" FORMAT a12
+COL "Growth DAY" FORMAT a11
+COL "Growth WEEK" FORMAT a12
+COL "Growth DAY in %" FORMAT a16
+COL "Growth WEEK in %" FORMAT a16
+
+SELECT
+(select min(creation_time) from v$datafile) "Create Time",
+(select name from v$database) "Database Name",
+ROUND((SUM(USED.BYTES) / 1024 / 1024 ),2) || ' MB' "Database Size",
+ROUND((SUM(USED.BYTES) / 1024 / 1024 ) - ROUND(FREE.P / 1024 / 1024 ),2) || ' MB' "Used Space",
+ROUND(((SUM(USED.BYTES) / 1024 / 1024 ) - (FREE.P / 1024 / 1024 )) / ROUND(SUM(USED.BYTES) / 1024 / 1024 ,2)*100,2) || '% MB' "Used in %",
+ROUND((FREE.P / 1024 / 1024 ),2) || ' MB' "Free Space",
+ROUND(((SUM(USED.BYTES) / 1024 / 1024 ) - ((SUM(USED.BYTES) / 1024 / 1024 ) - ROUND(FREE.P / 1024 / 1024 )))/ROUND(SUM(USED.BYTES) / 1024 / 1024,2 )*100,2) || '% MB' "Free in %",
+ROUND(((SUM(USED.BYTES) / 1024 / 1024 ) - (FREE.P / 1024 / 1024 ))/(select sysdate-min(creation_time) from v$datafile),2) || ' MB' "Growth DAY",
+ROUND(((SUM(USED.BYTES) / 1024 / 1024 ) - (FREE.P / 1024 / 1024 ))/(select sysdate-min(creation_time) from v$datafile)/ROUND((SUM(USED.BYTES) / 1024 / 1024 ),2)*100,3) || '% MB' "Growth DAY in %",
+ROUND(((SUM(USED.BYTES) / 1024 / 1024 ) - (FREE.P / 1024 / 1024 ))/(select sysdate-min(creation_time) from v$datafile)*7,2) || ' MB' "Growth WEEK",
+ROUND((((SUM(USED.BYTES) / 1024 / 1024 ) - (FREE.P / 1024 / 1024 ))/(select sysdate-min(creation_time) from v$datafile)/ROUND((SUM(USED.BYTES) / 1024 / 1024 ),2)*100)*7,3) || '% MB' "Growth WEEK in %"
+FROM (SELECT BYTES FROM V$DATAFILE
+UNION ALL
+SELECT BYTES FROM V$TEMPFILE
+UNION ALL
+SELECT BYTES FROM V$LOG) USED,
+(SELECT SUM(BYTES) AS P FROM DBA_FREE_SPACE) FREE
+GROUP BY FREE.P;
+```
+Sample Output
+```
+Create Ti Database Name Database Size Used Space  Used in %   Free Space   Free in %   Growth DAY  Growth DAY in %  Growth WEEK  Growth WEEK in %
+--------- ------------- ------------- ----------- ----------- ------------ ----------- ----------- ---------------- ------------ ----------------
+17/APR/19 IVUPROD       118261.25 MB  87693.25 MB 74.15% MB   30567.63 MB  25.85% MB   45.5 MB     .038% MB         318.48 MB   .269% MB
+
+
+```
+
