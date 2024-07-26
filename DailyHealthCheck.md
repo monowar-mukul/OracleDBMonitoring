@@ -2164,3 +2164,20 @@ decode(spare4,null,password,spare4)||''';' sql
 from sys.user$;
 ```
 
+ ## Check Memory Usage by Sessions in Oracle Database
+```
+SET pages500 lines110 trims ON
+CLEAR col
+col NAME format a30
+col username format a20
+break ON username nodup SKIP 1
+
+SELECT vses.username||':'||vsst.SID||','||vses.serial# username, vstt.NAME, MAX(vsst.VALUE) VALUE
+FROM v$sesstat vsst, v$statname vstt, v$session vses
+WHERE vstt.statistic# = vsst.statistic# AND vsst.SID = vses.SID AND vstt.NAME IN
+('session pga memory','session pga memory max','session uga memory','session uga memory max',
+'session cursor cache count','session cursor cache hits','session stored procedure space',
+'opened cursors current','opened cursors cumulative') AND vses.username IS NOT NULL
+GROUP BY vses.username, vsst.SID, vses.serial#, vstt.NAME
+ORDER BY vses.username, vsst.SID, vses.serial#, vstt.NAME;
+```
