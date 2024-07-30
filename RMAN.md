@@ -225,13 +225,12 @@ grant select on sys.RMAN_REPORT_DAILY to mstbkp;
 grant select on sys.rman_report to mstbkp;
 ```
 ```
-conn mstbkp/pass3;
+conn mstbkp/xxxxx;
 show user
 select * from RMAN_REPORT_DAILY;
 select * from rman_report where input_type<>'ARCHIVELOG';
 ```
   
-
 ### Backup_Info 
 
 ```
@@ -269,8 +268,6 @@ where START_TIME in (select max(START_TIME) from V$RMAN_BACKUP_JOB_DETAILS WHERE
 ORDER BY SESSION_KEY
 /
 ```
-
-
 ### Without catalog then run under the database which backup is in progress
 ```
 COLUMN CLIENT_INFO FORMAT a30
@@ -286,7 +283,7 @@ AND CLIENT_INFO LIKE 'rman%'
 ### To monitor job progress:
 Before starting the job, create a script file (called, for this example, longops) containing the following SQL statement:
 ```
-SQL> SELECT SID, SERIAL#, CONTEXT, SOFAR, TOTALWORK,
+SELECT SID, SERIAL#, CONTEXT, SOFAR, TOTALWORK,
        ROUND(SOFAR/TOTALWORK*100,2) "%_COMPLETE"
 FROM V$SESSION_LONGOPS
 WHERE OPNAME LIKE 'RMAN%'
@@ -3151,10 +3148,8 @@ STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
 PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT) 
 TABLESPACE "QHUB_DATA" ROWDEPENDENCIES 
  
-
 SQL> Select segment_name,segment_type,owner from dba_extents 
 where file_id=8 and 1006 between block_id and block_id + b locks -1 ;
-
 
 SEGMENT_NAME				SEGMENT_TYPE OWNER
 ------------------ ------------------------------ ---------------------------------------------------------------------------
@@ -3460,7 +3455,6 @@ You can disable the skipping of corrupt blocks on the table by doing this:
 
 SQL> exec dbms_repair.skip_corrupt_blocks(schema_name=>'DEVUSER',object_name=> 'DEVOBJECT', flags=>dbms_repair.noskip_flag)
 
-
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 SQL> BEGIN
 DBMS_HM.RUN_CHECK (
@@ -3468,35 +3462,14 @@ check_name   => 'Data Block Integrity Check',
 run_name     => 'datablockint',
 input_params => 'BLC_DF_NUM=5;BLC_BL_NUM=216337');
 END;
-/  2    3    4    5    6    7
+/ 
 
 PL/SQL procedure successfully completed.
 
 SQL> SELECT DBMS_HM.GET_RUN_REPORT('datablockint') FROM DUAL;
 
-DBMS_HM.GET_RUN_REPORT('DATABLOCKINT')
---------------------------------------------------------------------------------
-Basic Run Information
- Run Name                     : datablockint
 
 ###CDB&PDB 
-
-
-
-What is a Container Database?
-
-A 12c database is either a non-Container Database or a Container Database - from here on referred to as non-CDB or CDB respectively.
-A CDB is an Oracle database that includes zero, one, or many customer-created Containers or Pluggable Databases referred to as PDB.
-The CDB has:
-•	one ROOT container (CDB$ROOT) containing SYSTEM, SYSAUX, UNDO, and TEMP tablespaces, Controlfiles and Redologs 
-•	one SEED container (PDB$SEED) containing SYSTEM, SYSAUX, TEMP, EXAMPLE tablespaces, used as a template to create new PDBs
-What is a Pluggable Database?
-A pluggable Database (PDB) is a user-created container holding the data and code for a specific application eg HR, Payroll etc.
-A PDB: 
-•	has SYSTEM, SYSAUX, TEMP tablespaces 
-•	contains any number of other user created tablespaces 
-•	writes to the container UNDO tablespace, controlfiles and redologs
-Undo and redo is annotated with details of the PDB that they belong to.
 
 RMAN Pluggable Database Backup
 
@@ -3569,28 +3542,6 @@ Backup CDB$ROOT, PDB$SEED and ALL PDBS:
 RMAN> BACKUP DATABASE PLUS ARCHIVELOG ALL DELETE INPUT;
 RMAN> LIST BACKUP OF DATABASE;
 
-List of Backup Sets
-===================
-
-...
-------- ---- -- ---------- ----------- ------------ ---------------
-82 Full 2.46G DISK 00:01:01 17-JAN-13
-BP Key: 83 Status: AVAILABLE Compressed: NO Tag: TAG20130117T114547
-Piece Name: .../fast_recovery_area/T12CCDB/backupset/2013_01_17/o1_mf_nnndf_TAG20130117T114547_8hhs3cgs_.bkp
-List of Datafiles in backup set 82
-File LV Type Ckp SCN Ckp Time Name
----- -- ---- ---------- --------- ----
-1 Full 2139245 17-JAN-13 .../oradata/T12CCDB/datafile/o1_mf_system_8008cm5s_.dbf
-3 Full 2139245 17-JAN-13 .../oradata/T12CCDB/datafile/o1_mf_sysaux_80089voz_.dbf
-4 Full 2139245 17-JAN-13 .../oradata/T12CCDB/datafile/o1_mf_undotbs1_8gtp7g6l_.dbf
-5 Full 1621614 13-JUL-12 .../oradata/T12CCDB/C4B70772D4DF1DF8E0437108DC0A7D20/datafile/o1_mf_system_8008jc7k_.dbf
-6 Full 2139245 17-JAN-13 .../oradata/T12CCDB/datafile/o1_mf_users_8008fnov_.dbf
-7 Full 1621614 13-JUL-12 .../oradata/T12CCDB/C4B70772D4DF1DF8E0437108DC0A7D20/datafile/o1_mf_sysaux_8008jc8m_.dbf
-8 Full 2139245 17-JAN-13 .../oradata/T12CCDB/C4B71645EF062616E0437108DC0A91E4/datafile/o1_mf_system_8008r3wh_.dbf
-9 Full 2139245 17-JAN-13 .../oradata/T12CCDB/C4B71645EF062616E0437108DC0A91E4/datafile/o1_mf_sysaux_8008r3vl_.dbf
-10 Full 2139245 17-JAN-13 .../oradata/T12CCDB/datafile/o1_mf_users_8gtp7ghf_.dbf
-20 Full 2139245 17-JAN-13 .../oradata/T12CCDB/C4B71645EF062616E0437108DC0A91E4/datafile/o1_mf_rectbl_8hfcv26r_.dbf 
-
 2. Partial CDB backup
 
 Backup only PDB T12CPDB1:
@@ -3599,31 +3550,13 @@ Backup only PDB T12CPDB1:
 RMAN> BACKUP PLUGGABLE DATABASE T12CPDB1 TAG 'T12CPDB1';
 RMAN> LIST BACKUP;
 
-...
-------- ---- -- ---------- ----------- ------------ ---------------
-85 Full 590.52M DISK 00:00:14 17-JAN-13
-BP Key: 86 Status: AVAILABLE Compressed: NO Tag: T12CPDB1
-Piece Name: .../fast_recovery_area/T12CCDB/backupset/2013_01_17/o1_mf_nnndf_T12CPDB1_8hhswy1c_.bkp
-List of Datafiles in backup set 85
-Container ID: 3, PDB Name: T12CPDB1
-File LV Type Ckp SCN Ckp Time Name
----- -- ---- ---------- --------- ----
-8 Full 2139742 17-JAN-13 .../oradata/T12CCDB/C4B71645EF062616E0437108DC0A91E4/datafile/o1_mf_system_8008r3wh_.dbf
-9 Full 2139742 17-JAN-13 .../oradata/T12CCDB/C4B71645EF062616E0437108DC0A91E4/datafile/o1_mf_sysaux_8008r3vl_.dbf
-10 Full 2139742 17-JAN-13 .../oradata/T12CCDB/datafile/o1_mf_users_8gtp7ghf_.dbf
-20 Full 2139742 17-JAN-13 .../oradata/T12CCDB/C4B71645EF062616E0437108DC0A91E4/datafile/o1_mf_rectbl_8hfcv26r_.dbf
-
-
 You do not need to specify a TAG, as in example above to identify backups of Pluggable Database, TAG is just used in this sample.
 RMAN LIST BACKUP command shows you the information to which Database, or Pluggable Database a rman backup belongs to.
-
 
 However as FRA shows GUID in its PATH name, so in case needed you may use alternate following 
 sample query to identify to which PDB a Backup belongs to:
 
 In this sample: The GUID for T12CPDB1 is C4B71645EF062616E0437108DC0A91E4.
-
-
 
 From the CDB:
 
@@ -3658,7 +3591,6 @@ RMAN> BACKUP DATAFILE 3,20;
 
 RMAN Pluggable Database Recovery
 
-
 1. Loss of system datafile from PDB T12cPDB1
 
 The Container Database and all other PDBs are usually unaffected, only PDB T12CPDB1 is unavailable.
@@ -3672,7 +3604,6 @@ RMAN> RESTORE DATAFILE 8;
 RMAN> RECOVER DATAFILE 8;
 RMAN> ALTER PLUGGABLE DATABASE T12CPDB1 OPEN; 
 
-
 2. Loss of any non-system datafile from PDB eg datafile 10 USERS tablespace
 
 Depending on the circumstances, the file may be already offlined if not - offline it: 
@@ -3682,7 +3613,6 @@ RMAN> ALTER DATABASE DATAFILE 10 OFFLINE;
 RMAN> RESTORE DATAFILE 10;
 RMAN> RECOVER DATAFILE 10;
 RMAN> ALTER DATABASE DATAFILE 10 ONLINE;
-
 
 3. Loss of a complete tablespace from PDB
 
@@ -3821,153 +3751,4 @@ RELEASE CHANNEL ch2;
 }
 EOF
 ```
-
-```
-Server : ironper-orc04       [Primary Source Database is pprod4 on ironper-orc03]
-
  
-
--------------------------BACKUP pices -----------------------------------------------------------------------
-
-Mine Quality 2(PPROD4 – IRONPER-ORC03)
-
-Datafile backup pieces taken 10 Oct 2014:
-
-piece handle HOT_BACKUP_RMAN_DB_PPROD4_0rpknn4u_1_860609694 Media: BS6088
-
-piece handle HOT_BACKUP_RMAN_DB_PPROD4_0qpknn4t_1_860609693 Media: BS6088
-
-Archivelogfile backup pieces taken 10 Oct 2014:
-
-piece Name: HOT_BACKUP_RMAN_AL_PPROD4_10pko4uk_1_860623828 Media: BS6088
-
-piece Name: HOT_BACKUP_RMAN_AL_PPROD4_0vpko4uk_1_860623828 Media: BS6088
-
-piece Name: HOT_BACKUP_RMAN_AL_PPROD4_11pko57t_1_860624125 Media: BS6088
-
-Archivelogfile backup pieces taken 12 Oct 2014:
-
-piece Name: HOT_BACKUP_RMAN_AL_PPROD4_18pks7pc_1_860757804 Media: BS7786
-
-piece Name: HOT_BACKUP_RMAN_AL_PPROD4_19pks7pc_1_860757804 Media: BS7786
-
-piece Name: HOT_BACKUP_RMAN_AL_PPROD4_1apks804_1_860758020 Media: BS7786
-
-------------------------------------------------------------------------------------------------------
-
- 
-
-Set env parameters:
-
-ORACLE_HOME=/app/ptest4/product/9.2.0
-
-ORACLE_SID=pprod4
-
-NLS_DATE_FORMAT='Mon DD YYYY HH24:MI:SS'
-
-RMAN> set dbid=1674672812;
-
-RMAN> STARTUP NOMOUNT pfile = '/app/ptest4/product/9.2.0/dbs/initpprod4.ora'
-
- 
-
-For Controlfile
-
---------------------
-
- 
-
-pprod4_restCont.sh
-
- 
-
-#!/usr/bin/ksh
-
-TODAY=`date +%y%m%d_%H%M`
-
-ORACLE_HOME=/app/ptest4/product/9.2.0
-
-export ORACLE_HOME
-
-ORACLE_SID=pprod4
-
-export ORACLE_SID
-
-NLS_DATE_FORMAT='Mon DD YYYY HH24:MI:SS'
-
-export NLS_DATE_FORMAT
-
-rman target / msglog /app/ptest4/product/9.2.0/dbs/contri_pprod4_$TODAY.out append << EOF
-
-run{
-
-ALLOCATE CHANNEL ch01 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
-
-RESTORE CONTROLFILE from 'c-1674672812-20141012-01';
-
-RELEASE CHANNEL ch01;
-
-}
-
-EOF
-
- 
-
-Restore datafile
-
--------------------------
-
-more pprod4_restore.sh
-
-#!/usr/bin/ksh
-
-TODAY=`date +%y%m%d_%H%M`
-
-ORACLE_HOME=/app/ptest4/product/9.2.0
-
-export ORACLE_HOME
-
-ORACLE_SID=pprod4
-
-export ORACLE_SID
-
-NLS_DATE_FORMAT='Mon DD YYYY HH24:MI:SS'
-
-export NLS_DATE_FORMAT
-
-rman target / msglog /app/ptest4/product/9.2.0/dbs/restore_pprod4_$TODAY.out append << EOF
-
-run{
-
-ALLOCATE CHANNEL ch00 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
-
-ALLOCATE CHANNEL ch01 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
-
-ALLOCATE CHANNEL ch02 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
-
-ALLOCATE CHANNEL ch03 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
-
-ALLOCATE CHANNEL ch04 TYPE 'SBT_TAPE' PARMS='ENV=(NB_ORA_CLIENT=ironper-orc03b,NB_ORA_POLICY=RMAN-ORACLE-HOST)';
-
-set until 'Oct 12 2014 10:00:00';
-
-restore database;
-
-switch datafile all;
-
-recover database;
-
-RELEASE CHANNEL ch00;
-
-RELEASE CHANNEL ch01;
-
-RELEASE CHANNEL ch02;
-
-RELEASE CHANNEL ch03;
-
-RELEASE CHANNEL ch04;
-
-}
-
-EOF
-```
