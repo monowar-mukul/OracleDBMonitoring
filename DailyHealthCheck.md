@@ -1,8 +1,19 @@
 ```diff
 - NOTE
 ! Make sure any Licence requirements from your side. Please do modify based on your own setup. This is purely based on my own lab setup. 
+
 ```
 
+## connect to a database using host, port, SID/Service name without having an entry in tnsnames.ora?
+```
+$ sqlplus username/password@hostname:port/SERVICENAME
+OR
+$ sqlplus username
+Enter password: password@//hostname:port/SERVICENAME
+OR
+$ sqlplus /nolog
+SQL> connect username/password@hostname:port/SERVICENAME
+```
 ### monitor_report_sessions.sql
 ```
 set head off
