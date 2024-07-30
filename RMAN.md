@@ -1305,7 +1305,6 @@ Required archives not backedup due to backup optimization feature. Can you apply
 Bug 17843104 - "DUPLICATE FROM ACTIVE" FAILED BECAUSE ARCHIVELOG FILES WERE SKIPPE
 RMAN>CONFIGURE BACKUP OPTIMIZATION OFF; 
 
-
 SCENARIOS:
 
 Starting Control File and SPFILE Autobackup at 28-11-2015:03:44:46
@@ -1367,8 +1366,7 @@ RMAN> reset database;
 new incarnation of database registered in recovery catalog
 starting full resync of recovery catalog
 full resync complete
-
-==========================================================
+```
 ```
 RMAN> register database;
 
@@ -1381,7 +1379,8 @@ RMAN-08040: full resync skipped, control file is not current or backup
 Go to rman session
 connect to production (not DR)
 register database
-=========================
+```
+```
 Starting backup at 08-NOV-10
 current log archived
 released channel: c1
@@ -1406,10 +1405,8 @@ RMAN> connect target
 connected to target database: FMAPPROD (DBID=1450765346)
 
 RMAN> delete expired archivelog all;
-```
-
 Then run backup 
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+```
 
 SCENARIO: 
 ```
@@ -1440,8 +1437,8 @@ shared_servers                       integer     0
 
 sys@opmpprd> alter system set shared_pool_size=100M scope=both;
 System altered.
-
-##############################################################################################
+```
+```
 channel dev_0: finished piece 1 at 04/16/2008 [05:35:42]
 piece handle=daily_oracle_de_spitzer_mwhprd_dr<mwhprd_7516:652165977:1>.dbf comment=API Version 2.0,MMS Version 65.5.50.0
 channel dev_0: backup set complete, elapsed time: 00:22:45
@@ -1467,7 +1464,6 @@ Successfully added datafile 13 to media recovery
 Datafile #13: '/dbmwhprd/oracle/mwhprd/mwhprd_pssind03_21.dbf'
 Wed May  2 18:26:07 2007
 
-
 This matches an Oracle bug:
 Bug 2749174  Auto addition of standby datafile prevents RMAN backup from running
 Description
@@ -1488,8 +1484,8 @@ Database altered.
 sys@mwhprd> ALTER DATABASE RECOVER MANAGED STANDBY DATABASE DISCONNECT FROM SESSION;
 
 Database altered.
-======================================================================
-
+```
+```
 RMAN-00571: ===========================================================
 RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ============
 RMAN-00571: ===========================================================
@@ -1563,7 +1559,8 @@ select * from v$session  where client_info = 'id=mms_dp_rman';
 
 if nothing relate to this <SID> then
 rm -f /tmp/$ORACLE_SID.rman_running
-
+```
+```
 RMAN> connect catalog rman/recman00@recman
 
 RMAN-00571: ===========================================================
@@ -1708,7 +1705,8 @@ SQL> Select dbid,name from v$database ;
       DBID NAME
 ---------- ---------
 4288714669 BPELPRD
-
+```
+```
 
 RMAN-00571: ===========================================================
 RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
@@ -1774,7 +1772,8 @@ RMAN> CONFIGURE SNAPSHOT CONTROLFILE NAME TO 'G:\Database\Correct\path\SNCFX7AGK
 
 Logout from rman and login using catalog..then resync catalog.
 --------------------------------------------------------------------------------------------------------------------------------------------------
-
+```
+```
 RMAN-00571: ===========================================================
 RMAN-00569: =============== ERROR MESSAGE STACK FOLLOWS ===============
 RMAN-00571: ===========================================================
@@ -1804,7 +1803,9 @@ SYS@pprod241 SQL> select capture_name, queue_owner, capture_user, start_scn, sta
 no rows selected
  
 After this the archives can be deleted as per normal without the force command.
- 
+
+```
+```
 RMAN-08137 --> this error will be reported for few reasons.
  
 1) remote archive log destination did not receive or applied as per your ARCHIVE deletion policy (verify the below)
@@ -1850,13 +1851,10 @@ TESTR =
     )
   )
 
-  
+```  
+## Flashback 
 
-
-
-flashback 
-
-
+```
 
 -- Show Fast Recovery Area information
 --
@@ -1898,7 +1896,8 @@ FROM
 ORDER BY
     name
 /
-
+```
+```
 
 COLUMN file_type                  FORMAT a30     HEADING 'File Type'
 COLUMN percent_space_used                        HEADING 'Percent Space Used'
@@ -1913,6 +1912,8 @@ SELECT
 FROM
     v$flash_recovery_area_usage
 /
+```
+```
 File Type                      Percent Space Used Percent Space Reclaimable Number of Files
 ------------------------------ ------------------ ------------------------- ---------------
 CONTROL FILE                                  .03                         0               1
@@ -1922,45 +1923,46 @@ BACKUP PIECE                                 3.97                      1.24     
 IMAGE COPY                                      0                         0               0
 FLASHBACK LOG                                6.66                      1.67              68
 FOREIGN ARCHIVED LOG                            0                         0               0
-
-SYS@PMTR11 SQL> set numformat 999999999999999999999999
-SYS@PMTR11 SQL> select oldest_flashback_scn, oldest_flashback_time from v$flashback_database_log;
-
+```
+```
+set numformat 999999999999999999999999
+select oldest_flashback_scn, oldest_flashback_time from v$flashback_database_log;
+```
+```
      OLDEST_FLASHBACK_SCN 	OLDEST_FLASHBACK_TI
-------------------------- --------------------------------------------------------------------------------
+------------------------- -------------------------------------
             6003442432117 	17-12-2015:12:56:52
-
-SYS@PMTR11 SQL> show parameter retention
-
+```
+```
+show parameter retention
+```
+```
 NAME                                 TYPE            VALUE
 ------------------------------------ --------------- --------------------------------------------------------------------------------
 db_flashback_retention_target        integer         120
 undo_retention                       integer         32400
-
-SYS@PMTR11 SQL> select * from V$FLASHBACK_DATABASE_STAT;
-
+```
+```
+select * from V$FLASHBACK_DATABASE_STAT;
+```
+```
 BEGIN_TIME          END_TIME            FLASHBACK_DATA    DB_DATA  REDO_DATA ESTIMATED_FLASHBACK_SIZE
 ------------------- ------------------- -------------- ---------- ---------- ------------------------
 17-12-2015:12:56:50 17-12-2015:13:56:56     7281827840 1.0949E+10 4168720896               1726502912
-
-
-SQL> select applied,deleted,decode(rectype,11,'YES','NO') reclaimable ,count(*),min(sequence#),max(sequence#)
+```
+```
+select applied,deleted,decode(rectype,11,'YES','NO') reclaimable ,count(*),min(sequence#),max(sequence#)
 from v$archived_log left outer join sys.x$kccagf using(recid) 
 where is_recovery_dest_file='YES' 
 and name is not null 
 group by applied,deleted,decode(rectype,11,'YES','NO') order by 5 
 / 
-
+```
 NOTE: The problem is there: Because of a bug (Bug 14227959 : STANDBY DID NOT RELEASE SPACE IN FRA) the archivelogs are not marked as reclaimable when the database is in mount mode.
 The workaround is to execute dbms_backup_restore.refreshagedfiles. This is what must be scheduled (maybe daily) on the standby. It can be a good idea to do it at the same time as a daily ‘delete obsolete’, so here is the way to call it from RMAN:
 RMAN> sql "begin dbms_backup_restore.refreshagedfiles; end;";
   
-
-
-
-Performance 
-
-
+## Performance 
 
 Inspect RMAN’s output messages to your terminal to identify your session identifier (SID). 
 If you’re sending output to a log file, then look for the session ID in that file.
@@ -1970,25 +1972,28 @@ allocated channel: ORA_DISK_1
 channel ORA_DISK_1: sid=146 devtype=DISK
 Next, use the V$SESSION and V$PROCESS views to identify which database server
 sessions correspond to RMAN channels:
-
+```
 SQL> SELECT b.sid, b.serial#, a.spid, b.client_info
  FROM v$process a, v$session b
  WHERE a.addr = b.paddr
  AND b.client_info LIKE '%rman%';
-
+```
+```
 SID SERIAL# SPID CLIENT_INFO
 ---------- ---------- ------------ -------------------------
 146 29 4376 rman channel=ORA_DISK_1
+```
 
-Measuring Backup Performance
-============================
+## Measuring Backup Performance
+```
 SQL> SELECT session_recid, input_bytes_per_sec_display,
  output_bytes_per_sec_display,
  time_taken_display, end_time
  FROM v$rman_backup_job_details
  ORDER BY end_time;
-
+```
 You should see output similar to the following:
+```
 SESSION_RECID INPUT_BYTES_PER OUTPUT_BYTES_PE TIME_TAKEN_DISPLAY END_TIME
 ------------- --------------- --------------- -------------------- ---------
 1096 8.60M 7.69M 00:14:25 20-DEC-06
@@ -1996,56 +2001,64 @@ SESSION_RECID INPUT_BYTES_PER OUTPUT_BYTES_PE TIME_TAKEN_DISPLAY END_TIME
 1110 9.59M 8.56M 00:14:56 22-DEC-06
 1114 9.75M 8.71M 00:14:52 23-DEC-06
 1116 10.73M 9.58M 00:14:31 24-DEC-06
-
+```
+Incase - if you need to kill then - 
+```
 alter system kill session '&SID,&SERIAL' immediate;
-
-Monitoring RMAN Job Progress
-=============================
-SQL> select sid, serial#, sofar, totalwork, opname,
+```
+##Monitoring RMAN Job Progress
+```
+select sid, serial#, sofar, totalwork, opname,
  round(sofar/totalwork*100,2) "% Complete"
  from v$session_longops
  where opname LIKE 'RMAN%'
  and opname NOT LIKE '%aggregate%'
  and totalwork != 0
  and sofar <> totalwork;
-
+```
+```
       SID    SERIAL#    CONTEXT      SOFAR  TOTALWORK %_complete
 ---------- ---------- ---------- ---------- ---------- ----------
        508          2          1      23862   15161290        .16
        507          3          1       9592   14710272        .07
        509          2          1      72564   14648017         .5
        510         18          1    5330620   14792964      36.03
-
+```
+```
 select * from v$database_block_corruption;
-
+```
 You should now see some output similar to the following:
+```
 SID SERIAL# SOFAR TOTALWORK OPNAME % Complete
 ------ ------- ---------- ---------- ------------------------------ ----------
 136 7 3259 51840 RMAN: full datafile backup 6.29
 141 57 28671 74880 RMAN: full datafile backup 38.29
+```
 
-Identifying I/O Bottlenecks
-===========================
+##Identifying I/O Bottlenecks
+
 Query V$BACKUP_ASYNC_IO and V$BACKUP_SYNC_IO to determine I/O bottlenecks. Ideally,
 the EFFECTIVE_BYTES_PER_SECOND column should return a rate that is close to the
 capacity of the backup device. The following query returns statistics for asynchronous I/O for
 backup and restore operations that have occurred within the last seven days:
 
 PGA Memory
-
-SQL> sho parameter disk_asynch_io;
-
+```
+sho parameter disk_asynch_io;
+```
+```
 NAME                                 TYPE        VALUE
 ------------------------------------ ----------- ------------------------------
 disk_asynch_io                       boolean     TRUE
-
+```
 When asynchronous i/o is performed at the O/S level, the buffers needed by RMAN are
 allocated from PGA. 
 
 -- Query the pga memory usage by rman  session .
 -- Note that pga consumption increases as backup progresses.
 -- ALso note that size of buffers allocated = 18 MB (41-23) which is slightly > 16 MB
-SQL> col name for a30
+```
+ col name for a30
      set line 500
      select s.sid, n.name , s.value/1024/1024 session_pga_mb
       from  v$statname n, v$sesstat s
@@ -2055,18 +2068,14 @@ SQL> col name for a30
                        AND CLIENT_INFO LIKE '%rman%')
         and n.name = 'session pga memory'
         and s.statistic# = n.statistic#;
-
+```
 If OS does not support asynchronous I/O, we can simulate by setting parameter dbwr_io_slaves to a non zero value.  4 slave processes will be allocated irrespective of the value of the parameter dbwr_io_Slaves. IN this case, buffers for RMAN will be allocated from large pool. 
 If large pool is sized to a value lower than the size of the buffers required, RMAN will switch to synchronous I/O and write a message to the alert log. 
   
-
-
-
-Restore/Recovery 
-
-
+##Restore/Recovery 
 
 Preview BACKUP Information
+```
 RMAN> restore database preview;
 RMAN> restore database from tag TAG20060927T183743 preview;
 RMAN> restore datafile 1, 2, 3, 4 preview;
@@ -2080,7 +2089,7 @@ RMAN> LIST BACKUP OF ARCHIVELOG TIME between "TO_DATE('08/04/2015 19:15:00', 'MM
 
 RMAN> restore archivelog from sequence 207 until sequence 232 thread=2;
 restore archivelog from sequence 10712 until lsequence 25324  thread=2;
-
+```
 cancelbased
 RMAN> connect target /
 RMAN> startup mount;
@@ -2094,16 +2103,19 @@ Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
 
 CANCEL
 SQL> alter database open resetlogs;
-
+```
+## Based on SCN
+Change/SCN based
+You can also use set until scn within a run{} block to perform SCN-based incomplete
+database recovery without having to repeat the SCN number for each command:
+```
 RMAN> connect target /
 RMAN> startup mount;
 RMAN> restore database until scn 950;
 RMAN> recover database until scn 950;
 RMAN> alter database open resetlogs;
-
-Change/SCN based
-You can also use set until scn within a run{} block to perform SCN-based incomplete
-database recovery without having to repeat the SCN number for each command:
+```
+```
 RMAN> connect target /
 RMAN> startup mount;
 RMAN> run{
@@ -2112,31 +2124,32 @@ restore database;
 recover database;
 }
 RMAN> alter database open resetlogs;
+```
 
-#######################################################
-Performing Log Sequence Based Recovery
-####################################################
-
+### Performing Log Sequence Based Recovery
 The following example restores and recovers the target database up to, but not including,
 log sequence number 50:
+```
 RMAN> connect target /
 RMAN> startup mount;
 RMAN> restore database until sequence 50;
 RMAN> recover database until sequence 50;
 RMAN> alter database open resetlogs;
-
-logsequencebased
+```
+## logsequencebased
+```
 RMAN> connect target /
 RMAN> startup mount;
 RMAN> restore database until sequence 50;
 RMAN> recover database until sequence 50;
 RMAN> alter database open resetlogs;
-SQL> select sequence#, first_change#, first_time
+```
+```
+select sequence#, first_change#, first_time
 from v$log_history
 order by first_time;
-
-Timebased
-
+```
+## Timebased
 
 Get the time period
 ----------------------------------------------
@@ -2145,12 +2158,14 @@ LIST BACKUP OF ARCHIVELOG ALL COMPLETED BETWEEN '20-JUN-2009 20:00:00' AND '21-J
 
 set until scn 7395743010602; ## 21-JUN-2009 20:24:23
 --- Run on Catalog Database -----------------
+```
 SELECT db.db_key, db.curr_dbinc_key, db.db_id
       FROM rman.db, rman.dbinc
       WHERE db.curr_dbinc_key = dbinc.dbinc_key
       AND dbinc.db_name   = 'EDPRD'; 
+```
 
-startup nomount;
+```
 export NLS_DATE_FORMAT='DD-MON-YYYY HH24:MI:SS'
 rman 
 set DBID = 442659090 
@@ -2166,9 +2181,12 @@ allocate channel ch4 type 'sbt_tape' parms 'SBT_LIBRARY=/usr/omni/lib/libob2orac
 restore controlfile;
 restore database;
 }
-RMAN>RESTORE ARCHIVELOG FROM SEQUENCE 20 UNTIL SEQUENCE 28;
-SQL> alter database open resetlogs;
-
+```
+```
+RESTORE ARCHIVELOG FROM SEQUENCE 20 UNTIL SEQUENCE 28;
+alter database open resetlogs;
+```
+```
 Previous Incarnation
 RMAN-03002: failure of restore command ...
 RMAN-20207: UNTIL TIME or RECOVERY WINDOW is before RESETLOGS time
@@ -2183,7 +2201,8 @@ RMAN> restore database until time  "to_date('03-sep-2006 00:00:00', 'dd-mon-rrrr
 RMAN> recover database until time  "to_date('03-sep-2006 00:00:00', 'dd-mon-rrrr hh24:mi:ss')";
 RMAN> alter database open reset logs;
 The database is now as it was on September 3, 2006 at 12 a.m.
-
+```
+```
 RMAN> connect target
 RMAN> connect catalog rman/recman00@recman
 RMAN> List Incarnation of database victst1;
@@ -2214,9 +2233,9 @@ RMAN> LIST INCARNATION OF DATABASE DBA10;
 RMAN> RESET DATABASE TO INCARNATION  464 ;
 RMAN> restore database;
 RMAN> alter database open resetlogs;
+```
 
-
-redo log failureORA-00312
+##redo log failureORA-00312
 
 Solution
 Follow these steps when dealing with online redo log file failures:
@@ -2225,7 +2244,8 @@ Follow these steps when dealing with online redo log file failures:
 
 Query V$LOG and V$LOGFILE views to determine the status of your log group and the
 member files in each group:
-SQL> select
+```
+select
  a.group#, a.thread#,
  a.status grp_status,
  b.member member,
@@ -2234,18 +2254,21 @@ SQL> select
  v$logfile b
  where a.group# = b.group#
  order by a.group#, b.member;
-
+```
+```
 Type of Failure                         Status Column of V$LOG                                        Action                                            Recipe
 ======================================================================================================
 One member failed in                              N/A                                                        Re-create member.                      Recipe 14-2
-
+```
+```
 Restoring After Losing One Member of the Multiplexed Group Problem
 You notice this message in your alert.log file:
 Errors in file c:\oracle\product\10.2.0\admin\orcl\bdump\orcl_lgwr_5800.trc:
 ORA-00321: log 1 of thread 1, cannot update log file header
 ORA-00312: online log 1 thread 1:'C:\ORACLE\PRODUCT\10.2.0\ORADATA\ORCL\REDO01B.LOG'
-
-AllMembersdropACTIVEloggroup
+```
+#### All Members drop ACTIVE log group
+```
 1. Verify the damage to the members.
 2. Verify that the status is ACTIVE.
 3. Attempt to issue a checkpoint.
@@ -2262,9 +2285,9 @@ SQL> select group#, status, archived, thread#, sequence# from v$log;
 SQL> alter system checkpoint;
 SQL> alter database clear logfile group <group#>;
 SQL> alter database clear unarchived logfile group <group#>;
-
+```
 Example
--------------------
+```
 RMAN> select GROUP#, STATUS, FIRST_CHANGE# from v$log;
 
     GROUP# STATUS           FIRST_CHANGE#
@@ -2349,9 +2372,9 @@ RMAN> select group#, status, archived, thread#, sequence# from v$log;
          1 INACTIVE         YES          1         67
          2 CURRENT          NO           1         70
          3 ACTIVE           YES          1         69
+```
 
-
-AllmemberslossCurrentloggroup
+### All members loss Current log group
 
 Perform an incomplete recovery up to the last good SCN.
 If flashback is enabled, flash your database back to the last good SCN.
@@ -2359,9 +2382,10 @@ If you’re using Oracle Data Guard, fail over to your physical or logical stand
 Contact Oracle Support for suggestions.
 In preparation for an incomplete recovery, first
 
-SQL> shutdown immediate;
-SQL> startup mount;
-SQL> select group#, status, archived, thread#, sequence#, first_change# from v$log;
+```
+shutdown immediate;
+startup mount;
+select group#, status, archived, thread#, sequence#, first_change# from v$log;
 
 GROUP# STATUS ARC THREAD# SEQUENCE# FIRST_CHANGE#
 ------ -------- --- ------- ---------- -------------
@@ -2372,10 +2396,10 @@ GROUP# STATUS ARC THREAD# SEQUENCE# FIRST_CHANGE#
 RMAN> restore database until scn 1800573;
 RMAN> recover database until scn 1800573;
 RMAN> alter database open resetlogs;
-
+```
 
 ------TEST
-
+```
 RMAN> select group#, status, archived, thread#, sequence# from v$log;
 
     GROUP# STATUS           ARC    THREAD#  SEQUENCE#
@@ -2480,7 +2504,6 @@ channel ORA_DISK_1: restored backup piece 1
 channel ORA_DISK_1: restore complete, elapsed time: 00:00:01
 Finished restore at 02-DEC-13
 
-
 RMAN> recover database until scn 19081650;
 
 Starting recover at 02-DEC-13
@@ -2518,10 +2541,10 @@ starting media recovery
 media recovery complete, elapsed time: 00:00:01
 
 Finished recover at 02-DEC-13
+```
 
-AllMembersoftheINACTIVE
-
-
+## All Members of the INACTIVE
+```
 Database mounted.
 ORA-00313: open failed for members of log group 1 of thread 1
 ORA-00312: online log 1 thread 1:'C:\ORACLE\PRODUCT\10.2.0\ORADATA\ORCL\REDO01.LOG'
@@ -2545,12 +2568,9 @@ If the status is INACTIVE, then this log group is no longer needed for crash rec
 SQL> alter database clear logfile group 1; [clear logfile will drop and re-create all members of a log group for you]
 
 If the log group has not been archived
-===================================
 SQL> alter database clear unarchived logfile group 1;
 
-
-DROPPANDADDLOGGROUP
-
+### DROP AND ADD LOG GROUP
 
 A log group has to have an inactive status before you can drop it. 
 
@@ -2576,19 +2596,20 @@ group 4 with two members sized at 50MB:
 SQL> alter database add logfile group 4
  ('C:\ORADATA\ORCL\REDO04A.LOG',
  'D:\ORADATA\ORCL\REDO04B.LOG') SIZE 50M;
+```
 
-
-OneMemberofthe MultiplexedGroup
+### One Member of the Multiplexed Group
 
 Errors in file c:\oracle\product\10.2.0\admin\orcl\bdump\orcl_lgwr_5800.trc:
 ORA-00321: log 1 of thread 1, cannot update log file header
 ORA-00312: online log 1 thread 1:'C:\ORACLE\PRODUCT\10.2.0\ORADATA\ORCL\REDO01B.LOG'
 
-
+```
 1. Identify the online redo log file experiencing media failure.
 2. Ensure that the online redo log file is not part of the current online log group.
 3. Drop the damaged member.
 4. Add a new member to the group.
+```
 
 Once you’ve identified the bad online redo log file, execute the following query to check
 whether that online redo log file’s group has a CURRENT status:
@@ -2603,6 +2624,7 @@ For a database in archivelog mode the online redo log files contain the most rec
 are required to perform a complete recovery.
 Displaying Online Redo Log Information
 Use the V$LOG and V$LOGFILE views to display information about online redo log groups and corresponding members:
+```
 COL group# FORM 99999
 COL thread# FORM 99999
 COL grp_status FORM a10
@@ -2621,7 +2643,7 @@ FROM v$log a,
 v$logfile b
 WHERE a.group# = b.group#
 ORDER BY a.group#, b.member;
-
+```
 
 If the failed member is in the current log group, then use the alter system switch
 logfile command to make the next group the current group. Then drop the failed member
@@ -2634,9 +2656,8 @@ parameter to overwrite and reuse that log file. The log file must be the same si
 log files in the group.
 SQL> alter database add logfile member '\directory\member>' reuse to group <group#>;
 
-
-POINT INTIME RECOVERY:
-
+## POINT INTIME RECOVERY
+```
 rman target /
 Find out  Piece Name which contained -   Control File Included: 
 show controlfile autobackup;
@@ -2658,8 +2679,6 @@ Restore the controlfile from autobackup:
 RMAN> restore controlfile from  'F:\RESTORED BACKUP FROM 8PM SUNDAY\QMJS1_FULL_DATABASE_BKP_PDQM91VA_1_1_20151114';
 
 RMAN> sql 'alter database mount';
-
-
 rman target /
 catalog start with 'F:\Restored Backup from 8pm Sunday';
 
@@ -2725,7 +2744,6 @@ channel ORA_DISK_1: restored backup piece 1
 channel ORA_DISK_1: restore complete, elapsed time: 00:01:25
 Finished restore at 18-NOV-15
 
-
 recover database;
 -----
 channel ORA_DISK_1: starting archived log restore to default destination
@@ -2751,22 +2769,17 @@ RMAN-06054: media recovery requesting unknown archived log for thread 1 with seq
 
 RMAN> sql 'alter database open resetlogs';
 sql statement: alter database open resetlogs
-
----------
+```
+```
 RMAN> run {
 set until time '16-NOV-2015 11:00:00';  
 restore database;
 recover database;
 }
-------------
+```
   
-
-
-
-unregister 
-
-
-
+## unregister 
+```
 set lines 132
 set pages 60
 alter session set nls_date_format = 'DD-MON-YY HH24:MI';
@@ -2806,7 +2819,8 @@ order by i.DB_NAME, i.DB_KEY, db.DB_ID, i.RESET_TIME
 prompt Enter Database Key and Id to remove database from catalog.
 
 EXECUTE dbms_rcvcat.unregisterdatabase(&db_key, &db_id);
-
+```
+```
 1. Connect both to the recovery catalog and to the target database:
 $ rman target / catalog rman/rman@catdb
 RMAN>
@@ -2822,11 +2836,11 @@ RMAN> run
 {set dbid 1234567899;
 unregister database testdb;
 }
-
+```
 ###################################################
-Unregister a Database From the Recovery Catalog 
+## Unregister a Database From the Recovery Catalog 
 ###################################################
-
+```
 Taken from Metalink: Doc ID: Note:1058332.6 
 This section describes the steps on how to remove (unregister) a database (the target database) from the recovery catalog. 
 
@@ -2890,14 +2904,11 @@ SQL> execute dbms_rcvcat.unregisterdatabase(1, 4081318632)
 
 PL/SQL procedure successfully completed.
 
-  
+ ```
 
+## verifying Integrity& BlockRecovery 
 
-
-verifying Integrity& BlockRecovery 
-
-
-
+```
 RMAN> restore database validate check logical;
 RMAN> validate backupset 193;
 RMAN> validate backupset 193 check logical;
@@ -2943,7 +2954,6 @@ File Status Marked Corrupt Empty Blocks Blocks Examined High SCN
 
 
 recover datafile 1 block 101760;
-
 
 SQL> select * from v$database_block_corruption;
  
@@ -3469,11 +3479,7 @@ DBMS_HM.GET_RUN_REPORT('DATABLOCKINT')
 Basic Run Information
  Run Name                     : datablockint
 
-  
-
-
-
-CDB&PDB 
+###CDB&PDB 
 
 
 
