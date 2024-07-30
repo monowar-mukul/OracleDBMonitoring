@@ -7,9 +7,6 @@
 ```
 set head off
 set linesize 200 trimspool on pagesize 0
-select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS') from dual;
-
-SELECT 'Status,Serial#,Type,DB User,Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
 
 SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
          s.username||','||s.osuser||','||
@@ -20,6 +17,42 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
 ```
 ```
 SELECT 'Sid,Serial#,User,Temp(Mb),Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
+```
+## Including Service name
+
+```
+SET LINESIZE 500
+SET PAGESIZE 1000
+
+COLUMN username FORMAT A30
+COLUMN osuser FORMAT A20
+COLUMN spid FORMAT A10
+COLUMN service_name FORMAT A15
+COLUMN module FORMAT A45
+COLUMN machine FORMAT A30
+COLUMN logon_time FORMAT A20
+
+SELECT NVL(s.username, '(oracle)') AS username,
+       s.osuser,
+       s.sid,
+       s.serial#,
+       p.spid,
+       s.lockwait,
+       s.status,
+       s.service_name,
+       s.machine,
+       s.program,
+       TO_CHAR(s.logon_Time,'DD-MON-YYYY HH24:MI:SS') AS logon_time,
+       s.last_call_et AS last_call_et_secs,
+       s.module,
+       s.action,
+       s.client_info,
+       s.client_identifier
+FROM   v$session s,
+       v$process p
+WHERE  s.paddr = p.addr
+and service_name='TRMPS_RO_SVC'
+ORDER BY s.username, s.osuser;
 ```
 ```
 col size_mb format 999 head "size_mb"
