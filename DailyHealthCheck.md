@@ -563,7 +563,7 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
    WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
 ```
 
-### ToKillsession -- collect the information first and confirm from the respective team first
+### ToKillsession -- collect the session information and confirm from the respective team first before killing session
 ```
 alter system kill session '''||sid||','||serial#||''' immediate;' 
 from gv$session 
@@ -603,7 +603,6 @@ set verify on
 /
 ```
 
-
 ### monitor_max_extent.sql
 ```
 rem    monitor_max_exent.sql
@@ -640,515 +639,10 @@ ORDER BY 1;
 set verify on
 set termout on
 ```
-### monitor_extend.sql
+## Archive Information
 
+archive_gen.sh
 ```
-rem    unable_to_extend.sql
-rem
-rem    Script to list segments unable to extend due to lack of free space
-rem    USAGE:   unable_to_extend <no. of extents>
-rem
-rem             threshold is a numeric value used as a multipler of the next
-rem             extent size for an object
-rem             e.g. if you want to report on segments that cannot extend
-rem             by 3 times in the available
-rem             free space (including auto extend), the the multipler would
-rem             be set to 3.
-rem
-set verify off
-set termout off
-set linesize 80
-set pagesize 0
-rem set feedback off  feedback needed for monitor_extend.sh script to work
-
-
-prompt          ====DB OWNER SEGMENT TABLESPACE======
-
-
-column db_ownr_seg_tblespace format a80
-select  substr(substr(db.name,1,10)||' '|| substr(a.owner,1,12)||'.'||
-        substr(decode(partition_name, null, segment_name, segment_name
-        || ':' || partition_name),1,20)||' '||
-        a.tablespace_name,1,80) db_ownr_seg_tblespace
- from   dba_segments a, v$database db,
-                (select df.tablespace_name, nvl(max(fs.bytes), 0) free,
-                        nvl(sum(fs.bytes), 0) remain
-                   from dba_data_files df,
-                        dba_free_space fs
-                  where df.file_id = fs.file_id (+)
-                        group by df.tablespace_name) b
-                ,(select  tablespace_name, max(maxbytes - bytes) morebytes,
-                  sum(decode(AUTOEXTENSIBLE, 'YES', maxbytes - bytes, 0)) totalmorebytes,
-                  sum(decode(AUTOEXTENSIBLE, 'YES', 1, 0)) autoextensible
-                   from dba_data_files
-                  group by tablespace_name) c
- where  a.tablespace_name = b.tablespace_name
-   and  a.tablespace_name = c.tablespace_name
-   and  a.segment_type != 'ROLLBACK'
-   and  ((c.autoextensible = 0) or ((c.autoextensible > 0) and (a.next_extent >
-c.morebytes)))
-   and  a.next_extent * nvl('&1',1) > b.free;
-
-set verify on
-set termout on
-```
-
-### monitor_locks.sql
-```
-rem    monitor_locks.sql
-rem
-rem    Script to list session details for blocking and blocked sessions
-rem    USAGE:   monitor_resource_limit.sql seconds_threshold
-rem
-rem      Will list blocking and blocked sessions
-rem      with a last call time greater than seconds_threshold
-
-set linesize 132
-set pagesize 64
-set feedback off
-set verify off
-set trimspool on
-col sid format 999 head "Sid"
-col serial# format 99999 head "Serial"
-col machine format a8 head "Source"
-col username format a8 head "ORA User"
-col osuser format a8 head "OS User"
-col status format a8 head "Status"
-col process format a9 head "SourcePID"
-col spid format a8 head "LocalPID"
-col last_call_et format 9999999 head "ExecSecs"
-col logon_time format a16 head "Logged_On_Since"
-col module format a16 head "Module"
-set heading off
-
-select 'INFO : Waiting Session Details ' from dual ;
- set heading on
- select /*+ rule */ s.sid,s.serial#,p.spid,s.username,s.osuser,
-       rpad(s.machine,8) "Source",s.process,
-       s.last_call_et,to_char(s.logon_time,'DD/MM/YYYY HH24:MI') "Logged_On_Since",
-       s.status,s.module --,s.lockwait
- from V$session s, V$process p
- where s.status = 'ACTIVE'
- and s.last_call_et > &1
- and s.paddr = p.addr
- and s.lockwait is not null
- order by s.last_call_et, s.sid;
-
- set heading on
- select s.sid,t.sql_text
- from v$session s, v$sqltext_with_newlines t
- where s.status = 'ACTIVE'
- and s.type != 'BACKGROUND'
- and s.username is not null
- and s.last_call_et > &1
- and s.lockwait is not null
- and s.sql_address = t.address
- and s.sql_hash_value = t.hash_value
- order by s.last_call_et, s.sid, t.piece ;
-
-set heading off
-
-select 'INFO : Blocking Session = ' || holding_session from dba_blockers ;
-
-select 'INFO : Blocking Session Details ' from dual ;
-
- set heading on
- select /*+ rule */ s.sid,s.serial#,p.spid,s.username,s.osuser,
-       rpad(s.machine,8) "Source",s.process,
-       s.last_call_et,to_char(s.logon_time,'DD/MM/YYYY HH24:MI') "Logged_On_Since",
-       s.status,s.module
- from v$session s, v$process p, dba_blockers b
- where s.sid = b.holding_session
-   and s.paddr = p.addr ;
-
- set heading on
- select s.sid, t.sql_text
- from v$session s, v$sqltext_with_newlines t, dba_blockers b
- where s.sid = b.holding_session
- and ((s.sql_address = t.address and s.sql_hash_value = t.hash_value)
-     or (s.prev_sql_addr = t.address and s.prev_hash_value = t.hash_value))
- order by s.sid, t.piece
-/
-```
-### monitor_resource_limit.sql
-```
-rem    monitor_resource_limit.sql
-rem
-rem    Script to list any resource withing 5% of capacity
-rem    USAGE:   monitor_resource_limit.sql limit1 limit2
-rem
-rem      Will detect any resource within <limit1> percent  of capacity
-rem      or for processes within <limit2>% of capacity
-set verify off
-set termout off
-set linesize 80
-set pagesize 0
-
-   Select /*+ rule */ substr(name,1,10)||' '|| substr(resource_name,1,30)||' '||round(CURRENT_UTILIZATION/LIMIT_VALUE*100,2)
-    FROM (select * from v$resource_limit
-          WHERE trim(limit_value) <> 'UNLIMITED'), v$database
-    WHERE  to_number(current_utilization) > to_number(limit_value) * (nvl('&1',1)/100)
-      AND resource_name in ('processes','sessions') and resource_name not like 'gcs%'
-UNION
- select substr(name,1,10)||' '|| substr(resource_name,1,30)||' '||round(CURRENT_UTILIZATION/LIMIT_VALUE*100,2)
-    FROM (select * from v$resource_limit
-          WHERE trim(limit_value) <> 'UNLIMITED'), v$database
-    WHERE  to_number(current_utilization) > to_number(limit_value) * (nvl('&2',1)/100)
-      AND resource_name in ('processes','sessions')
-ORDER BY 1;
-spool off
-set verify on
-/
-```
-
-### monitor_long_sessions.sql
-```
-rem    monitor_long_sessions.sql
-rem
-rem    Script to list session details for active sessions
-rem           that have been running longer than the threshold ($1)
-rem           seconds
-rem    USAGE:   monitor_long_sessions.sql seconds_threshold
-rem
-
-set linesize 132
-set pagesize 64
-set feedback off
-set trimspool on
-col sid format 999 head "Sid"
-col serial# format 99999 head "Serial"
-col username format a8 head "ORA User"
-col action format a8 head "OS User"
-col machine format a8 head "Source"
-col status format a8 head "Status"
-col process format a9 head "SourcePID"
-col spid format a8 head "LocalPID"
-col last_call_et format 9999999 head "ExecSecs"
-col logon_time format a16 head "Logged_On_Since"
-col module format a32 head "Module"
-set heading off
-set heading on
-
-select /*+ rule */ s.sid,s.serial#,p.spid,s.username,rpad(s.action,8) "OS User",
-rpad(s.machine,8) "Source",s.process,
-       s.last_call_et,to_char(s.logon_time,'DD/MM/YYYY HH24:MI') "Logged_On_Since",
-       s.status,s.module
-from v$session s, v$process p
-where status in ( 'ACTIVE','SNIPED')
-  and s.type != 'BACKGROUND'
-  and s.last_call_et > '&1'
-  and s.paddr = p.addr
-  and s.lockwait is null
-order by s.last_call_et, s.sid
-/
-
-set heading off
-select t.sql_text
-  from v$session s, V$sqltext_with_newlines t
-where status in ( 'ACTIVE','SNIPED')
-   and s.type != 'BACKGROUND'
-   and s.last_call_et > '&1'
-   and s.lockwait is null
-   and s.sql_address = t.address
-   and s.sql_hash_value = t.hash_value
- order by s.last_call_et, s.sid, t.piece
-/
-```
-
-### monitor_tablespace.sql
-```
-rem    monitor_tablespace.sql
-rem
-rem    Script to report when the free space for a tablespace breaches
-rem    a nominated threshold
-
-
-rem    USAGE:   monitor_tablespace <threshold>
-rem         where threshold is a number between 1 and 99 inclusive
-rem
-rem             script is called by monitor_tablespace.sh
-rem             threshold is a numeric value representing a percentage
-rem             of tablespace freespace available.
-rem             e.g. if you want to report when there is less than 20% of
-rem             free space left in a tablespace
-rem             the threshold would be set to 20.
-rem
-rem
-
-rem
-set verify off
-set termout off
-set linesize 80
-set pagesize 0
-set feedback on
-
-col tspace form a25 Heading "Tablespace"
-col tot_ts_size form 99999999999999 Heading "Size(Mb) "
-col free_ts_size form 99999999999999 Heading "Free_(Mb)"
-col ts_pct form 999 Heading "%Free "
-
-select df.tablespace_name tspace,
-       df.bytes/(1024*1024) tot_ts_size,
-       fs.free_space/(1024*1024) free_ts_size,
-       round(((df.bytes - (df.allocated - fs.free_space))/df.bytes) * 100) tc_pct
-from  (select tablespace_name, sum(bytes) free_space
-         from dba_free_space
-        group by tablespace_name ) fs ,
-      (select tablespace_name,
-              sum(decode(autoextensible,'NO',bytes,maxbytes)) bytes,
-              sum(user_bytes) allocated
-         from dba_data_files
-        group by tablespace_name ) df
-where fs.tablespace_name = df.tablespace_name
-and   fs.tablespace_name not in ('TEMP','ROLLBACK','UNDOTBS1','UNDOTBS2','UNDOTBS3')
-and ((df.bytes - (df.allocated - fs.free_space))/df.bytes) * 100 < &1
-/
-```
-
-### monitor_dataguard.sql
-```
-rem    monitor_dataguard.sql
-rem
-rem    Script to report status of applied archive logs on standby database
-rem
-rem
-rem    USAGE:   monitor_dataguard
-rem
-rem             script is called by monitor_dataguard.sh
-rem
-
-set verify off
-set termout off
-set linesize 180
-set pagesize 60
-set trimspool on
-
-col name      format a15
-col host_name format a15
-
-alter session set nls_date_format = 'DD-MON-YY hh24:mi:ss';
-
-select d.name, i.status, d.database_role, i.host_name
-from v$database d,
-     v$instance i;
-
-col name      format a40
-col message   format a90
-col sequence# format 99999999
-
-PROMPT Checking V$ARCHIVE_GAP
-PROMPT ======================
-
-select *
-from v$archive_gap;
-
-PROMPT Checking archive logs applied in last two days/weekend
-PROMPT ======================================================
-
-select sequence#, name, first_time, next_time, completion_time, applied, status
-from v$archived_log
-where first_time > case to_char(sysdate,'DY')
-                   when 'MON' then trunc(sysdate - 3,'dd')
-                   else            trunc(sysdate - 1,'dd')
-                   end
-order by sequence#;
-
-PROMPT Checking messages
-PROMPT =================
-
-select timestamp, message, severity
-from v$dataguard_status
-where upper(severity) in ('ERROR','FATAL');
-
-PROMPT Checking status of apply process
-PROMPT ================================
-
-select process, status, sequence#
-from v$managed_standby
-where process like 'MRP%';
-
-spool off
-set verify on
-set termout on
-
-[oracle@csmper-cls09 monitor]$ more monitor_dbms_jobs.sql
-rem    monitor_dbms_jobs.sql
-rem
-rem    Script to list dbms jobs that are failing/broken
-rem    USAGE:   unable_to_extend <no. of extents>
-rem
-
-set verify off
-set termout off
-set linesize 80
-set pagesize 0
-rem set feedback off  feedback needed for monitor_dbms_jobs.sh script to work
-
-
-SELECT job, priv_user, failures,
-       decode(to_char(next_date,'J'),'3182030','** Disabled/Broken **',
-       to_char(next_date,'dd-Mon-yyyy hh24:mi:ss')) overdue_next_date
-FROM   dba_jobs dj
-WHERE  (dj.next_date < (sysdate - 1800/86400) -- allow 30 min for snp latency
-   OR  dj.failures > 0)
-  AND  NOT EXISTS (SELECT null FROM dba_jobs_running
-       WHERE job = dj.job);
-
-set verify on
-set termout on
-```
-### monitor_resource_limit.sql
-```
-rem    monitor_resource_limit.sql
-rem
-rem    Script to list any resource withing 5% of capacity
-rem    USAGE:   monitor_resource_limit.sql limit1 limit2
-rem
-rem      Will detect any resource within <limit1> percent  of capacity
-rem      or for processes within <limit2>% of capacity
-set verify off
-set termout off
-set linesize 80
-set pagesize 0
-
-   Select /*+ rule */ substr(name,1,10)||' '|| substr(resource_name,1,30)||' '||round(CURRENT_UTILIZATION/LIMIT_VALUE*100,2)
-    FROM (select * from v$resource_limit
-          WHERE trim(limit_value) <> 'UNLIMITED'), v$database
-    WHERE  to_number(current_utilization) > to_number(limit_value) * (nvl('&1',1)/100)
-      AND resource_name in ('processes','sessions') and resource_name not like 'gcs%'
-UNION
- select substr(name,1,10)||' '|| substr(resource_name,1,30)||' '||round(CURRENT_UTILIZATION/LIMIT_VALUE*100,2)
-    FROM (select * from v$resource_limit
-          WHERE trim(limit_value) <> 'UNLIMITED'), v$database
-    WHERE  to_number(current_utilization) > to_number(limit_value) * (nvl('&2',1)/100)
-      AND resource_name in ('processes','sessions')
-ORDER BY 1;
-spool off
-set verify on
-/
-```
-
-### monitor_report_sessions.sql
-```
-set head off
-set linesize 200 trimspool on pagesize 0
-select '  monitor_tempspaces.sh run on '||to_char(sysdate,'DD/MM/YYYY HH24:MI:SS
-') from dual;
-
-SELECT 'Status,Serial#,Type,DB User,Client User,Machine,Module,Client Info, Term
-inal,Program,Action'  From Dual;
-
-SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
-         s.username||','||s.osuser||','||
-         s.machine||','||s.module||','||s.client_info||','||
-         s.terminal||','||s.program||','||s.action
-    FROM v$session s, v$process p, SYS.v_$sess_io si
-   WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
-
-SELECT 'Sid,Serial#,User,Temp(Mb),Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
-
-col size_mb format 999 head "size_mb"
-COMPUTE SUM of size_mb ON REPORT
-
-
-select substr(s.sid || ',' || s.serial#,1,10) sid,
-       substr(s.username,1,8) u_name,
-       substr(sum(round(((u.blocks*p.value)/1024/1024),2)),1,7) size_mb,
-       substr(s.osuser||','||s.machine||','||s.module||','||s.client_info||','||
-         s.terminal||','||s.program||','||s.action,1,51) osUsr_Mach_mod_clinf_ter_prog
-from v$sort_usage u,
-     v$session s,
-     v$sqlarea a,
-     v$parameter p
-where s.saddr (+) = u.session_addr
-  and a.address (+) = s.sql_address
-  and a.hash_value (+) = s.sql_hash_value
-  and p.name = 'db_block_size'
-group by  s.sid || ',' || s.serial#,
-          s.username,
-          a.sql_text,
-          u.tablespace,
-          substr(round(((u.blocks*p.value)/1024/1024),2),1,7),
-          substr(s.osuser||','||s.machine||','||s.module||','||
-          s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
-```
-
-### monitor_resource_limit.sql
-```
-rem    monitor_resource_limit.sql
-rem
-rem    Script to list any resource withing 5% of capacity
-rem    USAGE:   monitor_resource_limit.sql limit1 limit2
-rem
-rem      Will detect any resource within <limit1> percent  of capacity
-rem      or for processes within <limit2>% of capacity
-set verify off
-set termout off
-set linesize 80
-set pagesize 0
-
-   Select /*+ rule */ substr(name,1,10)||' '|| substr(resource_name,1,30)||' '||round(CURRENT_UTILIZATION/LIMIT_VALUE*100,2)
-    FROM (select * from v$resource_limit
-          WHERE trim(limit_value) <> 'UNLIMITED'), v$database
-    WHERE  to_number(current_utilization) > to_number(limit_value) * (nvl('&1',1)/100)
-      AND resource_name in ('processes','sessions') and resource_name not like 'gcs%'
-UNION
- select substr(name,1,10)||' '|| substr(resource_name,1,30)||' '||round(CURRENT_UTILIZATION/LIMIT_VALUE*100,2)
-    FROM (select * from v$resource_limit
-          WHERE trim(limit_value) <> 'UNLIMITED'), v$database
-    WHERE  to_number(current_utilization) > to_number(limit_value) * (nvl('&2',1)/100)
-      AND resource_name in ('processes','sessions')
-ORDER BY 1;
-spool off
-set verify on
-/
-```
-
-### ADDM Report Shell Script
-```
-#!/usr/bin/ksh
-
-PATH=/usr/local/bin:$PATH
-ID=`echo $$`
-TMPFILE="/tmp/${ID}_tmpfile.lst"
-REPORT_DIR=/opt/oracle/product/admin/cron/scripts/logs/
-TODAY `date +%Y%m%d_%H%M`
-SID_LIST="aisprod3 pprod123 pprod253 pprod243 pprod193 pprod203 io1docpr3 pprod183 arisbp3 arisbs3 ICCAPPP3 iccitmp3 wsesbp3 wspsp3 pprod163 iosbmpa3 iccrtcp3 iosbmpd3 pamprd3 improd3 PPROD13 smprod3"
-for i in `echo ${SID_LIST}`
-do
- ORAENV_ASK=NO
- ORACLE_SID=$i
- . oraenv
-sqlplus -s / << EOF
-connect /as sysdba
-set pages 0
-set verify off
-set feedback off
-spool $TMPFILE
-select 'DEFINE inst_num='||instance_number from  v\$instance;
-select 'DEFINE inst_name='||instance_name from  v\$instance;
-select 'DEFINE DBID='||DBID from  v\$database;
-select 'DEFINE db_name='||name from  v\$database;
-select 'DEFINE end_snap='||max(SNAP_ID) from dba_hist_snapshot
-  where to_char(BEGIN_INTERVAL_TIME,'DD-MON-YY') = to_char(SYSDATE,'DD-MON-YY');
-select 'DEFINE begin_snap='||min(SNAP_ID) from dba_hist_snapshot
-  where to_char(BEGIN_INTERVAL_TIME,'DD-MON-YY') = to_char(SYSDATE-7,'DD-MON-YY');
-spool off
-@$TMPFILE
-DEFINE num_days=7
-DEFINE report_name=${REPORT_DIR}/${ORACLE_SID}_ADDM_REPORT_${TODAY}.txt
-@?/rdbms/admin/addmrpti.sql
-exit
-EOF
-cd $REPORT_DIR
-cat ${ORACLE_SID}_ADDM_REPORT_${TODAY}.txt | mailx -s " ADDM reoprt ${ORACLE_SID} `hostname` at `date`  " "sthati@csc.com,smandava6@csc.com"
-done
-test -f $TMPFILE && rm $TMPFILE
-```
-
-AUDIT
---------
-[oracle@csmper-cls09 audit]$ more archive_gen.sh
 #export PATH=$ORACLE_HOME/bin:$PATH:.
 ps -ef |grep pmon |grep -v +ASM |grep -v "grep pmon"|cut -f3 -d_ |while read dblist
 do
@@ -1165,8 +659,8 @@ spool off
 exit
 eof
 done
-
-## arch_gen.sql
+```
+### arch_gen.sql
 ```
 SELECT A.*,Round(A.Count#*B.AVG#/1024/1024) Daily_Avg_Mb
 FROM (SELECT To_Char(First_Time,'YYYY-MM-DD') DAY,Count(1) Count#,
@@ -1175,7 +669,7 @@ BY To_Char(First_Time,'YYYY-MM-DD') ORDER BY 1 DESC ) A,
 (SELECT Avg(BYTES) AVG#,Count(1) Count#,Max(BYTES) Max_Bytes,Min(BYTES) Min_Bytes
 FROM v$log) B;
 ```
-## arch_gen2.sql
+### arch_gen2.sql
 ```
 select sum(GB_USED_PER_DAY)/count(GB_USED_PER_DAY) from (SELECT
  TO_CHAR(completion_time,'YYYY-MM-DD') completion_date,
@@ -1189,7 +683,7 @@ GROUP BY TO_CHAR(completion_time,'YYYY-MM-DD')
 
 ## House Keeping Shell script for Oracle Database Home
  
-more oracle_housekeeping.sh
+oracle_housekeeping.sh
 ```
 #!/bin/sh
 
@@ -1438,7 +932,7 @@ exit
 
 ## House Keeping Shell script for Grid Infrastructure Home
 
-more grid_housekeping.sh
+grid_housekeping.sh
 ```
 #!/bin/sh
 
@@ -1936,8 +1430,6 @@ WHERE s.saddr = u.session_addr
 AND s.sid = &sid_number
 /
 ```
-
-
 ### Performance Statistics
 
 more performance_stat.sql
@@ -2207,8 +1699,7 @@ select 'alter user '|| name ||' identified by values '''||
 decode(spare4,null,password,spare4)||''';' sql
 from sys.user$;
 ```
-
- ## Check Memory Usage by Sessions in Oracle Database
+## Check Memory Usage by Sessions in Oracle Database
 ```
 SET pages500 lines110 trims ON
 CLEAR col
