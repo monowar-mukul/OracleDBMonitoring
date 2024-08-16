@@ -981,6 +981,28 @@ JOIN   s on j.session_recid = s.session_recid and j.session_stamp = s.session_st
 ORDER BY SESSION_KEY
 /
 ```
+Sample Output:
+```
+     Key Day Backup Type Dest     Sets  Logs  Ctrl  Status         Start Time      End Time        Duration   Size In    Bytes/Sec  Size Out   Bytes/Sec
+-------- --- ----------- -------- ----- ----- ----- -------------- --------------- --------------- ---------- ---------- ---------- ---------- ----------
+   99461 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 15:23  08/15/24 15:23  00:00:15     104.70M      6.98M      8.00M    546.13K
+   99466 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 15:43  08/15/24 15:43  00:00:15     109.11M      7.27M      9.00M    614.40K
+   99471 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 16:03  08/15/24 16:03  00:00:15     109.94M      7.33M      9.00M    614.40K
+   99476 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 16:23  08/15/24 16:23  00:00:16     101.23M      6.33M      7.25M    464.00K
+   99481 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 16:42  08/15/24 16:43  00:00:15     107.22M      7.15M      8.50M    580.27K
+   99486 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 17:02  08/15/24 17:03  00:00:16     110.63M      6.91M      9.00M    576.00K
+   99491 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 17:22  08/15/24 17:23  00:00:15     100.55M      6.70M      7.00M    477.87K
+   99496 Thr ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/15/24 17:42  08/15/24 17:43  00:00:16     104.95M      6.56M      8.00M    512.00K
+   99501 Thr DB INCR     SBT_TAPE Lvl-1       +Ctrl ** WARNINGS    08/15/24 21:11  08/15/24 21:14  00:02:30     138.61G    946.26M    127.75M    872.11K
+   99507 Fri ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/16/24 04:38  08/16/24 04:39  00:00:28     951.50M     33.98M    229.25M      8.19M
+   99512 Fri ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/16/24 04:42  08/16/24 04:42  00:00:15      87.70M      5.85M      3.25M    221.87K
+   99517 Fri ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/16/24 05:03  08/16/24 05:03  00:00:17     108.52M      6.38M      8.75M    527.06K
+   99522 Fri ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/16/24 05:22  08/16/24 05:23  00:00:16      99.45M      6.22M      6.75M    432.00K
+   99527 Fri ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/16/24 05:42  08/16/24 05:43  00:00:15     104.39M      6.96M      8.00M    546.13K
+   99532 Fri ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/16/24 06:03  08/16/24 06:03  00:00:16     108.60M      6.79M      8.75M    560.00K
+   99537 Fri ARCHIVELOG  SBT_TAPE Arch  +Arch +Ctrl ** WARNINGS    08/16/24 06:23  08/16/24 06:23  00:00:15      99.74M      6.65M      7.00M    477.87K
+```
+Note: in my case it was relate to deletion policy setup - which I know I can ignore.
 
 ### Get the SCN for the BACKUP for Database
 ---------------------------------------------------------------------------------------------
