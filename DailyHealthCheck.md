@@ -62,7 +62,7 @@ SELECT NVL(s.username, '(oracle)') AS username,
 FROM   v$session s,
        v$process p
 WHERE  s.paddr = p.addr
-and service_name='TRMPS_RO_SVC'
+and service_name='&service'
 ORDER BY s.username, s.osuser;
 ```
 ```
