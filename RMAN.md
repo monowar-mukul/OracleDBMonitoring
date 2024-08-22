@@ -1,95 +1,5 @@
 
 RMAN 
-```
-Spool LOG
-spool log to '/tmp/rman/backuplog.f';
-backup datafile 1;
-spool log off;
-
-$ rman | tee rman.log
-$ rman target / log=rman_output.log
-```
-
-## Check Backup other than Archivelog backup
-```
-set linesize 500
-col BACKUP_SIZE for a20
-COL START_TIME FORMAT a20 heading "Start Time"
-COL END_TIME FORMAT a20 heading "End Time"
-COL STATUS FORMAT a14 heading "Status"
-
-SELECT
-INPUT_TYPE "BACKUP_TYPE",
---NVL(INPUT_BYTES/(1024*1024),0)"INPUT_BYTES(MB)",
---NVL(OUTPUT_BYTES/(1024*1024),0) "OUTPUT_BYTES(MB)",
-STATUS,
-TO_CHAR(START_TIME,'MM/DD/YYYY:hh24:mi:ss') as START_TIME,
-TO_CHAR(END_TIME,'MM/DD/YYYY:hh24:mi:ss') as END_TIME,
-TRUNC((ELAPSED_SECONDS/60),2) "ELAPSED_TIME(Min)",
---ROUND(COMPRESSION_RATIO,3)"COMPRESSION_RATIO",
---ROUND(INPUT_BYTES_PER_SEC/(1024*1024),2) "INPUT_BYTES_PER_SEC(MB)",
---ROUND(OUTPUT_BYTES_PER_SEC/(1024*1024),2) "OUTPUT_BYTES_PER_SEC(MB)",
---INPUT_BYTES_DISPLAY "INPUT_BYTES_DISPLAY",
-OUTPUT_BYTES_DISPLAY "BACKUP_SIZE",
-OUTPUT_DEVICE_TYPE "OUTPUT_DEVICE"
---INPUT_BYTES_PER_SEC_DISPLAY "INPUT_BYTES_PER_SEC_DIS",
---OUTPUT_BYTES_PER_SEC_DISPLAY "OUTPUT_BYTES_PER_SEC_DIS"
-FROM V$RMAN_BACKUP_JOB_DETAILS
-where start_time > SYSDATE -7
-and INPUT_TYPE != 'ARCHIVELOG'
-ORDER BY END_TIME DESC
-/
-```
-## Check Archive Log backup
-
-```
-set linesize 500
-col BACKUP_SIZE for a20
-SELECT 
-INPUT_TYPE "BACKUP_TYPE",
---NVL(INPUT_BYTES/(1024*1024),0)"INPUT_BYTES(MB)",
---NVL(OUTPUT_BYTES/(1024*1024),0) "OUTPUT_BYTES(MB)",
-STATUS,
-TO_CHAR(START_TIME,'MM/DD/YYYY:hh24:mi:ss') as START_TIME,
-TO_CHAR(END_TIME,'MM/DD/YYYY:hh24:mi:ss') as END_TIME,
-TRUNC((ELAPSED_SECONDS/60),2) "ELAPSED_TIME(Min)",
---ROUND(COMPRESSION_RATIO,3)"COMPRESSION_RATIO",
---ROUND(INPUT_BYTES_PER_SEC/(1024*1024),2) "INPUT_BYTES_PER_SEC(MB)",
---ROUND(OUTPUT_BYTES_PER_SEC/(1024*1024),2) "OUTPUT_BYTES_PER_SEC(MB)",
---INPUT_BYTES_DISPLAY "INPUT_BYTES_DISPLAY",
-OUTPUT_BYTES_DISPLAY "BACKUP_SIZE",
-OUTPUT_DEVICE_TYPE "OUTPUT_DEVICE"
---INPUT_BYTES_PER_SEC_DISPLAY "INPUT_BYTES_PER_SEC_DIS",
---OUTPUT_BYTES_PER_SEC_DISPLAY "OUTPUT_BYTES_PER_SEC_DIS"
-FROM V$RMAN_BACKUP_JOB_DETAILS
-where start_time > SYSDATE -1/24
-and INPUT_TYPE = 'ARCHIVELOG'
-ORDER BY END_TIME DESC
-/
-
-```
-
-## Check Backup Status
-```
-col STATUS format a9
-col hrs format 999.99
-select SESSION_KEY,SESSION_RECID,SESSION_STAMP, INPUT_TYPE, STATUS, to_char(START_TIME,'mm/dd/yy hh24:mi') start_time,
-to_char(END_TIME,'mm/dd/yy hh24:mi') end_time,
-elapsed_seconds/3600 hrs from V$RMAN_BACKUP_JOB_DETAILS
-order by session_key;
-```
-
-
-## Get the SESSION_RECID,SESSION_STAMP from the above query and use to get the Backup job output for a specific backup job
-```
-set lines 200
-set pages 1000
-select output
-from GV$RMAN_OUTPUT
-where session_recid = &SESSION_RECID
-and session_stamp = &SESSION_STAMP
-order by recid;
-```
 
 ### Different option to configure
 ```
@@ -126,6 +36,162 @@ The following example enables debugging just for I/O activities:
 $ rman target / debug=io
 ```
 
+### To Spool RMAN Log
+```
+spool log to '/tmp/rman/backuplog.f';
+backup datafile 1;
+spool log off;
+```
+```
+$ rman | tee rman.log
+```
+```
+$ rman target / log=rman_output.log
+```
+
+## Check Backup other than Archivelog backup
+```
+set linesize 500
+col BACKUP_SIZE for a20
+COL START_TIME FORMAT a20 heading "Start Time"
+COL END_TIME FORMAT a20 heading "End Time"
+COL STATUS FORMAT a14 heading "Status"
+
+SELECT
+INPUT_TYPE "BACKUP_TYPE",
+--NVL(INPUT_BYTES/(1024*1024),0)"INPUT_BYTES(MB)",
+--NVL(OUTPUT_BYTES/(1024*1024),0) "OUTPUT_BYTES(MB)",
+STATUS,
+TO_CHAR(START_TIME,'MM/DD/YYYY:hh24:mi:ss') as START_TIME,
+TO_CHAR(END_TIME,'MM/DD/YYYY:hh24:mi:ss') as END_TIME,
+TRUNC((ELAPSED_SECONDS/60),2) "ELAPSED_TIME(Min)",
+--ROUND(COMPRESSION_RATIO,3)"COMPRESSION_RATIO",
+--ROUND(INPUT_BYTES_PER_SEC/(1024*1024),2) "INPUT_BYTES_PER_SEC(MB)",
+--ROUND(OUTPUT_BYTES_PER_SEC/(1024*1024),2) "OUTPUT_BYTES_PER_SEC(MB)",
+--INPUT_BYTES_DISPLAY "INPUT_BYTES_DISPLAY",
+OUTPUT_BYTES_DISPLAY "BACKUP_SIZE",
+OUTPUT_DEVICE_TYPE "OUTPUT_DEVICE"
+--INPUT_BYTES_PER_SEC_DISPLAY "INPUT_BYTES_PER_SEC_DIS",
+--OUTPUT_BYTES_PER_SEC_DISPLAY "OUTPUT_BYTES_PER_SEC_DIS"
+FROM V$RMAN_BACKUP_JOB_DETAILS
+where start_time > SYSDATE -7
+and INPUT_TYPE != 'ARCHIVELOG'
+ORDER BY END_TIME DESC
+/
+```
+#### Sample Output
+```
+BACKUP_TYPE   Status         Start Time           End Time             ELAPSED_TIME(Min) BACKUP_SIZE          OUTPUT_DEVICE
+------------- -------------- -------------------- -------------------- ----------------- -------------------- -----------------
+DB INCR       COMPLETED      08/21/2024:18:52:23  08/21/2024:18:54:28               2.08     3.60G            SBT_TAPE
+```
+
+## Check Archive Log backup
+
+```
+set linesize 500
+col BACKUP_SIZE for a20
+SELECT 
+INPUT_TYPE "BACKUP_TYPE",
+--NVL(INPUT_BYTES/(1024*1024),0)"INPUT_BYTES(MB)",
+--NVL(OUTPUT_BYTES/(1024*1024),0) "OUTPUT_BYTES(MB)",
+STATUS,
+TO_CHAR(START_TIME,'MM/DD/YYYY:hh24:mi:ss') as START_TIME,
+TO_CHAR(END_TIME,'MM/DD/YYYY:hh24:mi:ss') as END_TIME,
+TRUNC((ELAPSED_SECONDS/60),2) "ELAPSED_TIME(Min)",
+--ROUND(COMPRESSION_RATIO,3)"COMPRESSION_RATIO",
+--ROUND(INPUT_BYTES_PER_SEC/(1024*1024),2) "INPUT_BYTES_PER_SEC(MB)",
+--ROUND(OUTPUT_BYTES_PER_SEC/(1024*1024),2) "OUTPUT_BYTES_PER_SEC(MB)",
+--INPUT_BYTES_DISPLAY "INPUT_BYTES_DISPLAY",
+OUTPUT_BYTES_DISPLAY "BACKUP_SIZE",
+OUTPUT_DEVICE_TYPE "OUTPUT_DEVICE"
+--INPUT_BYTES_PER_SEC_DISPLAY "INPUT_BYTES_PER_SEC_DIS",
+--OUTPUT_BYTES_PER_SEC_DISPLAY "OUTPUT_BYTES_PER_SEC_DIS"
+FROM V$RMAN_BACKUP_JOB_DETAILS
+where start_time > SYSDATE -1/24
+and INPUT_TYPE = 'ARCHIVELOG'
+ORDER BY END_TIME DESC
+/
+
+```
+#### Sample Output
+```
+BACKUP_TYPE   Status         Start Time           End Time             ELAPSED_TIME(Min) BACKUP_SIZE          OUTPUT_DEVICE
+------------- -------------- -------------------- -------------------- ----------------- -------------------- -----------------
+ARCHIVELOG    COMPLETED      08/22/2024:08:16:26  08/22/2024:08:16:36                .16     1.50M            SBT_TAPE
+```
+
+## Check Backup Status
+```
+col STATUS format a9
+col hrs format 999.99
+select SESSION_KEY,SESSION_RECID,SESSION_STAMP, INPUT_TYPE, STATUS, to_char(START_TIME,'mm/dd/yy hh24:mi') start_time,
+to_char(END_TIME,'mm/dd/yy hh24:mi') end_time,
+elapsed_seconds/3600 hrs from V$RMAN_BACKUP_JOB_DETAILS
+order by session_key;
+```
+
+#### Sample Output
+```
+SESSION_KEY SESSION_RECID SESSION_STAMP Backup Type Status    Start Time           End Time                 HRS
+----------- ------------- ------------- ----------- --------- -------------------- -------------------- -------
+          3             3    1177595692 ARCHIVELOG  COMPLETED 08/21/24 13:54       08/21/24 13:55           .00
+          6             6    1177596976 ARCHIVELOG  COMPLETED 08/21/24 14:16       08/21/24 14:16           .00
+          9             9    1177600636 ARCHIVELOG  COMPLETED 08/21/24 15:17       08/21/24 15:17           .00
+         12            12    1177604201 ARCHIVELOG  COMPLETED 08/21/24 16:16       08/21/24 16:17           .00
+         15            15    1177607795 ARCHIVELOG  COMPLETED 08/21/24 17:16       08/21/24 17:19           .05
+         18            18    1177613532 DB INCR     COMPLETED 08/21/24 18:52       08/21/24 18:54           .03
+         24            24    1177637225 ARCHIVELOG  COMPLETED 08/22/24 01:27       08/22/24 01:28           .02
+         27            27    1177640750 ARCHIVELOG  COMPLETED 08/22/24 02:26       08/22/24 02:26           .00
+         30            30    1177644172 ARCHIVELOG  COMPLETED 08/22/24 03:23       08/22/24 03:23           .00
+         33            33    1177647817 ARCHIVELOG  COMPLETED 08/22/24 04:23       08/22/24 04:23           .00
+         36            36    1177651577 ARCHIVELOG  COMPLETED 08/22/24 05:26       08/22/24 05:26           .00
+         39            39    1177654954 ARCHIVELOG  COMPLETED 08/22/24 06:22       08/22/24 06:23           .01
+         42            42    1177658855 ARCHIVELOG  COMPLETED 08/22/24 07:27       08/22/24 07:27           .00
+         45            45    1177661774 ARCHIVELOG  COMPLETED 08/22/24 08:16       08/22/24 08:16           .00
+
+14 rows selected.
+```
+## Get the SESSION_RECID,SESSION_STAMP from the above query and use to get the Backup job output for a specific backup job
+```
+set lines 200
+set pages 1000
+select output
+from GV$RMAN_OUTPUT
+where session_recid = &SESSION_RECID
+and session_stamp = &SESSION_STAMP
+order by recid;
+```
+#### Sample Output
+```
+Enter value for session_recid: 18
+old   3: where session_recid = &SESSION_RECID
+new   3: where session_recid = 18
+Enter value for session_stamp: 1177613532
+old   4: and session_stamp = &SESSION_STAMP
+new   4: and session_stamp = 1177613532
+
+OUTPUT
+----------------------------------------------------------------------------------------------------------------------------------
+connected to target database: ARDPRDSE (DBID=265749263)
+connected to recovery catalog database
+run {
+CONFIGURE RETENTION POLICY TO NONE;
+CONFIGURE BACKUP OPTIMIZATION ON;
+CONFIGURE CONTROLFILE AUTOBACKUP ON;
+CONFIGURE DEVICE TYPE DISK BACKUP TYPE TO BACKUPSET PARALLELISM 1;
+CONFIGURE DATAFILE BACKUP COPIES FOR
+----
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=0d331t78_13_1_1 RECID=13 STAMP=1177613544
+crosschecked backup piece: found to be 'AVAILABLE'
+backup piece handle=0e331tas_14_1_1 RECID=14 STAMP=1177613661
+Crosschecked 2 objects
+
+DELETE EXPIRED BACKUP;
+specification does not match any backup in the repository
+366 rows selected.
+```
 ### Backup of Archivelog related information
 ```
 connect catalog rcat/Password@rcat
@@ -142,18 +208,12 @@ RMAN> CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF 1 DAYS;
 RMAN> crosscheck backup of archivelog all;
 RMAN> show all;
 ```
-#### Delete Archivelog Backups
-The following command can be used to manage the backup of the archive log when storage space needs to be released.
-```
-RMAN>DELETE BACKUP OF archivelog UNTIL TIME=’sysdate-3;
-```
-
---- >                set archivelog destination to /tmp/arch_restore’;
+#### Restotre Archivelog
 ```
 rman target sys/pass catalog owner_rmn/<password>@srvprmn2rmn
 RMAN> 
 run {
-set archivelog destination to 'F:\mstarData';
+set archivelog destination to '/tmp/arch_restore';
 allocate channel c1 type disk;
 allocate channel c2 type disk;
 allocate channel c3 type disk;
@@ -190,7 +250,7 @@ column NEXT_CHANGE# format 99999999
 select max(NEXT_CHANGE#)-1 n from v$backup_archivelog_details;
 
 ```
-#### TAPE BACKUP
+#### Restotre Archivelog frm TAPE BACKUP [ Here is an example- logseq=25318 until logseq=25324]
 ```
 RUN {
 ALLOCATE CHANNEL ch1 TYPE 'SBT_TAPE'
@@ -212,15 +272,7 @@ RELEASE CHANNEL ch4;
 RELEASE CHANNEL ch5;
 }
 ```
-```
-run {
-    backup format 'J:\backup\pqa7\pqa7_archivelog_bkp_%U_%T'
-       archivelog until time 'sysdate-3' delete input;
-    }
 
-> delete noprompt archivelog until time "to_date(SYSDATE-4)" backed up 1 times to disk;
-> restore archivelog sequence between 2249 and 2251 thread 1;
-```
 ### Archived redo logs for a day
 ```
 select count(1), avg(blocks*block_size)/1024 MB
@@ -316,7 +368,8 @@ select * from rman_report where input_type<>'ARCHIVELOG';
 
 ```
 sqlplus  OWNER_RMN/<password>@<servicename>
-
+```
+```
 --
 -- Display RMAN backup information from dictionary 
 --
@@ -349,6 +402,13 @@ where START_TIME in (select max(START_TIME) from V$RMAN_BACKUP_JOB_DETAILS WHERE
 ORDER BY SESSION_KEY
 /
 ```
+#### Sample Output
+```
+Backup Type Dest     Status         Start Time      End Time        Duration   Size In    Bytes/Sec  Size Out   Bytes/Sec
+----------- -------- -------------- --------------- --------------- ---------- ---------- ---------- ---------- ----------
+DB INCR     SBT_TAPE COMPLETED      08/21/24 18:52  08/21/24 18:54  00:02:05      30.72G    251.64M      3.60G     29.49M
+```
+
 ### Without catalog then run under the database which backup is in progress
 ```
 COLUMN CLIENT_INFO FORMAT a30
@@ -410,9 +470,27 @@ SELECT dbf.file#,substr(dbf.name,1,55) name,
         GROUP BY dbf.file#,substr(dbf.name,1,55)
         ORDER BY days DESC;
 ```
+### Sample Output
+```
+File# File name                                               Days
+----- ------------------------------------------------------- ----------
+    9 +DATA/ARDPRDSE/DATAFILE/spatial.691.1177585707                 .60
+   10 +DATA/ARDPRDSE/DATAFILE/spatial_index.690.1177585717           .60
+    4 +DATA/ARDPRDSE/DATAFILE/users.703.1177583837                   .60
+    5 +DATA/ARDPRDSE/DATAFILE/data.699.1177585671                    .60
+    6 +DATA/ARDPRDSE/DATAFILE/indexes.698.1177585679                 .60
+    8 +DATA/ARDPRDSE/DATAFILE/sde.692.1177585697                     .60
+    7 +DATA/ARDPRDSE/DATAFILE/perfstat_data.694.1177585689           .60
+    1 +DATA/ARDPRDSE/DATAFILE/system.696.1177583831                  .60
+    3 +DATA/ARDPRDSE/DATAFILE/undotbs1.685.1177583833                .60
+    2 +DATA/ARDPRDSE/DATAFILE/sysaux.684.1177583833                  .60
 
+```
 ### The following SQL query demonstrates the internal checks that Oracle performs to determine whether media recovery is required:
 ```
+set lines 200
+column name format a70
+column status a40
 SELECT
 a.name,
 a.checkpoint_change#,
@@ -426,6 +504,23 @@ END STATUS
 FROM v$datafile a, -- control file SCN for datafile
 v$datafile_header b -- datafile header SCN
 WHERE a.file# = b.file#;
+```
+### Sample output
+```
+NAME                                                                   CHECKPOINT_CHANGE# CHECKPOINT_CHANGE# STATUS
+---------------------------------------------------------------------- ------------------ ------------------ ----------------
++DATA/ARDPRDSE/DATAFILE/system.791.1176206567                                  1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/sysaux.792.1176206569                                  1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/undotbs1.793.1176206571                                1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/users.795.1176206575                                   1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/data.799.1176217347                                    1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/indexes.800.1176217353                                 1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/perfstat_data.801.1176217361                           1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/sde.802.1176217367                                     1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/spatial.803.1176217375                                 1.4019E+12         1.4019E+12 Startup Normal
++DATA/ARDPRDSE/DATAFILE/spatial_index.804.1176217383                           1.4019E+12         1.4019E+12 Startup Normal
+
+10 rows selected.
 ```
 
 ### RMANjobs&Scripts
@@ -445,7 +540,7 @@ order by session_key desc;
 ```
 select input_type,status, to_char(start_time,'yyyy-mm-dd hh24:mi') start_time,to_char(end_time,'yyyy-mm-dd hh24:mi') end_time
 from RC_RMAN_BACKUP_JOB_DETAILS
-where DB_NAME like '%POEM%'
+where DB_NAME like '%&DB%'
 order by session_key desc;
 ```
 ```
@@ -453,12 +548,11 @@ select r.sequence#,r.set_stamp,p.handle,p.tag,p.start_time,p.completion_time,r.f
 from RC_BACKUP_PIECE p, RC_BACKUP_REDOLOG r
 where r.set_stamp = p.set_stamp 
 and r.set_count = p.set_count
-and r.DB_NAME like '%PSOC%'
+and r.DB_NAME like '%&DB%'
 order by sequence# desc;
 ```
 ### SNAPSHOT Check
 ```
-
 select ctime "Date",
        decode(backup_type, 'L', 'Archive Log', 'D', 'Full', 'Incremental') backup_type,
         bsize "Size MB"
@@ -472,19 +566,16 @@ select ctime "Date",
        group by trunc(bp.completion_time), backup_type)
 order by 1, 2;
 ```
-
-### List the most recent Level 0 backups
+### Sample output
 ```
-SELECT DISTINCT TO_CHAR((b.CHECKPOINT_TIME), 'YYYY-MM-DD HH:MI.SS') t
-FROM v$backup_datafile b, v$tablespace ts, v$datafile f
-WHERE b.incremental_level = 0
-  AND INCLUDED_IN_DATABASE_BACKUP='YES'
-  AND f.file#=b.file#
-  AND f.ts#=ts.ts#
-GROUP BY b.checkpoint_time
-ORDER BY 1;
+Date      BACKUP_TYPE    Size MB
+--------- ----------- ----------
+21/AUG/24 Archive Log    3398.75
+21/AUG/24 Full              13.7
+21/AUG/24 Incremental    3685.25
+22/AUG/24 Archive Log    1235.75
+22/AUG/24 Full               4.5
 ```
-
 ### Query the details for a single archive log:
 
 Target :
@@ -493,9 +584,8 @@ select r.sequence#,r.set_stamp,p.handle,p.tag,p.start_time,p.completion_time,r.f
 from V$BACKUP_PIECE p, V$BACKUP_REDOLOG r
 where r.set_stamp = p.set_stamp
 and r.set_count = p.set_count
-and r.sequence# = 743399;
+and r.sequence# = &seq;
 ```
-Here the archive log # that I am checking is 743399.
 
 Catalog DB:
 ```
@@ -524,8 +614,6 @@ where r.set_stamp = p.set_stamp
 and r.set_count = p.set_count
 order by sequence# desc;
 ```
-
-
 ### Display RMAN backup information from dictionary 
 
 ```
@@ -728,7 +816,6 @@ from V$RMAN_BACKUP_JOB_DETAILS
 order by session_key;  
 ```
 
-
 Next, use the V$SESSION and V$PROCESS views to identify which database server
 sessions correspond to RMAN channels:
 ```
@@ -737,7 +824,6 @@ FROM v$process a, v$session b
 WHERE a.addr = b.paddr
 AND b.client_info LIKE '%rman%';
 ```
-
 ### Measuring Backup Performance
 
 determine whether backups are taking longer and longer.
@@ -755,7 +841,6 @@ SQL> select  sid, recid, output
  order by recid
  /
 ```
-
 You can also join V$RMAN_OUTPUT to V$RMAN_STATUS to get additional information.
 This useful query shows the type of command RMAN is running, its current status, and its
 associated output messages:
@@ -1182,24 +1267,22 @@ set termout on
 @unhot_em.sql
 exit;
 ```
-
-
-BLOCKCHANGETRACKING
+### BLOCKCHANGETRACKING
 Where is the block change tracking file. used for 
 ---------------------------------------------------------------------------------------------
 FAST incremental backups. CTWR background process keeps track of block changes and RMAN use it to do quicker incremental backups, then without the block change tracking file
 
+```
 set linesize 130
 col filename format a50
 select filename, status, (bytes)/1024/1024 as "Size in MB"
  from v$block_change_tracking;
-
+```
+```
 FILENAME                                           STATUS                         Size in MB
 -------------------------------------------------- ------------------------------ ----------
 +DATA/qpdw1_01/changetracking/ctf.2257.888149015   ENABLED                           21.0625
-
-
-
+```
 ### To check whether the block change tracking file is being used or not, use the below command .
 ```
 select  file#,  avg(datafile_blocks), avg(blocks_read),  avg(blocks_read/datafile_blocks) * 100 as  "% read for backup"  
@@ -1335,6 +1418,21 @@ RMAN> delete archivelog until sequence = 999;
 RMAN> backup archivelog like '/arch%' delete input;
 RMAN> configure archivelog deletion policy to backed up 2 times to device type sbt;
 ```
+#### Delete Archivelog Backups - options example
+The following command can be used to manage the backup of the archive log when storage space needs to be released.
+```
+RMAN>DELETE BACKUP OF archivelog UNTIL TIME=’sysdate-3;
+
+```
+run {
+    backup format 'J:\backup\pqa7\pqa7_archivelog_bkp_%U_%T'
+       archivelog until time 'sysdate-3' delete input;
+    }
+```
+```
+delete noprompt archivelog until time "to_date(SYSDATE-4)" backed up 1 times to disk;
+```
+
 
 ### Deleting Obsolete RMAN Backups
 ==================================
@@ -1376,7 +1474,6 @@ kill -9 5607
 ps -ef | grep -i ora_arc9_prod1
 4.- perform 2 and 3 for all arc? running for your instance.
 ```  
-
 
 ### debug enabled 
 ```
@@ -2171,9 +2268,10 @@ allocated from PGA.
 ```
 If OS does not support asynchronous I/O, we can simulate by setting parameter dbwr_io_slaves to a non zero value.  4 slave processes will be allocated irrespective of the value of the parameter dbwr_io_Slaves. IN this case, buffers for RMAN will be allocated from large pool. 
 If large pool is sized to a value lower than the size of the buffers required, RMAN will switch to synchronous I/O and write a message to the alert log. 
-  
-##Restore/Recovery 
 
+-------------------------  
+##Restore/Recovery 
+-------------------------
 Preview BACKUP Information
 ```
 RMAN> restore database preview;
