@@ -230,6 +230,14 @@ select OSUSER, USERNAME, sid, serial#  from v$session where USERNAME='&usr';
     WHERE s.paddr = p.addr
     and s.sid=&SID ;
 ```
+or
+```
+SELECT s.sid, s.serial#, s.status, p.spid
+FROM v$session s, v$process p
+WHERE s.username = '&usr' --<<<--
+AND p.addr(+) = s.paddr
+/
+```
 ```
 SELECT USERNAME,
            TERMINAL,
@@ -277,9 +285,9 @@ and p.addr (+) = s.paddr;
 ```
 kill -9 <PID>
 ```
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------
 ### You need to find out which user is waiting and which user is holding and then find out which SQL is being run. Do the following:
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------
 Run the "wait.sql" script and determine who is waiting for     which holding process.
 
 wait.sql
@@ -380,7 +388,6 @@ and then use the hash value
 select sql_text from V$SQLTEXT a  where hash_value = &HASHVALUE;
 ```
 
-
 ### GENERATE SQL TO DISCONNECT BLOCKING USERS.
 ```
 select 'alter system disconnect session '''||sid||','||serial#||'''immediate;' from V$SESSION where sid in (select sid from V$LOCK where block=1);
@@ -397,9 +404,9 @@ select a.sid,a.username,b.id1,c.sql_text from V$SESSION a,V$LOCK b,V$SQLTEXT c
 where b.id1 in (select distinct e.id1 from V$SESSION d, V$LOCK e where d.lockwait = e.kaddr) 
 and a.sid = b.sid and c.hash_value = a.sql_hash_value and b.request = 0;
 ```
-====================================================
-### SHOW LONG OPERATIONS STILL IN PROGRESS
-====================================================
+===============================================
+### SHOW LONG OPERATIONS STILL IN PROGRESS  ###
+===============================================
 ```
 select b.sid,b.username,d.id1,a.sql_text from V$SESSION b,V$LOCK d,V$SQLTEXT a where b.lockwait = d.kaddr
 and a.address = b.sql_address and a.hash_value = b.sql_hash_value;
@@ -449,9 +456,9 @@ and s.sid in (&SIDLIST);
 
 SPOOL OFF; 
 ```
-#######################################
-### Find SQL being executed by a OS Process ID (PID)
-#######################################
+######################################################
+### Find SQL being executed by a OS Process ID (PID) #
+######################################################
 ```
 prompt "Please Enter The UNIX Process ID"
 set pagesize 50000
@@ -601,7 +608,6 @@ Select blocking_session, sid, serial#, wait_class,seconds_in_wait From v$session
 where blocking_session is not NULL
 order by blocking_session;
 ```
-
 ### HOW LONG INACTIVE
 ```
 SQL> set lines 100 pages 999
