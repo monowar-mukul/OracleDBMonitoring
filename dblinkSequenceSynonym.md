@@ -158,14 +158,21 @@ and  s.addr=g.K2GTDSES
 and  w.sid=s.indx
 and s2.sid = w.sid;
 ```
-
+```
+set lines 200
+column owner a20
+column dblink a30
+column username a30
+column HOST a60
+select OWNER, DB_LINK, USERNAME, HOST from dba_db_links;
+```
 ```
 set pages 999
 set long 90000
 set lin 120
 
 SELECT 'SELECT dbms_metadata.get_ddl(''DB_LINK'',''' || db_link || ''',''' || owner || ''') as "test.trns" FROM dual;' AS "Execute below Query for DDL"
-FROM dba_db_links WHERE db_link IN ('DBlINKNAME'); <<-- 
+FROM dba_db_links WHERE db_link IN ('&DBlINKNAME'); <<-- 
 ```
 Sample Output:
 ```
