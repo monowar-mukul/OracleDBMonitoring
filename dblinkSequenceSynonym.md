@@ -159,12 +159,14 @@ and  w.sid=s.indx
 and s2.sid = w.sid;
 ```
 ```
-set lines 200
-column owner a20
-column dblink a30
-column username a30
-column HOST a60
-select OWNER, DB_LINK, USERNAME, HOST from dba_db_links;
+COLUMN OWNER HEADING 'Owner' FORMAT A15
+COLUMN DB_LINK HEADING 'Database Link' FORMAT A30
+COLUMN USERNAME HEADING 'Username' FORMAT A20
+COLUMN HOST HEADING 'Host' FORMAT A25
+
+SELECT OWNER, DB_LINK, USERNAME, HOST
+FROM dba_db_links;
+
 ```
 ```
 set pages 999
