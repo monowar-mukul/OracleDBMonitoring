@@ -4,6 +4,28 @@
 
 ```
 
+## Database version and platform:
+
+```
+col OS format a40
+col RDBMS_Ver format a30
+set lines 220 pages 2000
+select substr(v.banner_full,instr(v.banner_full,chr(10))+1) as RDBMS_Ver,
+d.database_role, d.platform_id, dbms_utility.port_string as "OS", d.cdb, d.flashback_on
+FROM
+v$version v , v$database d ;
+SELECT
+case when count(c.cell_path) > 0 and dbms_utility.port_string like 'x86_64/Linux%' then 'Exadata'
+when count(c.cell_path) > 0 and dbms_utility.port_string like 'SVR4%' then 'Supercluster'
+else 'Not Exadata' end as "Is_Exadata?"
+from v$cell c;
+```
+Sample Output:
+```
+RDBMS_VER                      DATABASE_ROLE    PLATFORM_ID OS                                       CDB FLASHBACK_ON
+------------------------------ ---------------- ----------- ---------------------------------------- --- ------------------
+Version 19.22.0.0.0            PRIMARY                   13 x86_64/Linux 2.4.xx                      YES YES
+```
 ## connect to a database using host, port, SID/Service name without having an entry in tnsnames.ora?
 ```
 $ sqlplus username/password@hostname:port/SERVICENAME
