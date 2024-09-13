@@ -56,8 +56,23 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
     FROM v$session s, v$process p, SYS.v_$sess_io si
    WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID
    AND s.TYPE !='BACKGROUND'
-   AND s.status ='ACTIVE';;
+   AND s.status ='ACTIVE';
 ```
+```
+SELECT 
+    s.status || ',' || s.serial# || ',' || s.TYPE || ',' ||
+    s.username || ',' || s.osuser || ',' ||
+    s.machine || ',' || s.module || ',' || s.client_info || ',' ||
+    s.terminal || ',' || s.program || ',' || s.action || ',' ||
+    UTL_INADDR.GET_HOST_ADDRESS(REGEXP_REPLACE(s.machine, '^.+\\')) AS client_ip
+FROM 
+    v$session s
+LEFT JOIN 
+    v$process p ON s.paddr = p.addr
+LEFT JOIN 
+    SYS.v_$sess_io si ON si.SID = s.SID;
+```
+
 ```
 SELECT 'Sid,Serial#,User,Temp(Mb),Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
 ```
