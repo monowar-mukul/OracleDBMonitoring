@@ -14,6 +14,14 @@ select substr(v.banner_full,instr(v.banner_full,chr(10))+1) as RDBMS_Ver,
 d.database_role, d.platform_id, dbms_utility.port_string as "OS", d.cdb, d.flashback_on
 FROM
 v$version v , v$database d ;
+```
+Sample Output:
+```
+RDBMS_VER                      DATABASE_ROLE    PLATFORM_ID OS                                       CDB FLASHBACK_ON
+------------------------------ ---------------- ----------- ---------------------------------------- --- ------------------
+Version 19.22.0.0.0            PRIMARY                   13 x86_64/Linux 2.4.xx                      YES YES
+```
+```
 SELECT
 case when count(c.cell_path) > 0 and dbms_utility.port_string like 'x86_64/Linux%' then 'Exadata'
 when count(c.cell_path) > 0 and dbms_utility.port_string like 'SVR4%' then 'Supercluster'
@@ -21,10 +29,10 @@ else 'Not Exadata' end as "Is_Exadata?"
 from v$cell c;
 ```
 Sample Output:
-```
-RDBMS_VER                      DATABASE_ROLE    PLATFORM_ID OS                                       CDB FLASHBACK_ON
------------------------------- ---------------- ----------- ---------------------------------------- --- ------------------
-Version 19.22.0.0.0            PRIMARY                   13 x86_64/Linux 2.4.xx                      YES YES
+```Is_Exadata?
+------------
+Exadata
+
 ```
 ## connect to a database using host, port, SID/Service name without having an entry in tnsnames.ora?
 ```
@@ -46,7 +54,9 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
          s.machine||','||s.module||','||s.client_info||','||
          s.terminal||','||s.program||','||s.action
     FROM v$session s, v$process p, SYS.v_$sess_io si
-   WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
+   WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID
+   AND s.TYPE !='BACKGROUND'
+   AND s.status ='ACTIVE';;
 ```
 ```
 SELECT 'Sid,Serial#,User,Temp(Mb),Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
