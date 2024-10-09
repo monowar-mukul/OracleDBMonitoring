@@ -138,6 +138,12 @@ group by  s.sid || ',' || s.serial#,
           substr(s.osuser||','||s.machine||','||s.module||','||
           s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
 ```
+```
+Sample output:
+245,22286  ARCIMS   1       Framework Application Pool,IIS APPPOOL\DPTISDSIVP01
+225,19148  DBSNMP   1       oracle,dteigisdb03.dtei.sa.gov.au,emagent_SQL_oracl
+
+```
 # monitor_max_extent.sql
 ```
 rem             e.g. if you want to report on segments that cannot extend
