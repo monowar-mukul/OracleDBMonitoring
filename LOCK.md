@@ -644,7 +644,7 @@ The most common reason for this are either 'SELECT FOR UPDATE ' or some uncommit
 
 ``` SQL> SELECT O.OBJECT_NAME, S.SID, S.SERIAL#, P.SPID, S.PROGRAM,SQ.SQL_FULLTEXT, S.LOGON_TIME FROM V$LOCKED_OBJECT L, DBA_OBJECTS O, V$SESSION S, V$PROCESS P, V$SQL SQ WHERE L.OBJECT_ID = O.OBJECT_ID AND L.SESSION_ID = S.SID AND S.PADDR = P.ADDR AND S.SQL_ADDRESS = SQ.ADDRESS;
 ```
-### Sample Output
+```Sample Output
 OBJECT_NAME
 ------------------------------------------------------------------------------------------------------------------------------------------------------
        SID    SERIAL# SPID
@@ -682,8 +682,10 @@ PNIA_STAGING_MVMNT_CONTRIB
 oracle@iorsdb02-adm.apac.ent.bhpbilliton.net (TN
 INSERT  INTO "PNIA_STAGING_MVMNT_CONTRIB" "A1" ("STAGING_RECORD_ID","STAGING_R   18-02-2016:15:10:22
 EC
+```
 
 ### SOLUTION:
+```
 We have 3 options to fix this error
       1.  Kill the DB session and get the tables unlocked
       2. Kill the application which holds this particular session(sql connection)
@@ -716,4 +718,4 @@ which gave me
 tcp        0      0 machine.name:34465  oracle.db.com:ncube-lm ESTABLISHED 4030/java
 
 We got the process id xxxx. Debug or Kill; 
-
+```
