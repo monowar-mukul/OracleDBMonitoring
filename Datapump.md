@@ -23,6 +23,8 @@ Solution
 1. The errors can be ignored. Then check for the data in target database after import.
 - OR -
 2. First install Oracle Text in target database (refer toHP Action 2003133 -- Checked for relevance Note 979705.1) and then perform the import.
+```
+```
 ISSUES:
 ORA-39083 and ORA-02304 during impdp or imp
 ORA-39083: Object type TYPE failed to create with error:
@@ -42,10 +44,13 @@ PARALLEL=3
 TRACE=480300
 METRICS=y
 TRANSFORM=oid:n
+
+```
+```
 ------------------------------------------------------------------------------------------------------------------------------------------
 ERROR at line 1: ORA-00054: resource busy and acquire with NOWAIT specified
 -----------------------------------------------------------------------------------------------------------------------------------------
-```
+
 execute the below query to find out the session which locked the target table
 
 select
@@ -63,7 +68,8 @@ and
 a.object_id = c.object_id;
 
 alter system kill session '11,37157';
-
+```
+```
 --------------------------------------------------------------------------------------------------------------------------------------
 IMP-00032;IMP-00008  During Import process if you will get below error message 
 IMP-00032: SQL statement exceeded buffer length
@@ -73,7 +79,8 @@ Solutions
 
 use BUFFER parameter with import command.
 Note: use MAXIMUM value for BUFFER parameters eg: BUFFER=1000000
-
+```
+```
 Export> start_job
 ORA-39004: invalid state
 ORA-39016: Operation not supported when job is in EXECUTING state.
@@ -85,8 +92,8 @@ Export> CONTINUE_CLIENT
 . . exported "ODR_DAS"."TB_DOWNTIMEHISTORICAL"           1.276 GB 7064200 rows
 . . exported "DW_LND"."ICC_DELAY"                        963.0 MB 7355408 rows
 . . exported "ODR_LEICA"."SHIFT_HAULS"                   887.5 MB 8099096 rows
+```
 
-## ==========================ISSUE ==================================
 ```
 Processing object type SCHEMA_EXPORT/TABLE/TABLE
 ORA-39121: Table "BH_OWNER"."BH_ASSAY_RESULT_2" can't be replaced, data will be skipped. Failing error is:
@@ -99,25 +106,24 @@ Processing object type SCHEMA_EXPORT/TABLE/INDEX/INDEX
 ORA-39112: Dependent object type INDEX:"BH_OWNER"."IDX_ASSAY_RESULT_STATUS" skipped, base object type TABLE:"BH_OWNER"."BH_ASSAY_RESULT" creation failed
 ORA-39112: Dependent object type INDEX:"BH_OWNER"."PK_BH_ASSAY_RESULT" skipped, base object type TABLE:"BH_OWNER"."BH_ASSAY_RESULT" creation failed
 
-
-SYS@BHQA1 SQL> select object_id, object_name from dba_objects where object_name in ('BH_ASSAY_RESULT_2') and owner='BH_OWNER';
+SQL> select object_id, object_name from dba_objects where object_name in ('BH_ASSAY_RESULT_2') and owner='BH_OWNER';
 
  OBJECT_ID        OBJECT_NAME
 --------------------------------
      86219        BH_ASSAY_RESULT_2
 
-SYS@BHQA1 SQL> select session_id, locked_mode, object_id from v$locked_object where object_id=86219;
+SQL> select session_id, locked_mode, object_id from v$locked_object where object_id=86219;
 
 SESSION_ID LOCKED_MODE  OBJECT_ID
 ---------- ----------- ----------
        166           6      86219
 ```
-
+```
 ### UDE-00010: multiple job modes requested, schema and tables. 
 Remove SCHEMA parameter and change tables as tables=HRI.TBL_BATCH,HRI.TBL_BATCHDATA,HRI.TBL_FILEHANDLER
 EXPORT DUMP is corrupted
 +++++++++++++++++++++++++++++
-G:\export>impdp system/system_bhp parfile=imp.par
+>impdp system/system_bhp parfile=imp.par
 With the Partitioning, OLAP, Data Mining and Real Application Testing options
 ORA-39002: invalid operation
 ORA-31694: master table "SYSTEM"."SYS_IMPORT_SCHEMA_01" failed to load/unload
@@ -126,7 +132,7 @@ ORA-19505: failed to identify file "G:\export\BLASTHOLES.DMP"
 ORA-27046: file size is not a multiple of logical block size
 OSD-04012: file size mismatch (OS 1764408925)
 
-G:\export>impdp system/system_bhp parfile=imp.par full=y
+>impdp system/system_bhp parfile=imp.par full=y
 
 DataPump Import (IMPDP) Fails With Errors ORA-39002 ORA-31694 ORA-31640 ORA-19505 ORA-27046 (Doc ID 785473.1)
 
@@ -137,11 +143,13 @@ ORA-06512: at "SYS.DBMS_DATAPUMP", line 3712
 ORA-06512: at line 1 
 
 problem can be related with STREAMS_POOL_SIZE. DataPump uses streams to generate the export. If the STREAMS_POOL_SIZE is too small, then it will report that error. 
-connect / as sysdba alter system set STREAMS_POOL_SIZE=100M scope=spfile; shutdown startup  
+connect / as sysdba alter system set STREAMS_POOL_SIZE=100M scope=spfile;
+shutdown
+startup  
+```
 
-
-Clean old exp jobs 
-
+## Clean old exp jobs 
+```
 SQL> select owner_name,job_name,operation,job_mode,state,attached_sessions from dba_datapump_jobs;
 
 OWNER_NAME     JOB_NAME OPERATION      JOB_MODE  STATE     ATTACHED_SESSIONS
@@ -179,31 +187,34 @@ SQL> purge table system.SYS_EXPORT_SCHEMA_02;
 Table purged
 SQL> purge table system.SYS_EXPORT_SCHEMA_03;
 Table purged  
+```
 
-export a package and a procedure (Metadata) 
-
-
+## export a package and a procedure (Metadata) 
+```
 SET lines 100 
 COL privilege FOR a50 
 SELECT grantee, granted_role, default_role FROM dba_role_privs 
 WHERE granted_role IN ('DBA', 'EXP_FULL_DATABASE', 'IMP_FULL_DATABASE') 
 ORDER BY 1,2;
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-You can use DBMS_METADATA to extract the code for stored procedures/packages/functions. It is available in 9i and 10g, though expect bugs. Nothing that crashes a database, but it might not output the code exactly the way you want it. Test and make slight changes if you need. The code below is a subset of a script I use to extract all the ddl from a schema. Use with care and change what you need. 
+```
 
+NOTE: You can use DBMS_METADATA to extract the code for stored procedures/packages/functions. It is available in 9i and 10g, though expect bugs. Nothing that crashes a database, but it might not output the code exactly the way you want it. Test and make slight changes if you need. The code below is a subset of a script I use to extract all the ddl from a schema. Use with care and change what you need. 
+
+```
 SET LINESIZE 132 PAGESIZE 0 FEEDBACK off VERIFY off TRIMSPOOL on LONG 1000000 
 COLUMN ddl_string FORMAT A100 WORD_WRAP
 
 EXECUTE DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM,'PRETTY',true); 
 EXECUTE DBMS_METADATA.SET_TRANSFORM_PARAM(DBMS_METADATA.SESSION_TRANSFORM,'SQLTERMINATOR',true); 
-
+```
+```
 select dbms_metadata.GET_DDL('PACKAGE BODY',&object_name)
 from user_objects 
 where object_type = 'PACKAGE BODY';
+```
 
-alter session set current_schema=ELLIPSE;
-
-$ more getcode_all.sql
+## getcode_all.sql
+```
 set heading off
 set feedback off
 set linesize 100
@@ -214,14 +225,17 @@ from user_objects
 where object_type in ( 'PROCEDURE', 'FUNCTION', 'PACKAGE' )
 /
 spool off
-
+```
+```
 set heading on
 set feedback on
 set linesize 130
 set termout on
 @getcode_all.out
+```
 
-$ more getcode.sql
+## getcode.sql
+```
 set feedback off
 set heading off
 set termout off
@@ -248,18 +262,24 @@ set heading on
 set termout on
 set linesize 100
 
+```
+
 Information 
-	EXP/IMP	Datapump
-	owner	schema
-	file	dumpfile
-	log	logfile/nologfile
-	fromuser,touser	remap_schema; remap table
-SQL file	imp --indexfile=index.sql	impdp sqlfile=ddl.sql
-	select 'exp system/g1nt0nic/g1nt0nic tables='|| owner||'.'||segment_name ||' file=/INTMAINT/datapump/'||segment_name||'.dmp log=/INTMAINT/datapump/'||segment_name||'.log statistics=none ;'
+	EXP/IMP			Datapump
+	owner			schema
+	file			dumpfile
+	log			logfile/nologfile
+	fromuser,touser		remap_schema; remap table
+SQL fileimp --indexfile=index.sql	impdp sqlfile=ddl.sql
+```	
+select 'exp system/<>@sid tables='|| owner||'.'||segment_name ||' file=/INTMAINT/datapump/'||segment_name||'.dmp log=/INTMAINT/datapump/'||segment_name||'.log statistics=none ;'
 from dba_segments
 where owner = 'INTERFACE'
 and segment_type = 'TABLE'
-order by bytes;	select 'expdp  system/manager schemas='||username||
+order by bytes;
+```
+```
+select 'expdp  system/manager schemas='||username||
   ' directory=dump_dir dumpfile='||username||'.dmp logfile=expdp'
  ||username||'.log'
  from dba_users order by; select 'expdp system/g1nt0nic tables='|| owner||'.'||segment_name ||' dumpfile='||segment_name||'.dmp logfile='||segment_name||'.log directory=dpm;'
@@ -267,10 +287,16 @@ from dba_segments
 where owner = 'QHUB'
 and segment_type = 'TABLE'
 order by bytes;
+```
+
+## 
 Overide dumpfile		reuse_dumpfiles=Y
-	consistent=y	FLASHBACK_SCN or FLASHBACK_TIME
+consistent=y	FLASHBACK_SCN or FLASHBACK_TIME
+example: flashback_time="TO_TIMESTAMP('2015-09-23 10:43:00', 'YYYY-MM-DD HH24:MI:SS')"
 RAC		expdp system full=y directory=monoexp dumpfile=pprod16fulldb.dmp logfile=pprodexpfull.log content=All CLUSTER=N reuse_dumpfiles=y
-EXADATA	Export/Import of HCC Tables
+
+## EXADATA	Export/Import of HCC Tables
+```
 HCC tables can be exported using the regular expdp utility, which preserves the table properties. When imported in a Exadata
 machine, the tables automatically get compressed. If the import occurs at a non-Exadata machine, the import will fail with the
 following error:
@@ -285,7 +311,9 @@ HCC table to an Exadata HCC table, do the following:
 1. Specify default compression for the tablespace using the ALTER TABLESPACE … SET DEFAULT COMPRESS
 command.
 2. Override the SEGMENT_ATTRIBUTES option of the imported table during import.
-Compression of Dump File Sets
+```
+## Compression of Dump File Sets
+```
 COMPRESSION
 	ALL - Enables compression for the entire operation.
   metadata_only - The default setting. Causes only the metadata to be compressed.
@@ -293,24 +321,22 @@ COMPRESSION
   None - No compression will take place. 
 partition_options	None - Tables will be imported such that they will look like those on the system on which the export was created.
 Departition - Partitions will be created as individual tables rather than partitions of a partitioned table.
-Merge - Causes all partitions to be merged into one, unpartitioned table. 
-TABLE_EXISTS_ACTION 	1.) SKIP  : leaves the table as is and moves on to the next object. This is not a valid option if the CONTENT parameter is set to DATA_ONLY.By default the value is SKIP . 
+Merge - Causes all partitions to be merged into one, unpartitioned table.
+```
+## TABLE_EXISTS_ACTION 	
+```
+1.) SKIP  : leaves the table as is and moves on to the next object. This is not a valid option if the CONTENT parameter is set to DATA_ONLY.By default the value is SKIP . 
 [ignore: ORA-39151:]
 2.) APPEND loads rows from the source and leaves existing rows unchanged.[ignore: ORA-39151:]
 3.) TRUNCATE deletes existing rows and then loads rows from the source.[ignore: ORA-39151:]
 4.) REPLACE drops the existing table and then creates and loads it from the source. This is not a valid option if the CONTENT parameter is set to DATA_ONLY.
 Hence, table_exists_action=replace parameter internally drop and recreate the table .Hence all the existing metadata also  get dropped and is recreated .
-
-flashback_time="TO_TIMESTAMP('2015-09-23 10:43:00', 'YYYY-MM-DD HH24:MI:SS')"
-
-
-ICC--HRI          RFC0000012153 [CHG0071468]
-$ expdp system directory=test_exp tables=ICCGENERIC.ICC_SURESITE_REFERENCE_DATA dumpfile=ICC_Suresite.dmp consistent=Y
-$ impdp directory=test_exp dumpfile=ICC_Suresite.dmp logfile=impdpsure.log remap_schema=ICCGENERIC:HRI
+```
 
 expdp system/system_bhp directory=expmono1 full=y filesize=10G dumpfile=pprod2ofull%U.dmp EXCLUDE=STATISTICS parallel=5 CONTENT=METADATA_ONLY logfile=exppprod20.log
 
-vi PPROD26Export.sh
+## Export.sh
+```
 #!/bin/bash
 ORACLE_HOME=/app/pprod26/product/11.2.0.2/db_1;export ORACLE_HOME
 PATH=$ORACLE_HOME/bin:$PATH;export PATH
@@ -336,6 +362,7 @@ select OWNER
       ,DIRECTORY_PATH
 from DBA_directories
 order by OWNER,DIRECTORY_NAME;
+```
 
 Trace file:  using trace=480300 in the expdp/impdp command
 Data Pump Export (expdp) and Data Pump Import (impdp) are server-based rather than client-based as is the case for the original export (exp) and import (imp). 
@@ -345,8 +372,9 @@ Data Pump requires that directory objects mapped a file system directory be spec
 Data Pump and Partitioned Tables
 impdp quest/quest DIRECTORY=quest_pump_dir DUMPFILE=quest.dmp tables=QUEST.NAMES partition_options=merge
 ---------------------------------------------
-Datapump - on fly feature
+## Datapump - on fly feature
 ---------------------------------------------
+```
 expdp.par
 USERID="/ as sysdba"
 tables=ellipse.msf010
@@ -361,10 +389,11 @@ remap_tablespace=VICCNV_LOBMSF:TAB_ELLIPSE
 4. Start the import
 
 impdp parfile=expdp.par parallel=4 directory=impdir logfile=imp.log network_link=viccnv1.vicroads.com.au
-
+```
 --------------------------------------
-Export Using GZIP
+## Export Using GZIP
 --------------------------------------
+```
 cat exp.par
 userid="/ as sysdba"
 file=./gzip_pipe
@@ -434,16 +463,19 @@ tables=(tab1,tab2,tab3)
 direct=y
 statistics=none
 query="where entry_type ='G' and entity in ('HRASSIST','HRSYS','PAYROLL')"
+```
 
-TRIGGERS
+## TRIGGERS
 -------------------------------
+```
 export dump file will not have triggers.
 
 triggers=N -- is an option which should be given for export utility and not for import utility
-
+```
 +++++++++++++++++++++++++++++++++++
-Without Index and then Index
+## Without Index and then Index
 +++++++++++++++++++++++++++++++++++
+```
 more imp.par
 -------------------------
 userid=system
@@ -463,16 +495,11 @@ file=/oradump/export/rn01tst/rnw.dmp
 buffer=2000000
 full=yes
 indexfile=index_create.sql
+```
 
-EXP_FULL_DATABASE role for other schemas: 
-$ expdp hr/hr DIRECTORY=exp_dir DUMPFILE=schema_exp.dmp SCHEMAS=hr,sh,oe 
-$ expdp hr/hr DIRECTORY=exp_dir DUMPFILE=tables_exp.dmp TABLES=employees,jobs,departments 
-IMP_FULL_DATABASE role on the target database. 
-$ impdp system/<password> DIRECTORY=exp_dir DUMPFILE=expfull.dmp FULL=y LOGFILE=impfull.og 
-$ impdp hr/hr DIRECTORY=exp_dir DUMPFILE=expfull.dmp SCHEMAS=hr,sh,oe 
-
-INCLUDE or EXCLUDE parameter in a parameter file is the preferred method.
+## INCLUDE or EXCLUDE parameter in a parameter file is the preferred method.
 -------------------------------------------------------------------------------------------------------------------------------
+```
 Parameter file: exp.par 
 -------------------------
 DIRECTORY = my_dir 
@@ -509,11 +536,12 @@ AND UPPER(j.job_title) = 'ANALYST' OR e.salary >= 3000)"
 -- Run Export DataPump job:
 
 %expdp system/manager parfile=expdp_q.par
+```
 
 ################################################################
-QUERY on Command line.
+## QUERY on Command line.
 ###############################################################
-
+```
 table scott.dept; and 
 from table scott.emp all employees whose name starts with an 'A' 
 -- Example Windows platforms:
@@ -576,8 +604,10 @@ exit
 EOF
 $ORACLE_HOME/bin/expdp $USER/$USER_PWD parfile=/home/oracle/scripts/expdp_PALLADIUM.par
 [oracle: ~]$impdp system/g1nt0nic directory=dpump dumpfile=SBPELADMIN.dmp sqlfile=bpelscript.sql
+```
 
-CONTENTSIZE
+## CONTENTSIZE
+```
 exp user/pwd  file=exp.dmp log=exp.log tables=owner1.tablename statistics=none
 imp user/pwd file=exp.dmp fromuser=owner1 touser=owner2 show=y log=show.log
 
@@ -600,12 +630,11 @@ expdp system@migdb directory=exp_dir schemas=sh  ESTIMATE_ONLY=y
 
 expdp system@migdb directory=exp_dir schemas=sh dumpfile=fbtst_sh.dmp2 logfile=fbexptxt.log ESTIMATE=BLOCKS
 expdp system@migdb directory=exp_dir schemas=sh dumpfile=fbtst_sh.dmp2 logfile=fbexptxt.log ESTIMATE=STATISTICS
+```
 
-impdp system/******** directory=expdp_dir dumpfile=items.dmp logfile=itemsimp.log tables=sper_db.CM_OUTGOING_CRSP_ITEMS TABLE_EXISTS_ACTION=APPEND
-
-
-export only user's synonyms 
+## export only user's synonyms 
 ---------------------------------------------------
+```
 select 'create synonym ' || synonym_name || ' for ' || table_owner || '.' || table_name || decode(db_link, null, null, '@' || db_link) || ';'
 from user_synonyms 
   
@@ -645,10 +674,10 @@ from sys.dba_synonyms
 where table_owner not in('SI_INFORMTN_SCHEMA','SYS','SYSTEM','ORDSYS','XDB','CTXSYS','DMSYS','EXFSYS','MDSYS','SYSMAN','WKSYS','WMSYS')
 order by owner, table_name;
 spool off;
+```
 
-
-ORA-31693, ORA-02354 and ORA-01555 with Export Datapump (Doc ID 1580798.1)
-
+## ORA-31693, ORA-02354 and ORA-01555 with Export Datapump (Doc ID 1580798.1)
+```
 select COLUMN_NAME,SECUREFILE,PCTVERSION,RETENTION from dba_lobs 
 where OWNER=upper('&OWNER') 
 and TABLE_NAME=upper('&TABLE_NAME') ;
@@ -721,16 +750,11 @@ GET_SYSTEM_CHANGE_NUMBER
                  1386913
 
 !expdp system/oracle directory=exp_dir schemas=SH dumpfile=FlashDpmp.dmp logfile=FlashDpmp.log flashback_scn=1386808 reuse_dumpfiles=y
-
+```
   
+## Progress 
 
-
-
-Progress 
-
-
-
-
+```
 select sid, serial#, sofar, totalwork, dp.owner_name, dp.state, dp.job_mode
 from gv$session_longops sl, gv$datapump_job dp
 where sl.opname = dp.job_name and sofar != totalwork;
@@ -746,7 +770,8 @@ left join v$sql z on (y.sql_id = z.sql_id)
 left join v$session_longops p ON (p.sql_id = y.sql_id)
 WHERE y.module='Data Pump Worker'
 AND p.time_remaining > 0;
-
+```
+```
 TTITLE 'Currently Active DataPump Operations'
 COL owner_name          FORMAT A06      HEADING 'Owner'
 COL job_name            FORMAT A20      HEADING 'JobName'
@@ -766,16 +791,18 @@ SELECT
     ,attached_sessions
   FROM dba_datapump_jobs
 ;
-
+```
+## Sample Output
+```
 Thu Apr 07                                                             page    1
                       Currently Active DataPump Operations
 
 SYS    IIB_QA_SEC_INTERIM   IMPORT       FULL         EXECUTING        4     1
 SYS    IIB_QA_SEC_IMP       IMPORT       FULL         NOT RUNNING      0     0
 
+```
 
-
-
+```
 TTITLE 'Currently Active DataPump Sessions'
 COL owner_name          FORMAT A06      HEADING 'Owner'
 COL job_name            FORMAT A20      HEADING 'Job'
@@ -790,13 +817,16 @@ SELECT
     ,v$session S
  WHERE S.saddr = DPS.saddr
 ;
+```
+```
 Thu Apr 07                                                             page    1
                        Currently Active DataPump Sessions
 
 SYS    IIB_QA_SEC_INTERIM   oracle
 SYS    IIB_QA_SEC_INTERIM   oracle
 SYS    IIB_QA_SEC_INTERIM   oracle
-
+```
+```
 select
     sid,
     serial#
@@ -805,7 +835,8 @@ select
     dba_datapump_sessions d
  where
   s.saddr = d.saddr;
-
+```
+```
 Thu Apr 07                                                             page    1
                        Currently Active DataPump Sessions
 
@@ -813,7 +844,8 @@ Thu Apr 07                                                             page    1
         63         71
         70         51
 
-
+```
+```
 col table_name format a30
 
 select substr(sql_text, instr(sql_text,'"')+1, 
@@ -834,19 +866,18 @@ and
 command_type = 2 
 and 
 open_versions > 0;
+```
+```
 Thu Apr 07                                                             page    1
                        Currently Active DataPump Sessions
 
 WMB_BINARY_DATA                             0      195.7            0
 ICCSYSDB                                    0      232.7            0
 
+```
 
-
-
-
-
-
-Performance
+## Performance
+```
 DISK_ASYNCH_IO=TRUE
 DB_BLOCK_CHECKING=FALSE
 DB_BLOCK_CHECKSUM=FALSE
@@ -856,15 +887,18 @@ Additionally, the following initialization parameters must have values set high 
 PROCESSES
 SESSIONS
 PARALLEL_MAX_SERVERS
- increase the pga_agreegate_target value to a large number may reduce time 
+increase the pga_agreegate_target value to a large number may reduce time 
 
 parallel to multiple files (export and import) ; 
 pga_aggregate_target to big number might increate import jobs 
 
+```
+```
 select sid, serial#, username, process, program
 from v$session s, dba_datapump_sessions d
 where s.saddr = d.saddr;
-
+```
+```
 col table_name for a30
 select substr(sql_text,instr(sql_text,' INTO '),30) table_name,
          rows_processed,
@@ -874,7 +908,8 @@ select substr(sql_text,instr(sql_text,' INTO '),30) table_name,
   where   (ADDRESS,HASH_VALUE) in (select sql_address,sql_hash_value from v$session where sid= &sid_number)
     and  command_type = 2
     and  open_versions > 0;
-
+```
+```sample output
 Enter value for sid_number: 202
 old   6:   where   (ADDRESS,HASH_VALUE) in (select sql_address,sql_hash_value from v$session where sid= &sid_number)
 new   6:   where   (ADDRESS,HASH_VALUE) in (select sql_address,sql_hash_value from v$session where sid= 202)
@@ -882,10 +917,12 @@ new   6:   where   (ADDRESS,HASH_VALUE) in (select sql_address,sql_hash_value fr
 TABLE_NAME                     ROWS_PROCESSED    MINUTES ROWS_PER_MIN
 ------------------------------ -------------- ---------- ------------
  INTO "MSF900_I" ("DSTRCT_CODE        1966020       76.9        25571
-
-To see the wait event
+```
+## To see the wait event
+```
 select * from v$session_event where sid=202
-
+```
+```
 SET lines 200
 COL owner_name FORMAT a10;
 COL job_name FORMAT a20
@@ -898,8 +935,9 @@ state, attached_sessions
 FROM dba_datapump_jobs
 WHERE job_name NOT LIKE 'BIN$%'
 ORDER BY 1,2;
-
-impdp/exp dp progress
+```
+## impdp/exp dp progress
+```
 select to_char(v$session.sid,'99999') SID,
 to_char(logon_time,'DD-MON:HH24MISS') start_time,
 substr(nvl(program,machine),1,15) prog_machine,
@@ -913,8 +951,9 @@ where v$session.sid=v$session_longops.sid
 and sofar <> totalwork 
 and program like '%exp%'
 order by totalwork;
-
-Monitoring import performance
+```
+## Monitoring import performance
+```
 select 
    substr(sql_text,instr(sql_text,'into "'),30) table_name, 
    rows_processed, round((sysdate-to_date(first_load_time,'yyyy-mm-dd hh24:mi:ss'))*24*60,1) minutes,
@@ -923,25 +962,24 @@ from
    sys.v_$sqlarea 
 where  
    sql_text like 'insert %into "%' and command_type = 2 and open_versions > 0; 
-
+```
+```
 select b.username,a.sid,b.opname,b.target,round(b.SOFAR*100 / b.TOTALWORK,0) ||'%' as "%DONE",
 b.TIME_REMAINING,to_char(b.start_time,'YYYY/MM/DD HH24:MI:SS') START_TIME
 from V$SESSION_LONGOPS b,V$SESSION a
 where a.sid=b.sid
 order by b.SOFAR/b.TOTALWORK;
-
+```
+```sample output
 USERNAME            SID OPNAME                    TARGET               %DONE    TIME_REMAINING START_TIME
 --------------- ------- ------------------------- -------------------- -------- -------------- -------------------
 SYSTEM               74 SYS_IMPORT_TABLE_01                            0%                      2010/12/24 11:01:56
 SYSTEM               78 SYS_IMPORT_TABLE_02                            0%                      2010/12/24 11:25:52
 SYS                         87 Advisor                                                             100%                  0             2010/12/23 22:00:04  
+```
 
-
-
-RestartDataPump Job 
-
-
-
+## RestartDataPump Job 
+```
 SQL> SELECT owner_name, job_name, operation, job_mode, state FROM dba_datapump_jobs;
 
 OWNER_NAME              JOB_NAME     OPERATION                      JOB_MODE            STATE
@@ -998,32 +1036,16 @@ BH_OWNER  	BIN$EZtZ6j0yBy/gUPAKHRpKFw==$0  EXPORT SCHEMA NOT RUNNING
 BH_OWNER  	SYS_IMPORT_TABLE_01  		IMPORT  TABLE NOT RUNNING
 BH_OWNER 	SYS_IMPORT_TABLE_03 		IMPORT TABLE NOT RUNNING
 
-SQL> SELECT * FROM DBA_DATAPUMP_SESSIONS
-  2  ;
+SQL> SELECT * FROM DBA_DATAPUMP_SESSIONS ;
 
-SYS
-IIB_QA_SEC_INTERIM
-         1 000000007B607538 DBMS_DATAPUMP
+SYS	IIB_QA_SEC_INTERIM 1 000000007B607538 DBMS_DATAPUMP
 
-SYS
-IIB_QA_SEC_INTERIM
-         1 000000007B5FE298 MASTER
-
-SYS
-IIB_QA_SEC_INTERIM
-         1 000000007B5E8C78 WORKER
-
-SYS
-
-IIB_QA_SEC_INTERIM
-         2 000000006C2E0358 WORKER
-
-
-$ impdp BH_OWNER attach=SYS_IMPORT_TABLE_02
-
+----
+```
 select owner_name,job_name,operation,job_mode,state,attached_sessions
 from dba_datapump_jobs;
-SYS@BHQA1 SQL>   2
+```
+```Sample output
 
 OWNER_NAME
 ------------------------------------------------------------------------------------------
@@ -1130,12 +1152,12 @@ Worker 1 Status:
   Percent Done: 90
   Worker Parallelism: 1
 
-====
+```
 
 
-EXPORT  [database_exportdp.sh]
-------------------------------
+## EXPORT  [database_exportdp.sh]
 
+```
 #!/bin/sh
 case "$PATH" in
         */usr/local/bin*)       ;;
@@ -1197,6 +1219,6 @@ echo
 echo "********************* END OF JOB ******************************"
 
 exit
-
+```
 
 
