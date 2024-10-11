@@ -3,37 +3,6 @@
 ! Make sure any Licence requirements from your side. Please do modify based on your own setup. This is purely based on my own lab setup. 
 
 ```
-
-## Database version and platform:
-
-```
-col OS format a40
-col RDBMS_Ver format a30
-set lines 220 pages 2000
-select substr(v.banner_full,instr(v.banner_full,chr(10))+1) as RDBMS_Ver,
-d.database_role, d.platform_id, dbms_utility.port_string as "OS", d.cdb, d.flashback_on
-FROM
-v$version v , v$database d ;
-```
-Sample Output:
-```
-RDBMS_VER                      DATABASE_ROLE    PLATFORM_ID OS                                       CDB FLASHBACK_ON
------------------------------- ---------------- ----------- ---------------------------------------- --- ------------------
-Version 19.22.0.0.0            PRIMARY                   13 x86_64/Linux 2.4.xx                      YES YES
-```
-```
-SELECT
-case when count(c.cell_path) > 0 and dbms_utility.port_string like 'x86_64/Linux%' then 'Exadata'
-when count(c.cell_path) > 0 and dbms_utility.port_string like 'SVR4%' then 'Supercluster'
-else 'Not Exadata' end as "Is_Exadata?"
-from v$cell c;
-```
-Sample Output:
-```Is_Exadata?
-------------
-Exadata
-
-```
 ## connect to a database using host, port, SID/Service name without having an entry in tnsnames.ora?
 ```
 $ sqlplus username/password@hostname:port/SERVICENAME
@@ -54,27 +23,7 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
          s.machine||','||s.module||','||s.client_info||','||
          s.terminal||','||s.program||','||s.action
     FROM v$session s, v$process p, SYS.v_$sess_io si
-   WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID
-   AND s.TYPE !='BACKGROUND'
-   AND s.status ='ACTIVE';
-```
-```
-SELECT 
-    s.status || ',' || s.serial# || ',' || s.TYPE || ',' ||
-    s.username || ',' || s.osuser || ',' ||
-    s.machine || ',' || s.module || ',' || s.client_info || ',' ||
-    s.terminal || ',' || s.program || ',' || s.action || ',' ||
-    UTL_INADDR.GET_HOST_ADDRESS(REGEXP_REPLACE(s.machine, '^.+\\')) AS client_ip
-FROM 
-    v$session s
-LEFT JOIN 
-    v$process p ON s.paddr = p.addr
-LEFT JOIN 
-    SYS.v_$sess_io si ON si.SID = s.SID;
-```
-
-```
-SELECT 'Sid,Serial#,User,Temp(Mb),Client User,Machine,Module,Client Info, Terminal,Program,Action'  From Dual;
+   WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
 ```
 ## Including Service name
 
@@ -109,7 +58,7 @@ SELECT NVL(s.username, '(oracle)') AS username,
 FROM   v$session s,
        v$process p
 WHERE  s.paddr = p.addr
-and service_name='&service'
+and service_name='TRMPS_RO_SVC'
 ORDER BY s.username, s.osuser;
 ```
 ```
@@ -138,13 +87,7 @@ group by  s.sid || ',' || s.serial#,
           substr(s.osuser||','||s.machine||','||s.module||','||
           s.client_info||','||s.terminal||','||s.program||','||s.action,1,51);
 ```
-```
-Sample output:
-245,22286  ARCIMS   1       Framework Application Pool,IIS APPPOOL\DPTISDSIVP01
-225,19148  DBSNMP   1       oracle,dteigisdb03.dtei.sa.gov.au,emagent_SQL_oracl
-
-```
-# monitor_max_extent.sql
+## monitor_max_extent.sql
 ```
 rem             e.g. if you want to report on segments that cannot extend
 rem             by 3 times in the available
@@ -255,7 +198,7 @@ set verify on
 /
 ```
 
-### monitor_tablespace.sql
+## monitor_tablespace.sql
 ```
 rem    monitor_tablespace.sql
 rem
@@ -299,7 +242,7 @@ and ((df.bytes - (df.allocated - fs.free_space))/df.bytes) * 100 < &1
 /
 ```
 
-### monitor_tablespace_status.sql
+## monitor_tablespace_status.sql
 ```
 rem    monitor_tablespace_status.sql
 rem
@@ -355,7 +298,7 @@ spool off
 set verify on
 set termout on
 ```
-### monitor_locks.sql
+## monitor_locks.sql
 
 ```
 -- |----------------------------------------------------------------------------|
@@ -458,7 +401,7 @@ ORDER BY
     lh.sid
 /
 ```
-### monitor_long_sessions.sql
+##  monitor_long_sessions.sql
 ```
 rem    monitor_long_sessions.sql
 rem
@@ -512,7 +455,7 @@ where status in ( 'ACTIVE','SNIPED')
 /
 ```
 
-### monitor_dbms_jobs.sql
+## monitor_dbms_jobs.sql
 ```
 rem    monitor_dbms_jobs.sql
 rem
@@ -539,7 +482,7 @@ WHERE  (dj.next_date < (sysdate - 1800/86400) -- allow 30 min for snp latency
 set verify on
 set termout on
 ```
-### monitor_dataguard.sql
+## monitor_dataguard.sql
 ```
 rem    monitor_dataguard.sql
 rem
@@ -606,7 +549,7 @@ set verify on
 set termout on
 ```
 
-### USER INFORMATION
+## USER INFORMATION
 ```
 SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
          s.username||','||s.osuser||','||
@@ -616,7 +559,7 @@ SELECT   s.status ||','||s.serial#||','||s.TYPE||','||
    WHERE s.paddr = p.addr(+) AND si.SID(+) = s.SID;
 ```
 
-### ToKillsession -- collect the session information and confirm from the respective team first before killing session
+## ToKillsession -- collect the session information and confirm from the respective team first before killing session
 ```
 alter system kill session '''||sid||','||serial#||''' immediate;' 
 from gv$session 
@@ -654,43 +597,6 @@ ORDER BY 1;
 spool off
 set verify on
 /
-```
-
-### monitor_max_extent.sql
-```
-rem    monitor_max_exent.sql
-rem
-rem    Script to list segments unable to extend due to reaching max_extents
-rem    USAGE:   unable_to_extend <no. of extents>
-rem
-rem      <not of extents> is a numeric value used as a threshold
-rem      to test when an object is close to max extents
-rem      e.g. if you want to report on segments that are within 10 extents
-rem      of max extents, then the the threshold would be set to 3.
-rem
-
-set verify off
-set termout off
-set linesize 80
-set pagesize 0
-rem set feedback off  feedback needed for monitor_extend.sh script to work
-
-
-prompt          ====DB OWNER SEGMENT TABLESPACE======
-
-
-column db_ownr_seg_tblespace format a80
-select substr(substr(db.name,1,10)||' '|| substr(ds.owner,1,12)||'.'||
-       substr(decode(ds.partition_name, null, ds.segment_name, ds.segment_name ||
-       ':' || ds.partition_name),1,20)||' '||
-       ds.tablespace_name,1,80) db_ownr_seg_tblespace
-FROM  dba_segments ds, v$database db
-WHERE ds.extents >= ds.max_extents - nvl('&1',1)
-  AND ds.segment_type IN ('TABLE','INDEX','LOBINDEX','LOBSEGMENT','TABLE PARTITION','INDEX PARTITION','ROLLBACK','CLUSTER')
-ORDER BY 1;
-
-set verify on
-set termout on
 ```
 ## Archive Information
 
@@ -1233,8 +1139,8 @@ exit
 /var/oracle/cron/grid_housekeping.sh +ASM1      > /var/oracle/cron/logs/grid_housekeping.out 2>>/dev/null
 
 
-# Monitor ASM Process
-more process_asm.sh
+## Monitor ASM Process
+process_asm.sh
 ```
 ps -ef | grep -i asm | wc -l >> /tmp/session.out
 export proc=`ps -ef | grep -i asm | wc -l`
@@ -1245,7 +1151,7 @@ fi
 ### sample execute command
 /export/home/oracle/bin/monitor/process_asm.sh >> /export/home/oracle/bin/monitor/logs/monitor_ASM_process.log
 
-### monitor_report_sessions.sql
+## monitor_report_sessions.sql
 ```
 set head off
 set linesize 200 trimspool on pagesize 0
@@ -1435,7 +1341,7 @@ select plan_table_output from table (dbms_xplan.display_cursor('&&sql_id', null,
 spool off
 ```
 
-### Get the rollback segment information
+## Get the rollback segment information
 
 ```
 column RBS_NAME format a10
@@ -1462,7 +1368,7 @@ and s.sid = &sid_number
 /
 
 ```
-### SORT information
+## SORT information
 ```
 PROMPT
 PROMPT Sort Information
@@ -1483,7 +1389,7 @@ WHERE s.saddr = u.session_addr
 AND s.sid = &sid_number
 /
 ```
-### Performance Statistics
+## Performance Statistics
 
 more performance_stat.sql
 ```
@@ -1630,7 +1536,7 @@ select object_name, object_type, status from dba_objects where owner='CTXSYS' an
 spool off
 ```
 
-### Backup Status Report - Grant permission only to the right user / group
+## Backup Status Report - Grant permission only to the right user / group
 more bkp.sql
 ```
 CREATE OR REPLACE FORCE VIEW "SYS"."RMAN_REPORT"
@@ -1704,10 +1610,10 @@ select * from v$recover_file;
 archive log list
 select flashback_on from v$database;
 ~
-run_all.sh
+cat run_all.sh
 #!/usr/bin/sh
 set -vx
-cd /home/oracle/sthati
+cd /home/oracle/mm
 cat /etc/oratab | while read LINE
 do
   case $LINE in
@@ -1726,7 +1632,7 @@ export SID=$ORACLE_SID
 echo $SID |. oraenv 1>/dev/null 2>&1
 sqlplus -S "/ as sysdba" <<!EOF
 spool `echo $SID`_alert.log
-@@/home/oracle/sthati/show_alert.sql
+@@/home/oracle/mm/show_alert.sql
  spool off;
 exit
 !EOF
@@ -1742,7 +1648,7 @@ SQL> spool oon
 SQL> select 'alter user ' ||u.username|| ' profile '||u.profile||';' from   sys.dba_users u;
 SQL> spool off
 ```
-### Passsword information 
+## Passsword information 
 cat PasswordBackup_<db>_<date>.sql
 ```
 set lines 120
