@@ -1,4 +1,5 @@
 ### Create user
+
 ``
   CREATE USER PI_READONLY
   IDENTIFIED BY PI_READONLY
@@ -17,26 +18,9 @@ select 'alter user '||username||' identified by values '||REGEXP_SUBSTR(DBMS_MET
 alter session set nls_date_format = 'DY DD-MON-RRRR';
 select username, account_status from dba_users where username like '%ARI%';
 ```
-USERNAME                      ACCOUNT_STATUS
-------------------------------------------------------------------------------------------------
-ARIS71			EXPIRED
-
 ```
 select spare4 from sys.user$ where name='ARIS71';
 ```
-SPARE4
----------------------------------------------------------------------------------------------------------------------------------------
-S:22153917B658C47DE9FDB9C18CEC5E129F03C07C1456B08E325A4288D367
-
-alter user ARIS71 identified by values 'S:22153917B658C47DE9FDB9C18CEC5E129F03C07C1456B08E325A4288D367';
-
-User altered.
-
-select username, account_status from dba_users where username like '%ARI%';
-
-USERNAME		ACCOUNT_STATUS
-----------------------------------------------------------
-ARIS71			OPEN
 
 ```
 select  username
@@ -103,8 +87,8 @@ union all
     select dbms_metadata.get_granted_ddl( 'TABLESPACE_QUOTA', '&user' ) from dual;
 spool off;
 ```
-Password Expire
-==============
+## Password Expire
+
 ```
 ALTER PROFILE SPER_PROFILE_TEMPORARY LIMIT
   FAILED_LOGIN_ATTEMPTS 3
@@ -122,7 +106,7 @@ set long 1000000
  select dbms_metadata.get_granted_ddl('OBJECT_GRANT','BACKUP') from dual;
  select dbms_metadata.get_granted_ddl('ROLE_GRANT','BACKUP') from dual; 
 ```
-----Second User 
+## Second User 
 ```
 select ' ,' || username || ' : ' || username || '_X' cmd
 from dba_users
@@ -147,8 +131,8 @@ where username not in in ('SYS','SYSTEM','OUTLN','SCOTT','ADAMS','JONES','CLARK'
 'TSMSYS ','XDB ');
 ```
 
-impdp 
--------------
+## impdp 
+```
 imp.par
 userid=system
 directory=expmono1
@@ -160,20 +144,10 @@ REMAP_SCHEMA=,ROSBOAUDIT : ROSBOAUDIT_X
  ,OLAPSYS : OLAPSYS_X                                                           
  ,DBAMON : DBAMON_X                                                             
  ,BOBJCMS : BOBJCMS_X                                                           
- ----                                              
-                                 
- ,OE : OE_X                                                                     
- ,OUTLN : OUTLN_X                                                               
- --                                              
- ,FLOWS_FILES : FLOWS_FILES_X                                                   
- ,DBSNMP : DBSNMP_X                                                             
- ,MDM : MDM_X      
+```                                  
+ 
 
-  
-
-
-
-decrypt 
+## decrypt 
 
 ```
 
@@ -186,7 +160,7 @@ select o.object_name credential_name, username, password
  FROM SYS.SCHEDULER$_CREDENTIAL c, DBA_OBJECTS o
  WHERE c.obj# = o.object_id;
 ```
-Nothing to blame here, but I mentioned, the password can be decrypted. So let's do so:
+## Nothing to blame here, but I mentioned, the password can be decrypted. So let's do so:
 ```
 SELECT u.name CREDENTIAL_OWNER, O.NAME CREDENTIAL_NAME, C.USERNAME, 
   DBMS_ISCHED.GET_CREDENTIAL_PASSWORD(O.NAME, u.name) pwd
@@ -195,7 +169,8 @@ WHERE U.USER# = O.OWNER#
   AND C.OBJ#  = O.OBJ# ;
 ```
   ```
-Last login info:
+## Last login info:
+  ```
 col USERNAME for a15
 col OS_USERNAME for a15
 col USERHOST for a15
@@ -203,11 +178,12 @@ col ACTION_NAME for a15
 set pages 200
 set lines 100
 
-SQL > alter session set nls_date_format=’DD-MON-YY HH24:MI:SS’;
+alter session set nls_date_format=’DD-MON-YY HH24:MI:SS’;
 
-SQL > select USERNAME,OS_USERNAME,USERHOST,TIMESTAMP,ACTION_NAME,
+select USERNAME,OS_USERNAME,USERHOST,TIMESTAMP,ACTION_NAME,
 LOGOFF_TIME from dba_audit_trail where username=’&USERNAME’ order by USERHOST;
-
+  ```
+  ```
 SELECT TO_CHAR(TIMESTAMP#,'MM/DD/YY HH:MI:SS') TIMESTAMP,
 USERID, AA.NAME ACTION FROM SYS.AUD$ AT, SYS.AUDIT_ACTIONS AA
 WHERE AT.ACTION# = AA.ACTION
@@ -222,9 +198,7 @@ AND (timestamp > (sysdate - 61))
 order by logon_time,username,timestamp,logoff_time;
 ```
 
-
-
-For Export 
+## Export 
 ```
 set lines 2000
 set heading off
@@ -293,11 +267,7 @@ and profile not in ('&profile')
 spool off
  ``` 
 
-
-
-Identical objects 
-
-
+### Identical objects 
 ```
 column owner format a10
 column object_name format a30
@@ -310,13 +280,12 @@ and   a.object_type = b.object_type
 and   a.object_name = b.object_name;  
 ```
 
+## Move tablespace 
 
-Move tablespace 
 
-```
 
 1. Create a new tablespace
-
+```
 CREATE BIGFILE TABLESPACE ICCGENERIC_TS DATAFILE 
   '+DATA' SIZE 43456000K AUTOEXTEND ON NEXT 100M MAXSIZE 43456000K
 LOGGING
@@ -325,18 +294,19 @@ EXTENT MANAGEMENT LOCAL AUTOALLOCATE
 BLOCKSIZE 8K
 SEGMENT SPACE MANAGEMENT AUTO
 FLASHBACK ON;
-
+```
 2. Make created tablespace as a default tablespace for ICCGENERIC user and allocate quota 
-
+```
 Alter user ICCGENERIC default tablespace ICCGENERIC_TS;
 Alter user ICCGENERIC QUOTA unlimted on ICCGENERIC_TS;
-
-3. Create a dynamic script to move ICCGENERIC tables to new tablespace from USERS tablespace:
+```
+3. Create a dynamic script to move ICCGENERIC tables to new tablespace from USERS tablespace
+```
 spool mvtabindex.sql
 select 'alter index '||owner||'.'||index_name||' rebuild tablespace ICCGENERIC_TS;' from DBA_INDEXES WHERE OWNER ='ICCGENERIC';
 select 'ALTER TABLE '||OWNER||'.'||TABLE_NAME||' MOVE TABLESPACE ICCGENERIC_TS;' from DBA_TABLES where OWNER='ICCGENERIC';
 spool off
-
+```
 Note: Alter table move invalidate all table's indexes. So this command is usually followed by "alter index rebuild
 
 Run move table script
@@ -345,8 +315,7 @@ Run move table script
 @?/rdbms/admin/utlrp.sql  
 ```
 
-
-Profile/Password 
+## Profile/Password 
 
 
 ```
@@ -1661,3 +1630,79 @@ WHERE OWNER IN UPPER('&SCHEMA_NAME')
 ORDER BY TOTAL_TABLE_GB DESC, GB DESC
 /
 ```
+
+### ACL Issue 
+```
+ORA-24247: network access denied by access control list (ACL)
+ORA-06512: at "SYS.UTL_TCP", line 19
+ORA-06512: at "SYS.UTL_TCP", line 295
+ORA-06512: at "SYS.UTL_SMTP", line 164
+ORA-06512: at "SYS.UTL_SMTP", line 201
+```
+
+```
+column ACL format a50
+column PRINCIPAL format a20
+column ACL_OWNER format a10
+column START_DATE format a5
+column END_DATE format a5
+column PRIVILEGE format a10
+select * FROM   dba_network_acl_privileges order by principal;
+```
+```
+ACL                                                ACLID            PRINCIPAL            PRIVILEGE  IS_GR INVER START END_D ACL_OWNER
+-------------------------------------------------- ---------------- -------------------- ---------- ----- ----- ----- ----- ----------
+NETWORK_ACL_23640BB9A64D5E09E0639B02250A8C44       0000000080002724 GSMADMIN_INTERNAL    resolve    true  false             SYS
+
+```
+```
+SELECT * FROM DBA_NETWORK_ACL_PRIVILEGES;
+```
+```
+SELECT * FROM DBA_NETWORK_ACL_PRIVILEGES;
+```
+
+```
+begin
+DBMS_NETWORK_ACL_ADMIN.add_privilege (
+acl => 'NETWORK_ACL_23640BB9A64D5E09E0639B02250A8C44',
+principal => 'IDA',
+is_grant => TRUE,
+privilege => 'connect');
+COMMIT;
+end;
+/
+```
+```
+begin
+DBMS_NETWORK_ACL_ADMIN.add_privilege (
+acl => 'NETWORK_ACL_23640BB9A64D5E09E0639B02250A8C44',
+principal => 'IDA',
+is_grant => TRUE,
+privilege => 'resolve');
+COMMIT;
+end;
+/
+```
+```
+begin
+DBMS_NETWORK_ACL_ADMIN.add_privilege (
+acl => 'NETWORK_ACL_23640BB9A64D5E09E0639B02250A8C44',
+principal => 'IDA',
+is_grant => TRUE,
+privilege => 'smtp');
+COMMIT;
+end;
+/
+```
+
+```
+select * FROM   dba_network_acl_privileges order by principal;
+```
+
+ACL                                                ACLID            PRINCIPAL            PRIVILEGE  IS_GR INVER START END_D ACL_OWNER
+-------------------------------------------------- ---------------- -------------------- ---------- ----- ----- ----- ----- ----------
+NETWORK_ACL_xxxdfggbgfhdjfkujdgfhjkbllyyyt       0000000080002724 GSMADMIN_INTERNAL    resolve    true  false             SYS
+NETWORK_ACL_xxxdfggbgfhdjfkujdgfhjkbllyyyt       0000000080002724 PE                   connect    true  false             SYS
+NETWORK_ACL_xxxdfggbgfhdjfkujdgfhjkbllyyyt       0000000080002724 PE                   smtp       true  false             SYS
+NETWORK_ACL_xxxdfggbgfhdjfkujdgfhjkbllyyyt       0000000080002724 PE                   resolve    true  false             SYS
