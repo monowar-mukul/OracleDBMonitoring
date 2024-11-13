@@ -1187,3 +1187,32 @@ s.machine, p.terminal, s.program
 FROM v$session s, v$process p
 WHERE s.paddr = p.addr
 and s.sid=&SID ;
+
+
+============================
+COLUMN tablespace_name FORMAT A20 HEADING 'TABLESPACE NAME'
+COLUMN file_name FORMAT A50 HEADING 'FILE NAME'
+COLUMN size_in_gb FORMAT 999.99 HEADING 'SIZE (GB)'
+COLUMN autoextensible FORMAT A12 HEADING 'AUTOEXTEND'
+COLUMN file_type FORMAT A10 HEADING 'FILE TYPE'
+
+SELECT
+    RPAD(t.tablespace_name, 20) AS tablespace_name,
+    RPAD(f.file_name, 50) AS file_name,
+    LPAD(ROUND(f.bytes / 1024 / 1024 / 1024, 2), 10) AS size_in_gb,
+    RPAD(f.autoextensible, 12) AS autoextensible,
+    CASE
+        WHEN t.bigfile = 'YES' THEN 'BIGFILE'
+        ELSE 'SMALLFILE'
+    END AS file_type
+FROM
+    dba_temp_files f
+JOIN
+    dba_tablespaces t ON f.tablespace_name = t.tablespace_name
+ORDER BY
+    t.tablespace_name, f.file_name;
+
+
+  TABLESPACE NAME    FILE NAME                                          SIZE (GB)                                AUTOEXTEND   FILE TYPE
+-------------------- -------------------------------------------------- ---------------------------------------- ------------ ----------
+TEMP                 /acfsvol1/.ACFS/snaps/ECGE_SNAP/ECGEDB/datafile/o1        .05                               YES          SMALLFILE
