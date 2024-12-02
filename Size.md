@@ -1,4 +1,57 @@
+
+## CDB
+1. Check CDB(container database) size including all datafiles, temp files, redo logs, and control files:
+
+```
+select x.data_size+y.temp_size+z.redo_size+w.controlfile_size "CDB_SIZE_GB" from 
+(select sum(bytes)/1024/1024/1024 data_size from dba_data_files) x,
+(select nvl(sum(bytes),0)/1024/1024/1024 temp_size from dba_temp_files) y,
+(select sum(bytes)/1024/1024/1024 redo_size from sys.v_$log) z,
+(select sum(BLOCK_SIZE*FILE_SIZE_BLKS)/1024/1024/1024 controlfile_size from v$controlfile) w;
+```
+```Sample output
+CDB_SIZE_GB
+-----------
+ 19.3112183
+
+```
+
+## Check CDB(container database) size including all data files and temp files with the list of PDBs(Pluggable databases):
+
+```
+COLUMN con_id FORMAT 9999
+COLUMN name FORMAT A20
+COLUMN open_mode FORMAT A10
+COLUMN SUM(SIZE_GB) FORMAT 999.99
+SET PAGESIZE 50
+SET LINESIZE 80
+SET FEEDBACK ON
+select con_id,name,SUM(SIZE_GB) from 
+(select  c.con_id,nvl(p.name, 'CDB') name, sum(bytes)/1024/1024/1024 SIZE_GB from  cdb_data_files c, v$pdbs p where c.con_id=p.con_id(+) GROUP BY c.con_id,name
+UNION
+select  c.con_id,nvl(p.name, 'CDB') name , sum(bytes)/1024/1024/1024 SIZE_GB from  cdb_temp_files c, v$pdbs p where c.con_id=p.con_id(+) GROUP BY c.con_id,name)group by con_id,name
+order by con_id;
+```
+```Sample output
+CDB_SIZE_GB
+-----------
+ 19.3112183
+
+```
+## Check all PDB(Pluggable database) sizes:
+```
+COLUMN con_id FORMAT 9999
+COLUMN name FORMAT A20
+COLUMN open_mode FORMAT A10
+COLUMN pdb_size_gb FORMAT 999.99
+SET PAGESIZE 50
+SET LINESIZE 80
+SET FEEDBACK ON
+SELECT con_id,name,open_mode,total_size /1024/1024/ 1024 AS "PDB_SIZE_GB" FROM
+v$pdbs;
 ## Database Size with used and free space
+```
+## Non CDB
 ```
 col "Database Size" format a20
 col "Free space" format a20
