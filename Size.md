@@ -1,3 +1,14 @@
+### HOST Configuration
+
+[oracle@ ~]$ lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)'
+CPU(s):              16
+On-line CPU(s) list: 0-15
+Thread(s) per core:  2
+Socket(s):           2
+NUMA node(s):        1
+Model name:          Intel(R) Xeon(R) Gold 5222 CPU @ 3.80GHz
+NUMA node0 CPU(s):   0-15
+
 
 ## CDB
 1. Check CDB(container database) size including all datafiles, temp files, redo logs, and control files:
