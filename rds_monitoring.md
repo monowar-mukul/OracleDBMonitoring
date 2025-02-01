@@ -870,3 +870,57 @@ BEGIN
     p_path_on_efs => '/rdsefs-fs-04439b3b2f48f5b8a/external/d1aus/address_rectification');
 END;
 /
+
+
+
+Limitations of RDS for Oracle CDBs
+Multitenant architecture
+The multitenant architecture enables an Oracle database to function as a multitenant container database (CDB).
+A container is a collection of schemas, objects, and related structures in a multitenant container database (CDB). Within a CDB, each container has a unique ID and name.
+A CDB includes zero, one, or many customer-created pluggable databases (PDBs) and application containers. A PDB is a portable collection of schemas, schema objects, and nonschema objects that appears to an Oracle Net client as a separate database. An application container is an optional, user-created CDB component that stores data and metadata for one or more application back ends. A CDB includes zero or more application containers.
+ 
+You can get more information from Oracle document (https://docs.oracle.com/en/database/oracle/oracle-database/21/cncpt/CDBs-and-PDBs.html#GUID-FC2EB562-ED31-49EF-8707-C766B6FE66B8 ).
+RDS limitation
+•	The following operations aren't supported at the PDB level but are supported at the CDB level:
+o	Backup and recovery
+o	Database upgrades
+o	Maintenance actions
+RDS - Architecture Option
+Creation, conversion, and upgrade options for the Oracle database architecture
+The following table shows the different architecture options for creating and upgrading RDS for Oracle databases.
+ 
+Release	Database creation options	Architecture conversion options	Major version upgrade targets
+Oracle Database 21c	CDB architecture only	N/A	N/A
+Oracle Database 19c	CDB or non-CDB architecture	Non-CDB to CDB architecture (April 2021 RU or higher)	Oracle Database 21c CDB
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Oracle.Concepts.CDBs.html
+Database init parameter and options
+The following features aren't supported at the PDB level but are supported at the CDB level:
+•	Option groups (options are installed on all PDBs on your CDB instance)
+•	Parameter groups (all parameters are derived from the parameter group associated with your CDB instance)
+Reference
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Oracle.Concepts.CDBs.html#Oracle.Concepts.single-tenant-limitations
+In Transit - encryption
+You enable SSL encryption for an Oracle RDS database instance by adding the Oracle SSL option to the option group associated with an Oracle DB instance.
+o enable SSL encryption for an RDS for Oracle DB instance, add the Oracle SSL option to the option group associated with the DB instance. Amazon RDS uses a second port, as required by Oracle, for SSL connections. This approach allows both clear text and SSL-encrypted communication to occur at the same time between a DB instance and SQL*Plus.
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.Options.SSL.html
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.Options.SSL.Connecting.html
+SSL connection
+https://docs.jivesoftware.com/hosting_your_community/database_setup_and_management/OracleDB_19cSetup-1
+https://aws.amazon.com/rds/faqs/#What_is_a_DB_Subnet_Group_and_why_do_I_need_one
+Data Guard
+RDS for Oracle supports Data Guard read replicas for Oracle Database 19c and 21c CDBs in the single-tenant configuration only.
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/oracle-read-replicas.overview.html
+READ REPLICA https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/oracle-read-replicas.limitations.html
+Before you create an RDS for Oracle replica, consider the following:
+•	Oracle replicas are supported only for Oracle Enterprise Edition (EE).
+•	If the replica is in read-only mode, make sure that you have an Active Data Guard license. If you place the replica in mounted mode, you don't need an Active Data Guard license. Only the Oracle DB engine supports mounted replicas.
+DMS https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Introduction.Targets.html#CHAP_Introduction.Targets.DataMigration
+DMS
+DMS is not getting the target endpoint if RDS with Multitenant database.
+You can use the following data stores as target endpoints for data migration using AWS DMS.
+On-premises and Amazon EC2 instance databases
+•	Oracle versions 10g, 11g, 12c, 18c, and 19c for the Enterprise, Standard, Standard One, and Standard Two editions
+Database Upgrade
+You can upgrade to Oracle Database 21c and higher only if your DB engine uses the multitenant architecture.
+For a non CDB first we need to convert to a CDB architecture and only then perform an upgrade in a separate operation.
+ 
