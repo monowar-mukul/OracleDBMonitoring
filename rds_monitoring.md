@@ -651,3 +651,285 @@ SQL> BEGIN
           value     => 'freq=daily;byday=FRI,SAT;byhour=20;byminute=0;bysecond=0');
 END;
 /
+
+============
+BACKUP
+=======
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.CommonDBATasks.RMAN.html
+
+
+DATABASE IS NOARCHIVE LOG MODE
+=================================
+i) 
+I am taking a backup of oracle RDS tenant database using below sql 
+[ https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.CommonDBATasks.BackupTenantDatabaseFull.html]
+
+BEGIN
+    rdsadmin.rdsadmin_rman_util.backup_tenant_full(
+        p_owner               => 'SYS', 
+        p_directory_name      => 'DATA_PUMP_DIR_PDB',
+        p_parallel            => 4,  
+        p_section_size_mb     => 10,
+        p_tag                 => 'FULL_D1AUS_BACKUP',
+        p_rman_to_dbms_output => FALSE);
+END;
+/
+
+I am getting below error message :
+Error report -
+ORA-20001: Internal error: Database must be in ARCHIVELOG mode for backup related operations.
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 166
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 1171
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 1467
+ORA-06512: at "RDSADMIN.RDSADMIN_RMAN_UTIL", line 202
+ORA-06512: at line 2
+
+That is normal behaviour as database is no Archivelog mode.
+SELECT LOG_MODE FROM "V$DATABASE" 
+
+Output is :
+NOARCHIVELOG
+
+ii) 
+Then I executed:
+begin
+rdsadmin.rdsadmin_util.set_configuration (name => 'archivelog retention hours', value => '24'); 
+end;
+/
+
+set serveroutput on
+exec rdsadmin.rdsadmin_util.show_configuration;
+
+Output:
+NAME:archivelog retention hours
+VALUE:24
+DESCRIPTION:ArchiveLog expiration specifies the duration in hours before
+archive/redo log files are automatically deleted.
+NAME:tracefile retention
+VALUE:10080
+DESCRIPTION:tracefile expiration specifies the duration in minutes before
+tracefiles in bdump are automatically deleted.
+
+There is another information:
+If your Oracle source is an Amazon RDS database, it will be placed in ARCHIVELOG MODE if, and only if, you enable backups.
+https://docs.aws.amazon.com/dms/latest/sbs/chap-oracle2postgresql.steps.configureoracle.html#:~:text=If%20your%20Oracle%20database%20is,archivelog%20retention%20hours'%2C24)%3B
+
+Still job is failing. Please advise.
+
+Best Regards,
+Monowar Mukul
+
+
+
+
+
+
+
+
+
+
+
+
+
+HUGEPAGE is enabled
+===================
+Hugepages and Large Pages
+If you run a Oracle Database on a Linux Server with more than 16 GB physical memory and your System Global Area (SGA) is greater than 8 GB, you should configure HugePages. Oracle promises more performance by doing this. A HugePages configuration means, that the linux kernel can handle „large pages“, like Oracle generally calls them. Instead of standardly 4 KB on x86 and x86_64 or 16 KB on IA64 systems – 4 MB on x86, 2 MB on x86_64 and 256 MB on IA64 system. Bigger pages means, that the system uses less page tables, manages less mappings and by that reduce the effort for their management and access.
+
+However their is a limitation by Oracle, because Automatic Memory Management (AMM) does not support HugePages. If you already use AMM and MEMORY_TARGET is set you have to disable it and switch back to Automatic Shared Memory Management (ASMM). That means set SGA_TARGET and PGA_AGGREGATE_TARGET
+
+2. Check Database Parameter
+Second check your database parameter. Initially: AMM disabled? MEMORY_TARGET and MEMORY_MAX_TARGET should be set to 0:
+
+SQL> select value from v$parameter where name = 'memory_target';
+
+VALUE
+---------------------------
+0 
+How big is our SGA? In this example about 40 GB. Important: In the following query we directly convert into kB (value/1024). With that we can continue to calculate directly:
+
+SQL> select value/1024 from v$parameter where name = 'sga_target';
+
+VALUE
+---------------------------
+41943040
+Finally as per default the parameter use_large_pages should be enabled:
+
+SQL> select value from v$parameter where name = 'use_large_pages';
+
+VALUE
+---------------------------
+TRUE
+=================================
+
+BACKUP
+=======
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.CommonDBATasks.RMAN.html
+
+
+DATABASE IS NOARCHIVE LOG MODE
+=================================
+i) 
+I am taking a backup of oracle RDS tenant database using below sql 
+[ https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.CommonDBATasks.BackupTenantDatabaseFull.html]
+
+BEGIN
+    rdsadmin.rdsadmin_rman_util.backup_tenant_full(
+        p_owner               => 'SYS', 
+        p_directory_name      => 'DATA_PUMP_DIR_PDB',
+        p_parallel            => 4,  
+        p_section_size_mb     => 10,
+        p_tag                 => 'FULL_D1AUS_BACKUP',
+        p_rman_to_dbms_output => FALSE);
+END;
+/
+
+I am getting below error message :
+Error report -
+ORA-20001: Internal error: Database must be in ARCHIVELOG mode for backup related operations.
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 166
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 1171
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 1467
+ORA-06512: at "RDSADMIN.RDSADMIN_RMAN_UTIL", line 202
+ORA-06512: at line 2
+
+That is normal behaviour as database is no Archivelog mode.
+SELECT LOG_MODE FROM "V$DATABASE" 
+
+Output is :
+NOARCHIVELOG
+
+ii) 
+Then I executed:
+begin
+rdsadmin.rdsadmin_util.set_configuration (name => 'archivelog retention hours', value => '24'); 
+end;
+/
+
+set serveroutput on
+exec rdsadmin.rdsadmin_util.show_configuration;
+
+Output:
+NAME:archivelog retention hours
+VALUE:24
+DESCRIPTION:ArchiveLog expiration specifies the duration in hours before
+archive/redo log files are automatically deleted.
+NAME:tracefile retention
+VALUE:10080
+DESCRIPTION:tracefile expiration specifies the duration in minutes before
+tracefiles in bdump are automatically deleted.
+
+There is another information:
+If your Oracle source is an Amazon RDS database, it will be placed in ARCHIVELOG MODE if, and only if, you enable backups.
+https://docs.aws.amazon.com/dms/latest/sbs/chap-oracle2postgresql.steps.configureoracle.html#:~:text=If%20your%20Oracle%20database%20is,archivelog%20retention%20hours'%2C24)%3B
+
+Still job is failing. Please advise.
+
+Best Regards,
+Monowar Mukul
+
+
+
+
+
+
+
+
+
+
+
+
+
+HUGEPAGE is enabled
+===================
+Hugepages and Large Pages
+If you run a Oracle Database on a Linux Server with more than 16 GB physical memory and your System Global Area (SGA) is greater than 8 GB, you should configure HugePages. Oracle promises more performance by doing this. A HugePages configuration means, that the linux kernel can handle „large pages“, like Oracle generally calls them. Instead of standardly 4 KB on x86 and x86_64 or 16 KB on IA64 systems – 4 MB on x86, 2 MB on x86_64 and 256 MB on IA64 system. Bigger pages means, that the system uses less page tables, manages less mappings and by that reduce the effort for their management and access.
+
+However their is a limitation by Oracle, because Automatic Memory Management (AMM) does not support HugePages. If you already use AMM and MEMORY_TARGET is set you have to disable it and switch back to Automatic Shared Memory Management (ASMM). That means set SGA_TARGET and PGA_AGGREGATE_TARGET
+
+2. Check Database Parameter
+Second check your database parameter. Initially: AMM disabled? MEMORY_TARGET and MEMORY_MAX_TARGET should be set to 0:
+
+SQL> select value from v$parameter where name = 'memory_target';
+
+VALUE
+---------------------------
+0 
+How big is our SGA? In this example about 40 GB. Important: In the following query we directly convert into kB (value/1024). With that we can continue to calculate directly:
+
+SQL> select value/1024 from v$parameter where name = 'sga_target';
+
+VALUE
+---------------------------
+41943040
+Finally as per default the parameter use_large_pages should be enabled:
+
+SQL> select value from v$parameter where name = 'use_large_pages';
+
+VALUE
+---------------------------
+TRUE
+==
+Create tablespace scripts from the source database
+Connect to the source database and create database tablespace, temporary tablespaces and users tablespace quota
+
+Amazon RDS only supports Oracle Managed Files (OMF) for data files, log files, and control files. When you create data files and log files, you can't specify the physical file names. Oracle RDS provided tablespaces are bigfile tablespaces by default. After connecting to the PDB, all are bigfile tablespaces excluding the TEMP tablespace.
+
+
+
+select tablespace_name, bigfile
+from   dba_tablespaces
+order by 1;
+
+====
+Limitations of RDS for Oracle CDBs
+Multitenant architecture
+The multitenant architecture enables an Oracle database to function as a multitenant container database (CDB).
+A container is a collection of schemas, objects, and related structures in a multitenant container database (CDB). Within a CDB, each container has a unique ID and name.
+A CDB includes zero, one, or many customer-created pluggable databases (PDBs) and application containers. A PDB is a portable collection of schemas, schema objects, and nonschema objects that appears to an Oracle Net client as a separate database. An application container is an optional, user-created CDB component that stores data and metadata for one or more application back ends. A CDB includes zero or more application containers.
+ 
+You can get more information from Oracle document (https://docs.oracle.com/en/database/oracle/oracle-database/21/cncpt/CDBs-and-PDBs.html#GUID-FC2EB562-ED31-49EF-8707-C766B6FE66B8 ).
+RDS limitation
+•	The following operations aren't supported at the PDB level but are supported at the CDB level:
+o	Backup and recovery
+o	Database upgrades
+o	Maintenance actions
+RDS - Architecture Option
+Creation, conversion, and upgrade options for the Oracle database architecture
+The following table shows the different architecture options for creating and upgrading RDS for Oracle databases.
+ 
+Release	Database creation options	Architecture conversion options	Major version upgrade targets
+Oracle Database 21c	CDB architecture only	N/A	N/A
+Oracle Database 19c	CDB or non-CDB architecture	Non-CDB to CDB architecture (April 2021 RU or higher)	Oracle Database 21c CDB
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Oracle.Concepts.CDBs.html
+Database init parameter and options
+The following features aren't supported at the PDB level but are supported at the CDB level:
+•	Option groups (options are installed on all PDBs on your CDB instance)
+•	Parameter groups (all parameters are derived from the parameter group associated with your CDB instance)
+Reference
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Oracle.Concepts.CDBs.html#Oracle.Concepts.single-tenant-limitations
+In Transit - encryption
+You enable SSL encryption for an Oracle RDS database instance by adding the Oracle SSL option to the option group associated with an Oracle DB instance.
+o enable SSL encryption for an RDS for Oracle DB instance, add the Oracle SSL option to the option group associated with the DB instance. Amazon RDS uses a second port, as required by Oracle, for SSL connections. This approach allows both clear text and SSL-encrypted communication to occur at the same time between a DB instance and SQL*Plus.
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.Options.SSL.html
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.Options.SSL.Connecting.html
+SSL connection
+https://docs.jivesoftware.com/hosting_your_community/database_setup_and_management/OracleDB_19cSetup-1
+https://aws.amazon.com/rds/faqs/#What_is_a_DB_Subnet_Group_and_why_do_I_need_one
+Data Guard
+RDS for Oracle supports Data Guard read replicas for Oracle Database 19c and 21c CDBs in the single-tenant configuration only.
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/oracle-read-replicas.overview.html
+READ REPLICA https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/oracle-read-replicas.limitations.html
+Before you create an RDS for Oracle replica, consider the following:
+•	Oracle replicas are supported only for Oracle Enterprise Edition (EE).
+•	If the replica is in read-only mode, make sure that you have an Active Data Guard license. If you place the replica in mounted mode, you don't need an Active Data Guard license. Only the Oracle DB engine supports mounted replicas.
+DMS https://docs.aws.amazon.com/dms/latest/userguide/CHAP_Introduction.Targets.html#CHAP_Introduction.Targets.DataMigration
+DMS
+DMS is not getting the target endpoint if RDS with Multitenant database.
+You can use the following data stores as target endpoints for data migration using AWS DMS.
+On-premises and Amazon EC2 instance databases
+•	Oracle versions 10g, 11g, 12c, 18c, and 19c for the Enterprise, Standard, Standard One, and Standard Two editions
+Database Upgrade
+You can upgrade to Oracle Database 21c and higher only if your DB engine uses the multitenant architecture.
+For a non CDB first we need to convert to a CDB architecture and only then perform an upgrade in a separate operation.
+ 
