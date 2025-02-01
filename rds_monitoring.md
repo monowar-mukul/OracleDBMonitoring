@@ -651,3 +651,222 @@ SQL> BEGIN
           value     => 'freq=daily;byday=FRI,SAT;byhour=20;byminute=0;bysecond=0');
 END;
 /
+
+------------
+
+In this post, we will see in details the steps to upgrade your AWS Oracle RDS.
+
+Here we are upgrading our Oracle database from 12c to 19c.
+
+
+Upgrades are majorly of 2 types :
+
+Major Version Upgrade
+Major Version Upgrade  arent applied automatically by AWS and this need a manual intervention, 
+since the changes introduced may not be compatible with your existing Applications
+
+Minor Version Upgrade
+If you enable auto minor version upgrades on your DB instance, minor version upgrades occur automatically.
+
+under Maintenance & backup tab --> "Auto minor version upgrade" 
+
+[ From Console: Additional Configuration --> Maintenance and tick on [ Enable auto version upgrade] 
+I can select maintenance window
+
+You need to ensure that the Application Team is aware of the Scheduled Maintenance Window of  your Minor Version Upgrade, 
+since AWS sometimes doesnt notify priorly for the DB Minor Version Upgrade.
+
+ 
+
+The steps followed here are more or less same for every DB engines.
+
+We need to know the theoretical part before proceeding with the practical session of the blog. 
+Please refer to the below link from AWS for the theoretical part :
+
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Oracle.Overview.html
+
+Let us proceed with the pratical session
+
+1. You need to check the Option Groups and Parameter Groups before proceeding with the upgrade.
+
+If your database is using Default Option and Parameter groups, you need not worry and proceed with your upgrade. 
+If they are using Custom Option/Parameter groups, 
+you need to create the same compatible with the new version and 
+attach them to the database after upgrade by modifying your instance.
+
+
+In this session, we are using Default Option/Parameter groups 
+ 
+
+2. If automatic backups arent enabled, please ensure to take a snapshot of your database before proceeding with the change. 
+If automatic backups are enabled, AWS will automatically take a backup of your database before upgrading
+
+You can verify whether your databases automatic backups are enabled or not, by checking on the Backup-retention period. 
+If the Backup Retention Period is greater than 0, then Automatic Backups are enabled for your database
+
+3. Login to your database and execute Stats Gather
+
+EXEC DBMS_STATS.GATHER_DICTIONARY_STATS;
+
+4. Now to upgrade your database engine, click on your database –> Modify
+
+5. Change the DB Engine Version  to 19c
+
+
+6. Click on Apply Immediately if you are planning to upgrade the database instantly, 
+or else Click the other option to upgrade during the next scheduled Maintenance Window and Modify DB Instance
+
+ 
+
+
+
+ 
+
+7. Once you click on Modify DB Instance, a snapshot of your Database instance will be taken (if Backup retention period is more than 0 days), and then the Database will be upgraded
+
+NOTE : Once the database is upgraded, it wont be possible to revert back the changes. If you need the Older version of your database, you need to manually restore it from the snapshot. The DB Snapshot is taken before and after the upgrade activity.
+
+8. Once the DB is upgraded, you can change the default parameter/option groups with the custom parameter/option groups compatible with the newer version by modifying the instance
+9. -----------
+10. BACKUP
+=======
+https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.CommonDBATasks.RMAN.html
+
+
+DATABASE IS NOARCHIVE LOG MODE
+=================================
+i) 
+I am taking a backup of oracle RDS tenant database using below sql 
+[ https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.Oracle.CommonDBATasks.BackupTenantDatabaseFull.html]
+
+BEGIN
+    rdsadmin.rdsadmin_rman_util.backup_tenant_full(
+        p_owner               => 'SYS', 
+        p_directory_name      => 'DATA_PUMP_DIR_PDB',
+        p_parallel            => 4,  
+        p_section_size_mb     => 10,
+        p_tag                 => 'FULL_D1AUS_BACKUP',
+        p_rman_to_dbms_output => FALSE);
+END;
+/
+
+I am getting below error message :
+Error report -
+ORA-20001: Internal error: Database must be in ARCHIVELOG mode for backup related operations.
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 166
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 1171
+ORA-06512: at "SYS.RDS_SYS_RMAN_UTIL", line 1467
+ORA-06512: at "RDSADMIN.RDSADMIN_RMAN_UTIL", line 202
+ORA-06512: at line 2
+
+That is normal behaviour as database is no Archivelog mode.
+SELECT LOG_MODE FROM "V$DATABASE" 
+
+Output is :
+NOARCHIVELOG
+
+ii) 
+Then I executed:
+begin
+rdsadmin.rdsadmin_util.set_configuration (name => 'archivelog retention hours', value => '24'); 
+end;
+/
+
+set serveroutput on
+exec rdsadmin.rdsadmin_util.show_configuration;
+
+Output:
+NAME:archivelog retention hours
+VALUE:24
+DESCRIPTION:ArchiveLog expiration specifies the duration in hours before
+archive/redo log files are automatically deleted.
+NAME:tracefile retention
+VALUE:10080
+DESCRIPTION:tracefile expiration specifies the duration in minutes before
+tracefiles in bdump are automatically deleted.
+
+There is another information:
+If your Oracle source is an Amazon RDS database, it will be placed in ARCHIVELOG MODE if, and only if, you enable backups.
+https://docs.aws.amazon.com/dms/latest/sbs/chap-oracle2postgresql.steps.configureoracle.html#:~:text=If%20your%20Oracle%20database%20is,archivelog%20retention%20hours'%2C24)%3B
+
+Still job is failing. Please advise.
+
+Best Regards,
+Monowar Mukul
+
+
+
+
+
+
+
+
+
+
+
+
+
+HUGEPAGE is enabled
+===================
+Hugepages and Large Pages
+If you run a Oracle Database on a Linux Server with more than 16 GB physical memory and your System Global Area (SGA) is greater than 8 GB, you should configure HugePages. Oracle promises more performance by doing this. A HugePages configuration means, that the linux kernel can handle „large pages“, like Oracle generally calls them. Instead of standardly 4 KB on x86 and x86_64 or 16 KB on IA64 systems – 4 MB on x86, 2 MB on x86_64 and 256 MB on IA64 system. Bigger pages means, that the system uses less page tables, manages less mappings and by that reduce the effort for their management and access.
+
+However their is a limitation by Oracle, because Automatic Memory Management (AMM) does not support HugePages. If you already use AMM and MEMORY_TARGET is set you have to disable it and switch back to Automatic Shared Memory Management (ASMM). That means set SGA_TARGET and PGA_AGGREGATE_TARGET
+
+2. Check Database Parameter
+Second check your database parameter. Initially: AMM disabled? MEMORY_TARGET and MEMORY_MAX_TARGET should be set to 0:
+
+SQL> select value from v$parameter where name = 'memory_target';
+
+VALUE
+---------------------------
+0 
+How big is our SGA? In this example about 40 GB. Important: In the following query we directly convert into kB (value/1024). With that we can continue to calculate directly:
+
+SQL> select value/1024 from v$parameter where name = 'sga_target';
+
+VALUE
+---------------------------
+41943040
+Finally as per default the parameter use_large_pages should be enabled:
+
+SQL> select value from v$parameter where name = 'use_large_pages';
+
+VALUE
+---------------------------
+TRUE
+
+
+
+Create tablespace scripts from the source database
+Connect to the source database and create database tablespace, temporary tablespaces and users tablespace quota
+Amazon RDS only supports Oracle Managed Files (OMF) for data files, log files, and control files. When you create data files and log files, you can't specify the physical file names. Oracle RDS provided tablespaces are bigfile tablespaces by default. After connecting to the PDB, all are bigfile tablespaces excluding the TEMP tablespace.
+select tablespace_name, bigfile
+from   dba_tablespaces
+order by 1;
+
+
+Option 1) Inside RDS:
+EXEC rdsadmin.rdsadmin_util.create_directory(p_directory_name => 'ADDRESS_RECTIFICATION');
+
+EXEC rdsadmin.rdsadmin_util.create_directory(p_directory_name => 'DATAUPLOAD');
+
+EXEC rdsadmin.rdsadmin_util.create_directory(p_directory_name => 'GATEWAY');
+
+EXEC rdsadmin.rdsadmin_util.create_directory(p_directory_name => 'RPDATA');
+
+SELECT DIRECTORY_PATH 
+  FROM DBA_DIRECTORIES 
+ WHERE DIRECTORY_NAME in ('ADDRESS_RECTIFICATION','DATAUPLOAD','GATEWAY','RPDATA');
+ 
+SELECT * FROM TABLE(rdsadmin.rds_file_util.listdir(p_directory => 'ADDRESS_RECTIFICATION'));
+To drop : EXEC rdsadmin.rdsadmin_util.drop_directory(p_directory_name => 'ADDRESS_RECTIFICATION');
+Dropping a directory doesn't remove its contents. Because the rdsadmin.rdsadmin_util.create_directory procedure can reuse pathnames, files in dropped directories can appear in a newly created directory. Before you drop a directory, we recommend that you use UTL_FILE.FREMOVE to remove files from the directory.
+
+3 Connect to the database and create required Oracle Directory/ies.
+BEGIN
+    rdsadmin.rdsadmin_util.create_directory_efs(
+    p_directory_name => 'ADDRESS_RECTIFICATION',
+    p_path_on_efs => '/rdsefs-fs-04439b3b2f48f5b8a/external/d1aus/address_rectification');
+END;
+/
