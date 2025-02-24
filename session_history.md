@@ -102,3 +102,125 @@ AND h.user_id=u.user_id
 AND h.sql_id = s.sql_iD
 ORDER BY h.sample_time;
 ```
+```
+set feedback on
+set long 10000
+set pagesize 132
+set linesize 110
+col username form a10
+col program form a30
+col how_many forma 9999
+col machine form a25
+col module form a50
+--
+rem show time
+select to_char(sysdate, 'DD-MON-RR HH24:MI:SS') START_TIME from dual
+/
+rem Instance identification
+select *
+from v$instance
+/
+REM Summary of database connections
+select s.module, s.machine, s.username, count(*) how_many
+from (select distinct PROGRAM, PADDR, machine, username, module, inst_id from gV$SESSION) s,
+ gv$process p
+where s.paddr = p.addr
+and p.inst_id = s.inst_id
+group by rollup(s.module,s.machine,s.username)
+/
+REM Connections by machine and instance
+select s.machine, s.username, s.module, s.inst_id, count(*) how_many
+from (select distinct PROGRAM, PADDR, machine, username, module, inst_id from gV$SESSION) s,
+ gv$process p
+where s.paddr = p.addr
+and p.inst_id = s.inst_id
+group by s.machine,s.username, s.module, s.inst_id
+/
+```
+
+Current Running SQLs
+--------------------
+```
+set pages 50000 lines 32767
+col HOST_NAME for a20
+col EVENT for a40
+col MACHINE for a30
+col SQL_TEXT for a50
+col USERNAME for a15
+
+select sid,serial#,a.sql_id,a.SQL_TEXT,S.USERNAME,i.host_name,machine,S.event,S.seconds_in_wait sec_wait,
+to_char(logon_time,'DD-MON-RR HH24:MI') login
+from gv$session S,gV$SQLAREA A,gv$instance i
+where S.username is not null
+-- and S.status='ACTIVE'
+AND S.sql_address=A.address
+and s.inst_id=a.inst_id and i.inst_id = a.inst_id
+and sql_text not like 'select S.USERNAME,S.seconds_in_wait%'
+```
+
+Active Sessions running for more than 1 hour
+---------------------------------------------
+```
+set pages 50000 lines 32767
+col USERNAME for a10
+col MACHINE for a15
+col PROGRAM for a40
+
+SELECT USERNAME,machine,inst_id,sid,serial#,PROGRAM,
+to_char(logon_time,'dd-mm-yy hh:mi:ss AM')"Logon Time",
+ROUND((SYSDATE-LOGON_TIME)*(24*60),1) as MINUTES_LOGGED_ON,
+ROUND(LAST_CALL_ET/60,1) as Minutes_FOR_CURRENT_SQL
+From gv$session
+WHERE STATUS='ACTIVE'
+AND USERNAME IS NOT NULL and ROUND((SYSDATE-LOGON_TIME)*(24*60),1) > 60
+ORDER BY MINUTES_LOGGED_ON DESC;
+
+set pages 50000 lines 32767
+col USERNAME for a10
+col MACHINE for a15
+col PROGRAM for a40
+
+SELECT USERNAME,machine,PROGRAM, TERMINAL, 
+to_char(logon_time,'dd-mm-yy hh:mi:ss AM')"Logon Time",
+ROUND((SYSDATE-LOGON_TIME)*(24*60),1) as MINUTES_LOGGED_ON,
+ROUND(LAST_CALL_ET/60,1) as Minutes_FOR_CURRENT_SQL
+From v$session
+WHERE STATUS='ACTIVE'
+AND USERNAME IS NOT NULL and ROUND((SYSDATE-LOGON_TIME)*(24*60),1) > 30
+ORDER BY MINUTES_LOGGED_ON DESC;
+```
+Session details associated with Oracle SID
+-------------------------------------------
+
+```
+set head off
+set verify off
+set echo off
+set pages 1500
+set linesize 100
+set lines 120
+prompt
+prompt Details of SID / SPID / Client PID
+prompt ==================================
+select /*+ CHOOSE*/
+'Session Id.............................................: '||s.sid,
+'Serial Num..............................................: '||s.serial#,
+'User Name ..............................................: '||s.username,
+'Session Status .........................................: '||s.status,
+'Client Process Id on Client Machine ....................: '||'*'||s.process||'*' Client,
+'Server Process ID ......................................: '||p.spid Server,
+'Sql_Address ............................................: '||s.sql_address,
+'Sql_hash_value .........................................: '||s.sql_hash_value,
+'Schema Name ..... ......................................: '||s.SCHEMANAME,
+'Program ...............................................: '||s.program,
+'Module .................................................: '|| s.module,
+'Action .................................................: '||s.action,
+'Terminal ...............................................: '||s.terminal,
+'Client Machine .........................................: '||s.machine,
+'LAST_CALL_ET ...........................................: '||s.last_call_et,
+'S.LAST_CALL_ET/3600 ....................................: '||s.last_call_et/3600
+from v$session s, v$process p
+where p.addr=s.paddr and
+s.sid=nvl('&sid',s.sid) 
+/
+```
