@@ -107,7 +107,7 @@ mgmt_metrics_1hour mm1
 where t.target_guid = mm1.target_guid
 and m.metric_guid = mm1.metric_guid
 and m.column_label = 'Transport Lag (seconds)'
-and t.target_name = 'pl01sbt';
+and t.target_name = '&DB';
 ```
 
 ---
@@ -271,7 +271,7 @@ SQLPLUS> alter database recover managed standby database disconnect from session
 
 ---
 
-## Gap Checking Script (`Chk_gap.sql`)
+## Gap Checking Script
 
 ```sql
 column applied_time for a30
