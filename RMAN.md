@@ -1684,7 +1684,7 @@ Remove svrmgrl_daily_oracle_dse_dsebux02_dseprd.report entry (if exist) from /va
 ---------------------------------------------------------------------------------------------------
 
 Better to format date to check :
-sys@mtpp> ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY:MM:DD:HH24:MI:SS';
+ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY:MM:DD:HH24:MI:SS';
 
 [Major] From: ob2rman.exe@atlantis "delprd"  Time: 11/05/07 23:20:40 Post-exec command failed with status 127.
 
@@ -1811,20 +1811,8 @@ INCARNATION# RESETLOGS_CHANGE# RESETLOGS PRIOR_RESETLOGS_CHANGE# PRIOR_RES STATU
            1         967935139 28-JAN-09                  880332 02-DEC-08 PARENT     677338620                  0 NO
            2         970463888 02-FEB-09               967935139 28-JAN-09 CURRENT    677774428                  1 NO
 
-SQL> SQL> exit
-Disconnected from Oracle Database 11g Enterprise Edition Release 11.1.0.7.0 - 64bit Production
-With the Partitioning, OLAP, Data Mining and Real Application Testing options
-[oracle: ~]$sqlplus rman/rman@rman
-
-SQL*Plus: Release 11.1.0.7.0 - Production on Tue Jan 8 08:42:06 2013
-
-Copyright (c) 1982, 2008, Oracle.  All rights reserved.
-
-
-Connected to:
-Oracle9i Enterprise Edition Release 9.2.0.8.0 - 64bit Production
-With the Partitioning and Oracle Data Mining options
-JServer Release 9.2.0.8.0 - Production
+SQL> exit
+$sqlplus rman/rman@rman
 
 SQL> Select distinct DBID from rc_database;
 
@@ -1888,15 +1876,6 @@ Additional information: 1
 Solution: log in to the database as sysdba:
 
 oracle@host: sqlplus "/ as sysdba"
-
-SQL*Plus: Release 11.2.0.3.0 Production on Tue Nov 8 01:33:32 2011
-
-Copyright (c) 1982, 2011, Oracle. All rights reserved.
-
-Connected to:
-Oracle Database 11g Enterprise Edition Release 11.2.0.3.0 - 64bit Production
-With the Partitioning, Real Application Clusters, Automatic Storage Management, Oracle Label Security,
-Data Mining and Real Application Testing options
 
 sys@db1> EXECUTE SYS.DBMS_BACKUP_RESTORE.CFILESETSNAPSHOTNAME('/u01/app/oracle/product/11.2/db/dbs/snapcf_db1.f');
 
@@ -1973,21 +1952,6 @@ you need to check this.
  
 select * from GV_$RESTORE_POINT;
 select flashback_on from v$database;
-
-issue on the pprod24 is related to support note:
- 
-Bug 11872103 - RMAN RESYNC CATALOG very slow / V$RMAN_STATUS incorrectly shows RUNNING (Doc ID 11872103.8)
-
-RMAN Fails with RMAN-10035, ORA-19550 When Using MTS (Doc ID 215934.1)
-
-TESTR =
-  (DESCRIPTION =
-    (ADDRESS = (PROTOCOL = TCP)(HOST = CSMJIM-VODBQ05)(PORT = 1521))
-    (CONNECT_DATA =
-      (SERVER = DEDICATED)
-      (SERVICE_NAME = MINESTAR)
-    )
-  )
 
 ```  
 ## Flashback 
@@ -2210,10 +2174,8 @@ allocated from PGA.
 If OS does not support asynchronous I/O, we can simulate by setting parameter dbwr_io_slaves to a non zero value.  4 slave processes will be allocated irrespective of the value of the parameter dbwr_io_Slaves. IN this case, buffers for RMAN will be allocated from large pool. 
 If large pool is sized to a value lower than the size of the buffers required, RMAN will switch to synchronous I/O and write a message to the alert log. 
 
--------------------------  
-##Restore/Recovery 
--------------------------
-Preview BACKUP Information
+### Restore/Recovery 
+
 ```
 RMAN> restore database preview;
 RMAN> restore database from tag TAG20060927T183743 preview;
@@ -2225,63 +2187,40 @@ RMAN> restore archivelog from sequence 29 preview;
 RMAN> restore database preview summary;
 RMAN> restore tablespace system preview;
 RMAN> LIST BACKUP OF ARCHIVELOG TIME between "TO_DATE('08/04/2015 19:15:00', 'MM/DD/YYYY hh24:mi:ss')" and "TO_DATE('08/04/2015 22:30:00','MM/DD/YYYY hh24:mi:ss')";
-
 RMAN> restore archivelog from sequence 207 until sequence 232 thread=2;
-restore archivelog from sequence 10712 until lsequence 25324  thread=2;
-```
-cancelbased
-RMAN> connect target /
-RMAN> startup mount;
-RMAN> restore database;                     # restore database from last backup
 
-SQL> connect / as sysdba
-SQL> recover database until cancel;
-You will now be prompted by SQL*Plus to manually apply each archived redo log file. The
-following is the prompt that you’ll get for each log file:
-Specify log: {<RET>=suggested | filename | AUTO | CANCEL}
-
-CANCEL
-SQL> alter database open resetlogs;
 ```
+
 ## Based on SCN
-Change/SCN based
-You can also use set until scn within a run{} block to perform SCN-based incomplete
-database recovery without having to repeat the SCN number for each command:
 ```
-RMAN> connect target /
-RMAN> startup mount;
-RMAN> restore database until scn 950;
-RMAN> recover database until scn 950;
-RMAN> alter database open resetlogs;
-```
-```
-RMAN> connect target /
-RMAN> startup mount;
-RMAN> run{
+connect target /
+startup mount;
+run{
 set until scn 950;
 restore database;
 recover database;
 }
-RMAN> alter database open resetlogs;
+
+alter database open resetlogs;
 ```
 
 ### Performing Log Sequence Based Recovery
 The following example restores and recovers the target database up to, but not including,
 log sequence number 50:
 ```
-RMAN> connect target /
-RMAN> startup mount;
-RMAN> restore database until sequence 50;
-RMAN> recover database until sequence 50;
-RMAN> alter database open resetlogs;
+connect target /
+startup mount;
+restore database until sequence 50;
+recover database until sequence 50;
+alter database open resetlogs;
 ```
 ## logsequencebased
 ```
-RMAN> connect target /
-RMAN> startup mount;
-RMAN> restore database until sequence 50;
-RMAN> recover database until sequence 50;
-RMAN> alter database open resetlogs;
+connect target /
+startup mount;
+restore database until sequence 50;
+recover database until sequence 50;
+alter database open resetlogs;
 ```
 ```
 select sequence#, first_change#, first_time
@@ -2293,7 +2232,6 @@ order by first_time;
 Get the time period
 ----------------------------------------------
 LIST BACKUP OF DATABASE COMPLETED BETWEEN '26-MAY-2010 00:00:00' AND '27-MAY-2010 10:00:00'; [7395743010602 21-JUN-2009 20:24:23]
-LIST BACKUP OF ARCHIVELOG ALL COMPLETED BETWEEN '20-JUN-2009 20:00:00' AND '21-JUN-2009 21:50:00'; [7395743010909 21-JUN-2009 20:29:05]
 
 set until scn 7395743010602; ## 21-JUN-2009 20:24:23
 --- Run on Catalog Database -----------------
