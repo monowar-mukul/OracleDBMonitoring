@@ -24,7 +24,7 @@ RMAN> configure datafile backup copies for device type disk to 2;
 RMAN> configure datafile backup copies for device type sbt to 2;
 RMAN> configure channel device type disk format '/save1/%U','/save2/%U','save3/%U';
 ```
-###TAG
+### TAG
 ```
 RMAN> backup as copy tag users_bkp tablespace users;
 ```
@@ -36,7 +36,7 @@ The following example enables debugging just for I/O activities:
 $ rman target / debug=io
 ```
 
-### To Spool RMAN Log
+### Spool RMAN Log
 ```
 spool log to '/tmp/rman/backuplog.f';
 backup datafile 1;
@@ -248,7 +248,6 @@ RELEASE CHANNEL ch1;
 ```
 column NEXT_CHANGE# format 99999999
 select max(NEXT_CHANGE#)-1 n from v$backup_archivelog_details;
-
 ```
 #### Restotre Archivelog frm TAPE BACKUP [ Here is an example- logseq=25318 until logseq=25324]
 ```
@@ -433,9 +432,8 @@ WHERE OPNAME LIKE 'RMAN%'
   AND SOFAR <> TOTALWORK
 ;  
 ```
-### RESTORE DATABASE;
+### To monitor the sbt events
 
-To monitor the sbt events, you can run the following SQL query:
 ```
 COLUMN EVENT FORMAT a10
 COLUMN SECONDS_IN_WAIT FORMAT 999
@@ -449,7 +447,7 @@ AND s.SID=sw.SID
 AND s.PADDR=p.ADDR;
 ```
 
-### LAST BACKUP OF DATAFILES:
+### Last backup of datafiles
 
 ```
 set pagesize 1000
@@ -523,7 +521,7 @@ NAME                                                                   CHECKPOIN
 10 rows selected.
 ```
 
-### RMANjobs&Scripts
+### RMAN jobs & Scripts
 
 Target:
 ```
@@ -642,42 +640,6 @@ SELECT INPUT_TYPE,
        OUTPUT_BYTES_PER_SEC_DISPLAY out_sec
 FROM   V$RMAN_BACKUP_JOB_DETAILS
 where START_TIME in (select max(START_TIME) from V$RMAN_BACKUP_JOB_DETAILS WHERE INPUT_TYPE != 'ARCHIVELOG')
-ORDER BY SESSION_KEY
-/
-```
-
-### rman_bkup_last_err.sql
-```
---
--- Display RMAN backup information from dictionary 
---
-
-set lines 150
-set pages 25
-COL INPUT_TYPE FORMAT a11 heading "Backup Type"
-COL OUTPUT_DEVICE_TYPE FORMAT a8 heading "Dest"
-COL START_TIME FORMAT a15 heading "Start Time"
-COL END_TIME FORMAT a15 heading "End Time"
-COL STATUS FORMAT a14 heading "Status"
-COL IN_SIZE  FORMAT a10 heading "Size In"
-COL IN_SEC FORMAT a10 heading "Bytes/Sec"
-COL OUT_SIZE FORMAT a10 heading "Size Out"
-COL OUT_SEC FORMAT a10 heading "Bytes/Sec"
-COL TIME_TAKEN_DISPLAY FORMAT a10 heading "Duration"
-
-SELECT INPUT_TYPE,
-       OUTPUT_DEVICE_TYPE,
-       STATUS,
-       TO_CHAR(START_TIME,'mm/dd/yy hh24:mi') start_time,
-       TO_CHAR(END_TIME,'mm/dd/yy hh24:mi')   end_time,
-       TIME_TAKEN_DISPLAY,
-       INPUT_BYTES_DISPLAY in_size,
-       INPUT_BYTES_PER_SEC_DISPLAY in_sec,
-       OUTPUT_BYTES_DISPLAY out_size,
-       OUTPUT_BYTES_PER_SEC_DISPLAY out_sec
-FROM   V$RMAN_BACKUP_JOB_DETAILS
-where START_TIME in (select max(START_TIME) from V$RMAN_BACKUP_JOB_DETAILS WHERE INPUT_TYPE != 'ARCHIVELOG')
-  AND STATUS not in ('COMPLETED','RUNNING')
 ORDER BY SESSION_KEY
 /
 ```
@@ -859,8 +821,7 @@ SQL> select
  /
 ```
 
-Script – Query the RMAN catalog to list backup completion status
-####################################################################################
+### Query the RMAN catalog to list backup completion status
 
 Note run this query connected as the owner of the RMAN catalog
 ```
@@ -891,7 +852,6 @@ ORDER BY least(to_date(DBBKP,'DD/MM/YYYY HH24:MI'),to_date(ARCBKP,'DD/MM/YYYY HH
 ---------------------------------------------------------------------
 -- File Name    : archive-backup-size.sql
 -- Description  : Size for Archive Files backed up daily
--- Last Modified: 08-Mar-2012
 --
 ---------------------------------------------------------------------
 
@@ -907,7 +867,7 @@ ORDER BY db_name, 3;
 -- File Name    : datafiles-backup-size.sql
 -- Replace
 -- Description  : Size for Archive Files backed up daily
--- Last Modified: 08-Mar-2012
+-- 
 ---------------------------------------------------------------------
 
 SELECT db_name,
@@ -921,9 +881,7 @@ ORDER BY db_name, 3;
 ```
 ---------------------------------------------------------------------
 -- File Name    : backup-async-io-rate
-
 -- Description  : recovery async io rate
--- Last Modified: 08-Mar-2012
 ---------------------------------------------------------------------
 
 COL filename FOR a78;  
@@ -1095,7 +1053,7 @@ Note: in my case it was relate to deletion policy setup - which I know I can ign
 sqlplus "/ as sysdba"
 select dbid from v$database;
 
-connect rman/recman00@recman
+connect rman/xxxxxx@recman
 select 'set until scn ' || to_char( min(next_scn) - 1 ) ||
  '; ## ' || to_char( min(next_time) - 1/86440, 'DD-MON-RRRR HH24:MI:SS' )
 from al
@@ -1217,7 +1175,7 @@ RELEASE CHANNEL c1;
 ```
 
 ### Begin/End Backup
-backup_begin.sql
+
 ```
 set echo off
 set feed off
@@ -1268,9 +1226,6 @@ set termout on
 exit;
 ```
 ### BLOCKCHANGETRACKING
-Where is the block change tracking file. used for 
----------------------------------------------------------------------------------------------
-FAST incremental backups. CTWR background process keeps track of block changes and RMAN use it to do quicker incremental backups, then without the block change tracking file
 
 ```
 set linesize 130
@@ -1303,32 +1258,35 @@ Example Output:
         57                12800       8.16666667        .063802083
         58                61440       3087.92308        5.02591647
 
-
-### encrypt backup
 ```
-1. Configure the Oracle Encryption Wallet (Oracle Wallet
-SQL> alter system set encryption key identified by "welcome1";
+### encrypt backup
+1. Configure the Oracle Encryption Wallet (Oracle Wallet)
 
+```
+SQL> alter system set encryption key identified by "welcome1";
+```
 Configure encrypted backups using the configure command, as shown in the following
 example:
+```
 RMAN> configure encryption for database on;
 RMAN> backup database;
 ```
-
 ### Password Encryption without wallet
 
 If you don’t want to configure an Oracle Wallet, you can still perform encrypted backups by using the set encryption command. This method is called password encryption of backups
 ```
 RMAN> set encryption on identified by monowar only;
-
-executing command: SET encryption
-
-RMAN> configure encryption for database off;
-
-new RMAN configuration parameters:
-CONFIGURE ENCRYPTION FOR DATABASE OFF;
-new RMAN configuration parameters are successfully stored
 ```
+executing command: SET encryption
+```
+RMAN> configure encryption for database off;
+```
+new RMAN configuration parameters:
+```
+CONFIGURE ENCRYPTION FOR DATABASE OFF;
+```
+new RMAN configuration parameters are successfully stored
+
 
 ### Faster backup
 ```
@@ -1365,8 +1323,6 @@ RMAN>CHANGE BACKUPPIECE '/oradata2/oft7qq' UNCATALOG;
 ```
 
 ### KILL BACKUP JOBS from OS
-```
-$ sqlplus / as sysdba 
 
 ### Check what Session will be killed
 ```
@@ -1388,20 +1344,6 @@ where s.paddr=p.addr
 and s.program like 'rman%'
 order by s.sid
 ```
-```
-KILL_RMAN_PROCESS
-----------------------------------
-! kill -9 2516
-! kill -9 2517
-! kill -9 2497
-
-### Just copy and paste
-SQL> ! kill -9 2516
-SQL> ! kill -9 2517
-SQL> ! kill -9 2497  
-
-```
-
 ### delete 
 
 ```
@@ -1422,7 +1364,7 @@ RMAN> configure archivelog deletion policy to backed up 2 times to device type s
 The following command can be used to manage the backup of the archive log when storage space needs to be released.
 ```
 RMAN>DELETE BACKUP OF archivelog UNTIL TIME=’sysdate-3;
-
+```
 ```
 run {
     backup format 'J:\backup\pqa7\pqa7_archivelog_bkp_%U_%T'
@@ -1433,9 +1375,8 @@ run {
 delete noprompt archivelog until time "to_date(SYSDATE-4)" backed up 1 times to disk;
 ```
 
-
 ### Deleting Obsolete RMAN Backups
-==================================
+
 ```
 RMAN> delete obsolete;
 RMAN> delete obsolete redundancy = 2;
