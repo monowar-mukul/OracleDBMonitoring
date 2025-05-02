@@ -1,8 +1,4 @@
----
-
-````markdown
-<details>
-<summary>📚 Table of Contents (click to expand)</summary>
+📚 Table of Contents (click to expand)</summary>
 
 - [1. 📊 Disk Group Space Usage](#1--disk-group-space-usage)
 - [2. 🧱 Disk Group Layout and IO Statistics](#2--disk-group-layout-and-io-statistics)
@@ -11,8 +7,6 @@
 - [5. 📈 ASM Performance (IOPS / Throughput)](#5--asm-performance-iops--throughput)
 - [6. 🧮 Capacity Summary by Redundancy Type](#6--capacity-summary-by-redundancy-type)
 - [📌 Quick Reference ASCII Table](#-quick-reference-ascii-table)
-
-</details>
 
 ---
 
