@@ -1,18 +1,16 @@
+````markdown
 # Oracle Database Size and Space Monitoring
-
-<details>
-<summary><strong>Table of Contents</strong></summary>
 
 - [Host Configuration](#host-configuration)
 - [Container Database (CDB) Size](#container-database-cdb-size)
-  - [Full CDB Size](#1-full-cdb-size-datafiles--tempfiles--redo-logs--control-files)
-  - [CDB Size with PDB Breakdown](#2-cdb-size-with-pdb-breakdown-datafiles--tempfiles)
-  - [PDB Sizes Only](#3-pdb-sizes-only)
+  - [1. Full CDB Size (Datafiles + Tempfiles + Redo Logs + Control Files)](#1-full-cdb-size-datafiles--tempfiles--redo-logs--control-files)
+  - [2. CDB Size with PDB Breakdown (Datafiles + Tempfiles)](#2-cdb-size-with-pdb-breakdown-datafiles--tempfiles)
+  - [3. PDB Sizes Only](#3-pdb-sizes-only)
 - [Non-CDB Database Size (Used vs Free Space)](#non-cdb-database-size-used-vs-free-space)
 - [Database Storage Breakdown](#database-storage-breakdown)
 - [Schema and Segment Size Queries](#schema-and-segment-size-queries)
   - [Schema Size by Segment Type](#schema-size-by-segment-type)
-  - [Single Segment Size](#single-segment-size-eg-table)
+  - [Single Segment Size (e.g., Table)](#single-segment-size-eg-table)
   - [Tablespaces Usage Status](#tablespaces-usage-status)
 - [Flash Recovery Area (FRA) Usage](#flash-recovery-area-fra-usage)
 - [Object Growth Tracking](#object-growth-tracking)
@@ -20,16 +18,14 @@
   - [Database Growth by Day](#database-growth-by-day)
 - [Notes](#notes)
 
-</details>
+````
 
----
 
 # Host Configuration
 
 ```bash
 $ lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)'
 ```
-
 ---
 
 # Container Database (CDB) Size
@@ -164,6 +160,5 @@ ORDER BY 1;
 
 # Notes
 
-- Replace `&owner`, `&TABLE_NAME`, `&segment_name`, and `&days_back` with actual values during execution.
-- Ensure proper privileges to access `DBA_SEGMENTS`, `V$` views, and `DBA_HIST_*` views.
-
+* Replace `&owner`, `&TABLE_NAME`, `&segment_name`, and `&days_back` with actual values during execution.
+* Ensure proper privileges to access `DBA_SEGMENTS`, `V$` views, and `DBA_HIST_*` views.
