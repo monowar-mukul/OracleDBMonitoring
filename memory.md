@@ -9,8 +9,7 @@ This wiki provides various SQL queries for monitoring memory usage in the Oracle
 - [Memory Usage for Each User - Detailed View](#memory-usage-for-each-user---detailed-view)
 - [Memory Usage - Detailed Breakdown](#memory-usage---detailed-breakdown)
 - [Memory Usage by Category](#memory-usage-by-category)
-
----
+````
 
 ## CPU and Memory Usage by Session
 
@@ -33,8 +32,8 @@ WHERE
     AND se2.sid = ssn.sid
     AND ssn.paddr = bgp.paddr (+)
     AND ssn.paddr = prc.addr (+);
-````
 
+```
 ---
 
 ## Memory Usage for Each User Session
