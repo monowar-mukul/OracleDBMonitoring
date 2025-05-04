@@ -1,4 +1,4 @@
-# 📑 Table of Contents
+#  Table of Contents
 - [JOB STATUS](#job-status)
 - [Failed scheduled tasks](#failed-scheduled-tasks)
 - [RUN THE JOB](#run-the-job)
