@@ -1,18 +1,18 @@
 📚 Table of Contents (click to expand)</summary>
 
-- [1. 📊 Disk Group Space Usage](#1--disk-group-space-usage)
-- [2. 🧱 Disk Group Layout and IO Statistics](#2--disk-group-layout-and-io-statistics)
-- [3. 🗃️ ASM File Details Per Disk Group](#3--asm-file-details-per-disk-group)
-- [4. 🗺️ Disk Mapping and Host Visibility](#4--disk-mapping-and-host-visibility)
-- [5. 📈 ASM Performance (IOPS / Throughput)](#5--asm-performance-iops--throughput)
-- [6. 🧮 Capacity Summary by Redundancy Type](#6--capacity-summary-by-redundancy-type)
-- [📌 Quick Reference ASCII Table](#-quick-reference-ascii-table)
+- [1. Disk Group Space Usage](#1--disk-group-space-usage)
+- [2.  Disk Group Layout and IO Statistics](#2--disk-group-layout-and-io-statistics)
+- [3.  ASM File Details Per Disk Group](#3--asm-file-details-per-disk-group)
+- [4.  Disk Mapping and Host Visibility](#4--disk-mapping-and-host-visibility)
+- [5.  ASM Performance (IOPS / Throughput)](#5--asm-performance-iops--throughput)
+- [6.  Capacity Summary by Redundancy Type](#6--capacity-summary-by-redundancy-type)
+- [ Quick Reference ASCII Table](#-quick-reference-ascii-table)
 
 ---
 
 # Oracle ASM Diagnostic and Operational Scripts
 
-## 1. 📊 Disk Group Space Usage
+## 1.  Disk Group Space Usage
 
 ```sql
 SELECT
@@ -31,7 +31,7 @@ FROM
 
 ---
 
-## 2. 🧱 Disk Group Layout and IO Statistics
+## 2.  Disk Group Layout and IO Statistics
 
 ```sql
 SELECT
@@ -58,7 +58,7 @@ ORDER BY
 
 ---
 
-## 3. 🗃️ ASM File Details Per Disk Group
+## 3.  ASM File Details Per Disk Group
 
 ```sql
 SELECT
@@ -83,7 +83,7 @@ ORDER BY
 
 ---
 
-## 4. 🗺️ Disk Mapping and Host Visibility
+## 4.  Disk Mapping and Host Visibility
 
 ```sql
 SELECT
@@ -105,7 +105,7 @@ ORDER BY
 
 ---
 
-## 5. 📈 ASM Performance (IOPS / Throughput)
+## 5.  ASM Performance (IOPS / Throughput)
 
 ```sql
 SELECT
@@ -128,7 +128,7 @@ ORDER BY
 
 ---
 
-## 6. 🧮 Capacity Summary by Redundancy Type
+## 6.  Capacity Summary by Redundancy Type
 
 ```sql
 SELECT
@@ -145,7 +145,7 @@ GROUP BY
 
 ---
 
-## 📌 Quick Reference ASCII Table
+##  Quick Reference ASCII Table
 
 ```
 +----+-------------------------------------------+-------------------------------+
