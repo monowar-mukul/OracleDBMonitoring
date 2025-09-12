@@ -1,7 +1,18 @@
-## SEQUENCE
+# Oracle Database Management Scripts
 
-For auto sequence value of a table column (Ex: SEQID)
-```
+## Table of Contents
+- [Sequences](#sequences)
+- [Synonyms](#synonyms)
+- [Views](#views)
+- [Permissions and Grants](#permissions-and-grants)
+- [Database Links](#database-links)
+
+## Sequences
+
+### Creating Auto-Sequence for Table Column
+For auto sequence value of a table column (e.g., SEQID):
+
+```sql
 CREATE SEQUENCE HRI.BATCHDATA_SEQID
   START WITH 205139
   MAXVALUE 999999999
@@ -10,155 +21,171 @@ CREATE SEQUENCE HRI.BATCHDATA_SEQID
   CACHE 20
   NOORDER;
 ```
-```
-CREATE OR REPLACE TRIGGER "HRI"."GENERATEBATCHDATAID" BEFORE INSERT ON HRI.Tbl_BatchData FOR EACH ROW
+
+### Trigger for Auto-Generation
+```sql
+CREATE OR REPLACE TRIGGER "HRI"."GENERATEBATCHDATAID" 
+BEFORE INSERT ON HRI.Tbl_BatchData FOR EACH ROW
 BEGIN
   SELECT batchData_SeqId.NEXTVAL
   INTO   :new.SEQID
   FROM   dual;
+  
   SELECT CURRENT_TIMESTAMP
   INTO :new.CREATION_TIME
-   from dual;
+  FROM dual;
 END;
 /
 ```
 
-### Synonym
-==========================
+### Query All Sequences
+```sql
+SELECT SEQUENCE_OWNER,
+       SEQUENCE_NAME,
+       MIN_VALUE,
+       MAX_VALUE,
+       INCREMENT_BY,
+       CYCLE_FLAG,
+       ORDER_FLAG,
+       CACHE_SIZE,
+       LAST_NUMBER
+FROM dba_sequences
+WHERE SEQUENCE_OWNER NOT IN ('SYS','SYSTEM')
+ORDER BY SEQUENCE_OWNER, SEQUENCE_NAME;
 ```
-select	OWNER,
-	SYNONYM_NAME,
-	TABLE_OWNER,
-	TABLE_NAME,
-	DB_LINK
-from  	dba_synonyms
-where	owner not in ('SYS','SYSTEM','PUBLIC','DBSNMP')
-order 	by OWNER,SYNONYM_NAME
+
+## Synonyms
+
+### Query All User-Defined Synonyms
+```sql
+SELECT OWNER,
+       SYNONYM_NAME,
+       TABLE_OWNER,
+       TABLE_NAME,
+       DB_LINK
+FROM dba_synonyms
+WHERE owner NOT IN ('SYS','SYSTEM','PUBLIC','DBSNMP')
+ORDER BY OWNER, SYNONYM_NAME;
 ```
-script : take all the currently defined synonyms for a certain schema and create a script that can be used to recreate it 
+
+### Generate Synonym Creation Script
+Script to capture all currently defined synonyms for a schema and create a recreation script:
+
+```sql
+SELECT 'CREATE OR REPLACE SYNONYM ' || owner || '.' || synonym_name || 
+       ' FOR ' || table_owner || '.' || table_name || ';' 
+FROM all_synonyms 
+WHERE owner LIKE '%' 
+ORDER BY owner, synonym_name;
 ```
-select 'create or replace synonym '||owner||'.'||synonym_name||' for '||table_owner||'.'||table_name||';' 
-from all_synonyms 
-where owner like '%' 
-order by owner, synonym_name; 
+
+### Create Synonyms for Specific Schema
+Generate synonyms for read-only access:
+
+```sql
+SET heading OFF
+SET echo OFF
+SET feedback OFF
+SPOOL D008_RO.sql
+
+SELECT 'CREATE SYNONYM D008_RO.' || table_name || ' FOR D008.' || table_name || ';'  
+FROM dba_tables 
+WHERE OWNER = 'D008';
+
+SPOOL OFF
 ```
+
+Generate synonyms for read-write access:
+
+```sql
+SET heading OFF
+SET echo OFF
+SET feedback OFF
+SPOOL D008_RW.sql
+
+SELECT 'CREATE SYNONYM D008_RW.' || table_name || ' FOR D008.' || table_name || ';'  
+FROM dba_tables 
+WHERE OWNER = 'D008';
+
+SPOOL OFF
 ```
-select 	SEQUENCE_OWNER,
-	SEQUENCE_NAME,
-	MIN_VALUE,
-	MAX_VALUE,
-	INCREMENT_BY,
-	CYCLE_FLAG,
-	ORDER_FLAG,
-	CACHE_SIZE,
-	LAST_NUMBER
-from  	dba_sequences
-where	SEQUENCE_OWNER not in ('SYS','SYSTEM')
-order 	by SEQUENCE_OWNER,SEQUENCE_NAME
-/
+
+### Synonym Syntax and Prerequisites
+
+**Syntax:**
+```sql
+CREATE [PUBLIC] SYNONYM [SCHEMA.]synonym FOR [SCHEMA.]object[@dblink]
 ```
-## View
-===============
+
+**Prerequisites:**
+- To create a private synonym in your own schema: `CREATE SYNONYM` system privilege
+- To create a private synonym in another user's schema: `CREATE ANY SYNONYM` system privilege
+
+### Public Synonym Management
+```sql
+-- Drop and recreate public synonym
+DROP PUBLIC SYNONYM court_type_code_cot;
+CREATE PUBLIC SYNONYM court_type_code_cot FOR prodowner.court_type_code_cot;
+GRANT SELECT ON prodowner.court_type_code_cot TO WIMANGX;
 ```
-select 	OWNER,
-	OBJECT_NAME,
-	to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created,
-	status
-from  	dba_objects
-where	OWNER not in ('SYS','SYSTEM')
-and	OBJECT_TYPE='VIEW'
-order	by OWNER,OBJECT_NAME
+
+## Views
+
+### Query All User Views
+```sql
+SELECT OWNER,
+       OBJECT_NAME,
+       TO_CHAR(CREATED,'MM/DD/YYYY HH24:MI:SS') AS created,
+       status
+FROM dba_objects
+WHERE OWNER NOT IN ('SYS','SYSTEM')
+  AND OBJECT_TYPE = 'VIEW'
+ORDER BY OWNER, OBJECT_NAME;
 ```
-Sample Create command
-```
+
+### Sample View Creation
+```sql
 CREATE VIEW view_ctype_code_cot AS
 SELECT *
 FROM prodowner.court_type_code_cot
 WHERE cot_court_type_id <> 'CORCT';
 ```
-The syntax for create synonym is: create [PUBLIC] synonym [SCHEMA.]synonym FOR [SCHEMA.]object[@dblink] 
 
-Prerequisites 
-To create a private synonym in your own schema, you must have CREATE SYNONYM system privilege. 
-To create a private synonym in another user?s schema, you must have CREATE ANY SYNONYM system privilege. 
+## Permissions and Grants
 
-```
-set heading off
-set echo off
-set feedback off
-spool D008_RO.sql
-select 'create synonym ' || 'D008_RO'|| '.' || table_name || ' for D008.' || table_name || ';'  from dba_tables where OWNER = 'D008' ;
-Spool off
-```
-```
-set heading off
-set echo off
-set feedback off
-spool D008_RW.sql
-select 'create synonym ' || 'D008_RW'|| '.' || table_name || ' for D008.' || table_name || ';'  from dba_tables where OWNER = 'D008' ;
-spool off
-```
-```
-revoke create procedure, create sequence, create table, create trigger, create view from
-grant create session, create any synonym to &user;
-revoke create procedure, create sequence, create table, create trigger, create view from &user_ro;
-grant create procedure, create sequence, create table, create trigger, create view to &user_ro;
-create public synonym JJV_MA_RPT_CTL for ELLIPSE.JJV_MA_RPT_CTL;
-grant select on ELLIPSE.JJV_MA_RPT_CTL to corvu_read;
+### User Permission Management
+```sql
+-- Revoke and grant permissions
+REVOKE create procedure, create sequence, create table, create trigger, create view FROM &user;
+GRANT create session, create any synonym TO &user;
+
+REVOKE create procedure, create sequence, create table, create trigger, create view FROM &user_ro;
+GRANT create procedure, create sequence, create table, create trigger, create view TO &user_ro;
 ```
 
-.e. capture & run the output from these commands
+### Generate Grant Statements
+Capture and run output from these commands for bulk permission grants:
 
-```
-set heading off
-set echo off
-set feedback off
-```
-```
-select 'grant delete, insert, update, select on ' || table_name || ' to
-USER_UPD;' 
-from dba_tables where owner = 'schema owner' 
-/
-```
+```sql
+SET heading OFF
+SET echo OFF
+SET feedback OFF
 
-```
-drop public synonym court_type_code_cot ;
-create public synonym court_type_code_cot for prodowner.court_type_code_cot;
-grant select on prodowner.court_type_code_cot to WIMANGX;
+SELECT 'GRANT delete, insert, update, select ON ' || table_name || ' TO USER_UPD;' 
+FROM dba_tables 
+WHERE owner = 'schema_owner';
 ```
 
-LINK
-Who is using the DB Link?  
+### Public Synonym with Grants
+```sql
+CREATE PUBLIC SYNONYM JJV_MA_RPT_CTL FOR ELLIPSE.JJV_MA_RPT_CTL;
+GRANT SELECT ON ELLIPSE.JJV_MA_RPT_CTL TO corvu_read;
 ```
--- this script can be used at both ends of the database link
--- to match up which session on the remote database started
--- the local transaction
--- the GTXID will match for those sessions
--- just run the script on both databases
 
-Select /*+ ORDERED */
-substr(s.ksusemnm,1,10)||'-'|| substr(s.ksusepid,1,10)      "ORIGIN",
-substr(g.K2GTITID_ORA,1,35) "GTXID",
-substr(s.indx,1,4)||'.'|| substr(s.ksuseser,1,5) "LSESSION" ,
-s2.username,
-substr(
-   decode(bitand(ksuseidl,11),
-      1,'ACTIVE',
-      0, decode( bitand(ksuseflg,4096) , 0,'INACTIVE','CACHED'),
-      2,'SNIPED',
-      3,'SNIPED',
-      'KILLED'
-   ),1,1
-) "S",
-substr(w.event,1,10) "WAITING"
-from  x$k2gte g, x$ktcxb t, x$ksuse s, v$session_wait w, v$session s2
-where  g.K2GTDXCB =t.ktcxbxba
-and   g.K2GTDSES=t.ktcxbses
-and  s.addr=g.K2GTDSES
-and  w.sid=s.indx
-and s2.sid = w.sid;
-```
-```
+## Database Links
+
+### Query Database Links
+```sql
 COLUMN OWNER HEADING 'Owner' FORMAT A15
 COLUMN DB_LINK HEADING 'Database Link' FORMAT A30
 COLUMN USERNAME HEADING 'Username' FORMAT A20
@@ -166,26 +193,30 @@ COLUMN HOST HEADING 'Host' FORMAT A25
 
 SELECT OWNER, DB_LINK, USERNAME, HOST
 FROM dba_db_links;
+```
 
-```
-```
-set pages 999
-set long 90000
-set lin 120
+### Get Database Link DDL
+```sql
+SET pages 999
+SET long 90000
+SET linesize 120
 
-SELECT 'SELECT dbms_metadata.get_ddl(''DB_LINK'',''' || db_link || ''',''' || owner || ''') as "test.trns" FROM dual;' AS "Execute below Query for DDL"
-FROM dba_db_links WHERE db_link IN ('&DBlINKNAME'); <<-- 
+SELECT 'SELECT dbms_metadata.get_ddl(''DB_LINK'',''' || db_link || 
+       ''',''' || owner || ''') FROM dual;' AS "Execute Query for DDL"
+FROM dba_db_links 
+WHERE db_link = '&DBLINKNAME';
 ```
-Sample Output:
-```
+
+**Sample DDL Output:**
+```sql
 CREATE DATABASE LINK "TEST.TRNSPRT"
    CONNECT TO "<USER>" IDENTIFIED BY VALUES '0XXXXXXXXXXXXXXXXXX0890FD'
    USING 'TNSALIAS/CONNECTSTRING';
 ```
-Now execute the command
 
-```
-set linesize 200
+### Query Specific Database Link Details
+```sql
+SET linesize 200
 COLUMN OWNER FORMAT A15
 COLUMN DB_LINK FORMAT A30
 COLUMN USERNAME FORMAT A15
@@ -193,5 +224,42 @@ COLUMN HOST FORMAT A30
 
 SELECT OWNER, DB_LINK, USERNAME, HOST
 FROM DBA_DB_LINKS
-where db_link='&linkname';
+WHERE db_link = '&linkname';
 ```
+
+### Monitor Database Link Usage
+Script to identify which sessions are using database links by matching GTXID:
+
+```sql
+SELECT /*+ ORDERED */
+       SUBSTR(s.ksusemnm,1,10) || '-' || SUBSTR(s.ksusepid,1,10) AS "ORIGIN",
+       SUBSTR(g.K2GTITID_ORA,1,35) AS "GTXID",
+       SUBSTR(s.indx,1,4) || '.' || SUBSTR(s.ksuseser,1,5) AS "LSESSION",
+       s2.username,
+       SUBSTR(
+           DECODE(BITAND(ksuseidl,11),
+               1, 'ACTIVE',
+               0, DECODE(BITAND(ksuseflg,4096), 0, 'INACTIVE', 'CACHED'),
+               2, 'SNIPED',
+               3, 'SNIPED',
+               'KILLED'
+           ), 1, 1
+       ) AS "S",
+       SUBSTR(w.event,1,10) AS "WAITING"
+FROM x$k2gte g, 
+     x$ktcxb t, 
+     x$ksuse s, 
+     v$session_wait w, 
+     v$session s2
+WHERE g.K2GTDXCB = t.ktcxbxba
+  AND g.K2GTDSES = t.ktcxbses
+  AND s.addr = g.K2GTDSES
+  AND w.sid = s.indx
+  AND s2.sid = w.sid;
+```
+
+## Notes
+
+- Run scripts on both ends of database links to match sessions using GTXID
+- Use `SET heading OFF`, `SET echo OFF`, `SET feedback OFF` for clean script output
+- Always test permission changes in development environment first
