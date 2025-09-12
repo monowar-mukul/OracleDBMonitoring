@@ -1,4 +1,4 @@
-# Oracle Database Operations Wiki
+# Oracle Database log management
 
 This wiki provides comprehensive guidance for Oracle database operations including redo log management, rollback segment monitoring, undo tablespace management, and archiving operations.
 
