@@ -1,169 +1,544 @@
-````markdown
-# Memory Usage Monitoring Wiki
+# Oracle Memory Usage Monitoring
 
-This wiki provides various SQL queries for monitoring memory usage in the Oracle database system, specifically for user sessions, process memory, and statistics related to CPU and memory.
+This wiki provides comprehensive SQL queries for monitoring memory usage in Oracle databases, including session-level monitoring, process memory analysis, and performance optimization queries.
 
 ## Table of Contents
-- [CPU and Memory Usage by Session](#cpu-and-memory-usage-by-session)
-- [Memory Usage for Each User Session](#memory-usage-for-each-user-session)
-- [Memory Usage for Each User - Detailed View](#memory-usage-for-each-user---detailed-view)
-- [Memory Usage - Detailed Breakdown](#memory-usage---detailed-breakdown)
-- [Memory Usage by Category](#memory-usage-by-category)
-````
+- [Session Memory Monitoring](#session-memory-monitoring)
+- [Process Memory Analysis](#process-memory-analysis)
+- [User-Specific Memory Queries](#user-specific-memory-queries)
+- [Memory Statistics and Trends](#memory-statistics-and-trends)
+- [Performance Optimization](#performance-optimization)
+- [Troubleshooting Queries](#troubleshooting-queries)
 
-## CPU and Memory Usage by Session
+## Session Memory Monitoring
 
-This query retrieves the current and maximum session memory usage for each user session, along with CPU process ID (PID) and thread information.
+### Current Session Memory Overview
+
+Display memory usage for all active sessions with PID and thread information:
 
 ```sql
 SELECT 
-    to_char(ssn.sid, '9999') || ' - ' || nvl(ssn.username, nvl(bgp.name, 'background')) ||
-    nvl(lower(ssn.machine), ins.host_name) "SESSION",
-    to_char(prc.spid, '999999999') "PID/THREAD",
-    to_char((se1.value/1024)/1024, '999G999G990D00') || ' MB' "CURRENT SIZE",
-    to_char((se2.value/1024)/1024, '999G999G990D00') || ' MB' "MAXIMUM SIZE"
+    TO_CHAR(ssn.sid, '9999') || ' - ' || NVL(ssn.username, NVL(bgp.name, 'background')) ||
+    ' @ ' || NVL(LOWER(ssn.machine), ins.host_name) AS "SESSION_INFO",
+    TO_CHAR(prc.spid, '999999999') AS "PID_THREAD",
+    TO_CHAR((se1.value/1024)/1024, '999G999G990D00') || ' MB' AS "CURRENT_PGA",
+    TO_CHAR((se2.value/1024)/1024, '999G999G990D00') || ' MB' AS "MAX_PGA",
+    ssn.status,
+    ssn.program
 FROM 
-    v$sesstat se1, v$sesstat se2, v$session ssn, v$bgprocess bgp, v$process prc,
-    v$instance ins, v$statname stat1, v$statname stat2
+    v$sesstat se1, 
+    v$sesstat se2, 
+    v$session ssn, 
+    v$bgprocess bgp, 
+    v$process prc,
+    v$instance ins, 
+    v$statname stat1, 
+    v$statname stat2
 WHERE 
     se1.statistic# = stat1.statistic# AND stat1.name = 'session pga memory'
     AND se2.statistic# = stat2.statistic# AND stat2.name = 'session pga memory max'
     AND se1.sid = ssn.sid
     AND se2.sid = ssn.sid
     AND ssn.paddr = bgp.paddr (+)
-    AND ssn.paddr = prc.addr (+);
-
-```
----
-
-## Memory Usage for Each User Session
-
-This query displays detailed memory usage by each user session, including the current session memory in MB for a specific user.
-
-```sql
-SELECT 
-    sess.username AS username,
-    sess.sid AS session_id,
-    sess.serial# AS session_serial,
-    sess.program AS session_program,
-    sess.server AS session_mode,
-    round(stat.value/1024/1024, 2) AS "current_UGA_memory (in MB)"
-FROM 
-    v$session sess,
-    v$sesstat stat,
-    v$statname name
-WHERE 
-    sess.sid = stat.sid
-    AND stat.statistic# = name.statistic#
-    AND name.name = 'session uga memory'
-    AND sess.username = 'SVC_WS_PRICING'  -- Replace with your user/schema name
-ORDER BY 
-    value;
+    AND ssn.paddr = prc.addr (+)
+    AND se1.value > 0
+ORDER BY se1.value DESC;
 ```
 
----
+### Comprehensive Session Memory Details
 
-## Memory Usage for Each User - Detailed View
-
-This query provides a detailed view of the memory usage for each session, including PGA and UGA memory for each user session.
+Complete PGA and UGA memory information for all sessions:
 
 ```sql
 SELECT
-    s.sid SID,
-    lpad(s.username, 12) oracle_username,
-    lpad(s.osuser, 9) os_username,
-    s.program session_program,
-    lpad(s.machine, 8) session_machine,
-    (SELECT round(ss.value/1024/1024, 2) FROM v$sesstat ss, v$statname sn
+    s.sid,
+    s.serial#,
+    LPAD(s.username, 15) AS oracle_user,
+    LPAD(s.osuser, 12) AS os_user,
+    SUBSTR(s.program, 1, 20) AS program,
+    LPAD(s.machine, 12) AS machine,
+    s.status,
+    -- PGA Memory Statistics
+    (SELECT ROUND(ss.value/1024/1024, 2) 
+     FROM v$sesstat ss, v$statname sn
      WHERE ss.sid = s.sid 
      AND sn.statistic# = ss.statistic# 
-     AND sn.name = 'session pga memory') session_pga_memory,
-    (SELECT round(ss.value/1024/1024, 2) FROM v$sesstat ss, v$statname sn
+     AND sn.name = 'session pga memory') AS pga_current_mb,
+    (SELECT ROUND(ss.value/1024/1024, 2) 
+     FROM v$sesstat ss, v$statname sn
      WHERE ss.sid = s.sid 
      AND sn.statistic# = ss.statistic# 
-     AND sn.name = 'session pga memory max') session_pga_memory_max,
-    (SELECT round(ss.value/1024/1024, 2) FROM v$sesstat ss, v$statname sn
+     AND sn.name = 'session pga memory max') AS pga_max_mb,
+    -- UGA Memory Statistics
+    (SELECT ROUND(ss.value/1024/1024, 2) 
+     FROM v$sesstat ss, v$statname sn
      WHERE ss.sid = s.sid 
      AND sn.statistic# = ss.statistic# 
-     AND sn.name = 'session uga memory') session_uga_memory,
-    (SELECT round(ss.value/1024/1024, 2) FROM v$sesstat ss, v$statname sn
+     AND sn.name = 'session uga memory') AS uga_current_mb,
+    (SELECT ROUND(ss.value/1024/1024, 2) 
+     FROM v$sesstat ss, v$statname sn
      WHERE ss.sid = s.sid 
      AND sn.statistic# = ss.statistic# 
-     AND sn.name = 'session uga memory max') session_uga_memory_max
+     AND sn.name = 'session uga memory max') AS uga_max_mb
 FROM 
     v$session s
 WHERE 
-    s.username = 'SVC_WS_PRICING'  -- Replace with your user/schema name
-ORDER BY 
-    session_pga_memory DESC;
+    s.username IS NOT NULL
+    AND EXISTS (SELECT 1 FROM v$sesstat ss, v$statname sn
+                WHERE ss.sid = s.sid 
+                AND sn.statistic# = ss.statistic# 
+                AND sn.name = 'session pga memory'
+                AND ss.value > 1024*1024) -- Only sessions using > 1MB
+ORDER BY pga_current_mb DESC NULLS LAST;
 ```
 
----
+### Top Memory Consuming Sessions
 
-## Memory Usage - Detailed Breakdown
-
-This query provides detailed information on session memory, showing current and maximum memory usage (PGA and UGA) for each user session.
+Identify sessions consuming the most memory:
 
 ```sql
-SELECT
-    to_char(ssn.sid, '9999') AS session_id,
-    ssn.serial# AS session_serial,
-    nvl(ssn.username, nvl(bgp.name, 'background')) || '::' || 
-    nvl(lower(ssn.machine), ins.host_name) AS process_name,
-    to_char(prc.spid, '999999999') AS pid_thread,
-    to_char((se1.value / 1024) / 1024, '999g999g990d00') AS current_size_mb,
-    to_char((se2.value / 1024) / 1024, '999g999g990d00') AS maximum_size_mb
-FROM
-    v$statname stat1,
-    v$statname stat2,
-    v$session ssn,
-    v$sesstat se1,
-    v$sesstat se2,
-    v$bgprocess bgp,
-    v$process prc,
-    v$instance ins
-WHERE 
-    stat1.name = 'session pga memory'
-    AND stat2.name = 'session pga memory max'
-    AND se1.sid = ssn.sid
-    AND se2.sid = ssn.sid
-    AND se2.statistic# = stat2.statistic#
-    AND se1.statistic# = stat1.statistic#
-    AND ssn.paddr = bgp.paddr (+)
-    AND ssn.paddr = prc.addr (+)
-    AND ssn.sid IN (
-        SELECT sid
-        FROM v$session
-        WHERE username = '&USR'  -- Replace with your user/schema name
-    )
-ORDER BY 
-    maximum_size_mb;
-```
-
----
-
-## Memory Usage by Category
-
-This query displays memory usage statistics for each category such as SQL, PL/SQL, etc., based on process memory.
-
-```sql
-SELECT
-    category AS category,  -- Like SQL, PL/SQL, Other, etc.
-    round(allocated/1024/1024, 2) AS allocated,
-    round(used/1024/1024, 2) AS used,
-    round(max_allocated/1024/1024, 2) AS max_allocated
+SELECT 
+    s.sid,
+    s.username,
+    s.program,
+    s.machine,
+    s.status,
+    ROUND(pga.value/1024/1024, 2) AS pga_mb,
+    ROUND(uga.value/1024/1024, 2) AS uga_mb,
+    ROUND((pga.value + uga.value)/1024/1024, 2) AS total_mb,
+    s.sql_id,
+    s.last_call_et AS idle_seconds
 FROM 
-    v$process_memory
+    v$session s,
+    v$sesstat pga,
+    v$sesstat uga,
+    v$statname pga_name,
+    v$statname uga_name
 WHERE 
-    pid = (
-        SELECT pid
-        FROM v$process
-        WHERE addr = (
-            SELECT paddr
-            FROM V$session
-            WHERE sid = &SID  -- Replace with user session ID
-        )
-    );
+    s.sid = pga.sid
+    AND s.sid = uga.sid
+    AND pga.statistic# = pga_name.statistic#
+    AND uga.statistic# = uga_name.statistic#
+    AND pga_name.name = 'session pga memory'
+    AND uga_name.name = 'session uga memory'
+    AND s.username IS NOT NULL
+    AND (pga.value + uga.value) > 50*1024*1024 -- Sessions using > 50MB
+ORDER BY total_mb DESC;
 ```
 
----
+## Process Memory Analysis
+
+### Memory Usage by Category
+
+Analyze memory allocation by category (SQL, PL/SQL, etc.) for a specific session:
+
+```sql
+SELECT
+    pm.category,
+    ROUND(pm.allocated/1024/1024, 2) AS allocated_mb,
+    ROUND(pm.used/1024/1024, 2) AS used_mb,
+    ROUND(pm.max_allocated/1024/1024, 2) AS max_allocated_mb,
+    ROUND((pm.used/pm.allocated)*100, 2) AS utilization_pct
+FROM 
+    v$process_memory pm
+WHERE 
+    pm.pid = (
+        SELECT p.pid
+        FROM v$process p, v$session s
+        WHERE p.addr = s.paddr
+        AND s.sid = &SID
+    )
+ORDER BY allocated_mb DESC;
+```
+
+### Process Memory Summary
+
+Overall process memory statistics:
+
+```sql
+SELECT 
+    p.pid,
+    p.spid,
+    p.program,
+    ROUND(SUM(pm.allocated)/1024/1024, 2) AS total_allocated_mb,
+    ROUND(SUM(pm.used)/1024/1024, 2) AS total_used_mb,
+    ROUND(SUM(pm.max_allocated)/1024/1024, 2) AS total_max_mb,
+    COUNT(*) AS memory_categories
+FROM 
+    v$process p,
+    v$process_memory pm
+WHERE 
+    p.pid = pm.pid
+GROUP BY p.pid, p.spid, p.program
+HAVING SUM(pm.allocated) > 10*1024*1024 -- Processes using > 10MB
+ORDER BY total_allocated_mb DESC;
+```
+
+## User-Specific Memory Queries
+
+### Memory Usage for Specific User
+
+Monitor memory consumption for a particular database user:
+
+```sql
+SELECT 
+    sess.sid,
+    sess.serial#,
+    sess.program,
+    sess.machine,
+    sess.status,
+    sess.logon_time,
+    ROUND(pga_mem.value/1024/1024, 2) AS current_pga_mb,
+    ROUND(pga_max.value/1024/1024, 2) AS max_pga_mb,
+    ROUND(uga_mem.value/1024/1024, 2) AS current_uga_mb,
+    ROUND(uga_max.value/1024/1024, 2) AS max_uga_mb,
+    sess.sql_id,
+    sess.last_call_et AS idle_seconds
+FROM 
+    v$session sess,
+    v$sesstat pga_mem,
+    v$sesstat pga_max,
+    v$sesstat uga_mem,
+    v$sesstat uga_max,
+    v$statname pga_mem_name,
+    v$statname pga_max_name,
+    v$statname uga_mem_name,
+    v$statname uga_max_name
+WHERE 
+    sess.sid = pga_mem.sid
+    AND sess.sid = pga_max.sid
+    AND sess.sid = uga_mem.sid
+    AND sess.sid = uga_max.sid
+    AND pga_mem.statistic# = pga_mem_name.statistic#
+    AND pga_max.statistic# = pga_max_name.statistic#
+    AND uga_mem.statistic# = uga_mem_name.statistic#
+    AND uga_max.statistic# = uga_max_name.statistic#
+    AND pga_mem_name.name = 'session pga memory'
+    AND pga_max_name.name = 'session pga memory max'
+    AND uga_mem_name.name = 'session uga memory'
+    AND uga_max_name.name = 'session uga memory max'
+    AND sess.username = UPPER('&USERNAME')
+ORDER BY current_pga_mb DESC;
+```
+
+### User Memory Aggregation
+
+Total memory usage by database user:
+
+```sql
+SELECT 
+    s.username,
+    COUNT(*) AS session_count,
+    ROUND(SUM(pga.value)/1024/1024, 2) AS total_pga_mb,
+    ROUND(AVG(pga.value)/1024/1024, 2) AS avg_pga_mb,
+    ROUND(SUM(uga.value)/1024/1024, 2) AS total_uga_mb,
+    ROUND(AVG(uga.value)/1024/1024, 2) AS avg_uga_mb,
+    ROUND(SUM(pga.value + uga.value)/1024/1024, 2) AS total_memory_mb
+FROM 
+    v$session s,
+    v$sesstat pga,
+    v$sesstat uga,
+    v$statname pga_name,
+    v$statname uga_name
+WHERE 
+    s.sid = pga.sid
+    AND s.sid = uga.sid
+    AND pga.statistic# = pga_name.statistic#
+    AND uga.statistic# = uga_name.statistic#
+    AND pga_name.name = 'session pga memory'
+    AND uga_name.name = 'session uga memory'
+    AND s.username IS NOT NULL
+GROUP BY s.username
+ORDER BY total_memory_mb DESC;
+```
+
+## Memory Statistics and Trends
+
+### Database-Wide Memory Statistics
+
+Overall memory usage across the database:
+
+```sql
+SELECT 
+    'Total Sessions' AS metric,
+    COUNT(*) AS value,
+    'Count' AS unit
+FROM v$session 
+WHERE username IS NOT NULL
+UNION ALL
+SELECT 
+    'Total PGA Memory' AS metric,
+    ROUND(SUM(pga.value)/1024/1024/1024, 2) AS value,
+    'GB' AS unit
+FROM v$sesstat pga, v$statname pga_name
+WHERE pga.statistic# = pga_name.statistic#
+AND pga_name.name = 'session pga memory'
+UNION ALL
+SELECT 
+    'Total UGA Memory' AS metric,
+    ROUND(SUM(uga.value)/1024/1024/1024, 2) AS value,
+    'GB' AS unit
+FROM v$sesstat uga, v$statname uga_name
+WHERE uga.statistic# = uga_name.statistic#
+AND uga_name.name = 'session uga memory'
+ORDER BY metric;
+```
+
+### Memory Usage Histogram
+
+Distribution of memory usage across sessions:
+
+```sql
+SELECT 
+    memory_range,
+    COUNT(*) AS session_count,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) AS percentage
+FROM (
+    SELECT 
+        s.sid,
+        CASE 
+            WHEN pga.value < 1024*1024 THEN '< 1 MB'
+            WHEN pga.value < 10*1024*1024 THEN '1-10 MB'
+            WHEN pga.value < 50*1024*1024 THEN '10-50 MB'
+            WHEN pga.value < 100*1024*1024 THEN '50-100 MB'
+            WHEN pga.value < 500*1024*1024 THEN '100-500 MB'
+            ELSE '> 500 MB'
+        END AS memory_range
+    FROM 
+        v$session s,
+        v$sesstat pga,
+        v$statname pga_name
+    WHERE 
+        s.sid = pga.sid
+        AND pga.statistic# = pga_name.statistic#
+        AND pga_name.name = 'session pga memory'
+        AND s.username IS NOT NULL
+)
+GROUP BY memory_range
+ORDER BY 
+    CASE memory_range
+        WHEN '< 1 MB' THEN 1
+        WHEN '1-10 MB' THEN 2
+        WHEN '10-50 MB' THEN 3
+        WHEN '50-100 MB' THEN 4
+        WHEN '100-500 MB' THEN 5
+        WHEN '> 500 MB' THEN 6
+    END;
+```
+
+## Performance Optimization
+
+### Identify Memory-Intensive SQL
+
+Find SQL statements consuming significant memory:
+
+```sql
+SELECT 
+    s.sql_id,
+    s.sql_child_number,
+    ROUND(pga.value/1024/1024, 2) AS pga_mb,
+    s.username,
+    s.program,
+    s.status,
+    t.sql_text
+FROM 
+    v$session s,
+    v$sesstat pga,
+    v$statname pga_name,
+    v$sqltext t
+WHERE 
+    s.sid = pga.sid
+    AND pga.statistic# = pga_name.statistic#
+    AND pga_name.name = 'session pga memory'
+    AND s.sql_id = t.sql_id (+)
+    AND t.piece = 0
+    AND pga.value > 100*1024*1024 -- Sessions using > 100MB
+ORDER BY pga_mb DESC;
+```
+
+### Memory Usage by Program Type
+
+Analyze memory consumption by client program:
+
+```sql
+SELECT 
+    SUBSTR(s.program, 1, 30) AS program,
+    COUNT(*) AS session_count,
+    ROUND(SUM(pga.value)/1024/1024, 2) AS total_pga_mb,
+    ROUND(AVG(pga.value)/1024/1024, 2) AS avg_pga_mb,
+    ROUND(MAX(pga.value)/1024/1024, 2) AS max_pga_mb
+FROM 
+    v$session s,
+    v$sesstat pga,
+    v$statname pga_name
+WHERE 
+    s.sid = pga.sid
+    AND pga.statistic# = pga_name.statistic#
+    AND pga_name.name = 'session pga memory'
+    AND s.username IS NOT NULL
+    AND s.program IS NOT NULL
+GROUP BY SUBSTR(s.program, 1, 30)
+HAVING COUNT(*) > 1
+ORDER BY total_pga_mb DESC;
+```
+
+## Troubleshooting Queries
+
+### Sessions Exceeding Memory Thresholds
+
+Identify sessions that may be causing memory pressure:
+
+```sql
+SELECT 
+    s.sid,
+    s.username,
+    s.program,
+    s.machine,
+    s.status,
+    s.sql_id,
+    ROUND(pga_current.value/1024/1024, 2) AS current_pga_mb,
+    ROUND(pga_max.value/1024/1024, 2) AS max_pga_mb,
+    ROUND(uga_current.value/1024/1024, 2) AS current_uga_mb,
+    s.last_call_et AS idle_seconds,
+    CASE 
+        WHEN pga_current.value > 500*1024*1024 THEN 'HIGH'
+        WHEN pga_current.value > 100*1024*1024 THEN 'MEDIUM'
+        ELSE 'NORMAL'
+    END AS memory_level
+FROM 
+    v$session s,
+    v$sesstat pga_current,
+    v$sesstat pga_max,
+    v$sesstat uga_current,
+    v$statname pga_current_name,
+    v$statname pga_max_name,
+    v$statname uga_current_name
+WHERE 
+    s.sid = pga_current.sid
+    AND s.sid = pga_max.sid
+    AND s.sid = uga_current.sid
+    AND pga_current.statistic# = pga_current_name.statistic#
+    AND pga_max.statistic# = pga_max_name.statistic#
+    AND uga_current.statistic# = uga_current_name.statistic#
+    AND pga_current_name.name = 'session pga memory'
+    AND pga_max_name.name = 'session pga memory max'
+    AND uga_current_name.name = 'session uga memory'
+    AND s.username IS NOT NULL
+    AND pga_current.value > 50*1024*1024 -- Sessions using > 50MB
+ORDER BY current_pga_mb DESC;
+```
+
+### Memory Growth Analysis
+
+Track memory growth over time for active sessions:
+
+```sql
+SELECT 
+    s.sid,
+    s.username,
+    s.program,
+    ROUND(pga_current.value/1024/1024, 2) AS current_pga_mb,
+    ROUND(pga_max.value/1024/1024, 2) AS max_pga_mb,
+    ROUND(((pga_current.value/pga_max.value) * 100), 2) AS memory_utilization_pct,
+    s.logon_time,
+    ROUND((SYSDATE - s.logon_time) * 24, 2) AS hours_connected,
+    s.status,
+    s.sql_id
+FROM 
+    v$session s,
+    v$sesstat pga_current,
+    v$sesstat pga_max,
+    v$statname pga_current_name,
+    v$statname pga_max_name
+WHERE 
+    s.sid = pga_current.sid
+    AND s.sid = pga_max.sid
+    AND pga_current.statistic# = pga_current_name.statistic#
+    AND pga_max.statistic# = pga_max_name.statistic#
+    AND pga_current_name.name = 'session pga memory'
+    AND pga_max_name.name = 'session pga memory max'
+    AND s.username IS NOT NULL
+    AND pga_max.value > pga_current.value * 1.5 -- Sessions where max is 50% higher than current
+ORDER BY memory_utilization_pct DESC;
+```
+
+### Dead/Idle Session Cleanup Candidates
+
+Identify idle sessions consuming memory that could be terminated:
+
+```sql
+SELECT 
+    s.sid,
+    s.serial#,
+    s.username,
+    s.program,
+    s.machine,
+    s.status,
+    ROUND(pga.value/1024/1024, 2) AS pga_mb,
+    ROUND(s.last_call_et/3600, 2) AS idle_hours,
+    s.logon_time,
+    'ALTER SYSTEM KILL SESSION ''' || s.sid || ',' || s.serial# || ''';' AS kill_command
+FROM 
+    v$session s,
+    v$sesstat pga,
+    v$statname pga_name
+WHERE 
+    s.sid = pga.sid
+    AND pga.statistic# = pga_name.statistic#
+    AND pga_name.name = 'session pga memory'
+    AND s.username IS NOT NULL
+    AND s.status = 'INACTIVE'
+    AND s.last_call_et > 3600 -- Idle for more than 1 hour
+    AND pga.value > 10*1024*1024 -- Using more than 10MB
+ORDER BY pga_mb DESC, idle_hours DESC;
+```
+
+## Best Practices and Recommendations
+
+### Monitoring Guidelines
+
+1. **Regular Monitoring**:
+   - Run memory overview queries daily during peak hours
+   - Set up alerts for sessions exceeding memory thresholds
+   - Monitor memory growth trends weekly
+
+2. **Threshold Settings**:
+   - **Normal**: < 50MB per session
+   - **Warning**: 50-200MB per session
+   - **Critical**: > 200MB per session
+
+3. **Investigation Priorities**:
+   - Sessions with high PGA usage and long-running SQL
+   - Users with multiple high-memory sessions
+   - Processes showing continuous memory growth
+
+### Performance Optimization Tips
+
+- **PGA Management**: Configure `PGA_AGGREGATE_TARGET` appropriately
+- **Sort Area**: Monitor sort operations in temporary tablespace
+- **Connection Pooling**: Implement to reduce overall session memory
+- **Query Optimization**: Identify and tune memory-intensive SQL statements
+
+### Troubleshooting Steps
+
+1. **High Memory Usage**:
+   - Identify top consumers using session memory queries
+   - Check for long-running or inefficient SQL statements
+   - Review application connection patterns
+
+2. **Memory Leaks**:
+   - Compare current vs. maximum memory usage
+   - Look for sessions with continuously growing memory
+   - Check for uncommitted transactions holding resources
+
+3. **System Performance Issues**:
+   - Use memory distribution queries to identify bottlenecks
+   - Check for sessions exceeding configured limits
+   - Consider terminating idle sessions consuming significant memory
+
+### Security and Maintenance
+
+- **Access Control**: Ensure only authorized users can view memory statistics
+- **Regular Cleanup**: Implement procedures to identify and terminate unused sessions
+- **Documentation**: Maintain records of memory usage patterns and optimization efforts
+- **Automation**: Consider automated monitoring and alerting for memory thresholds
