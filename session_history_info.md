@@ -1,12 +1,19 @@
-````markdown
 # Oracle Session Monitoring Queries
 
-These SQL queries and scripts are designed to provide detailed information about active Oracle database sessions, CPU usage, memory usage, I/O operations, and other session details. Below is a breakdown of the provided queries and their use cases:
+A comprehensive collection of SQL queries and scripts for monitoring Oracle database sessions, analyzing performance bottlenecks, and identifying resource-intensive operations.
 
-## Active Session History (ASH) Queries:
+## Table of Contents
 
-### 1. Most Active Session in the Last One Hour
-This query shows the most active sessions over the last hour based on `gv$active_session_history`. It uses `sql_id` to identify sessions and calculates the percentage load for each SQL ID.
+- [Active Session History (ASH) Queries](#active-session-history-ash-queries)
+- [Current Running SQL Queries](#current-running-sql-queries)
+- [Long-Running Session Monitoring](#long-running-session-monitoring)
+- [Detailed Session Information](#detailed-session-information)
+
+## Active Session History (ASH) Queries
+
+### Most Active Sessions in the Last Hour
+
+Identifies the most active sessions based on SQL ID and calculates percentage load for each.
 
 ```sql
 SELECT sql_id, COUNT(*), ROUND(COUNT(*) / SUM(COUNT(*)) OVER(), 2) PCTLOAD
@@ -15,11 +22,11 @@ WHERE sample_time > SYSDATE - 1/24
 AND session_type = 'BACKGROUND'
 GROUP BY sql_id
 ORDER BY COUNT(*) DESC;
-````
+```
 
-### 2. Get the Wait Event for the Above Session
+### Wait Events for Specific Session
 
-Once a session is identified from the previous query, this query will retrieve the specific wait events that the session is currently waiting on, along with wait times.
+Retrieves wait events and wait times for a specific session (use session ID and serial number from previous query).
 
 ```sql
 SELECT sample_time, event, wait_time
@@ -28,9 +35,9 @@ WHERE session_id = &1
 AND session_serial# = &2;
 ```
 
-### 3. Most I/O Intensive SQL in the Last 1 Hour
+### Most I/O Intensive SQL (Last Hour)
 
-This query identifies SQL queries with the most I/O waits in the last hour. It focuses on sessions in the `WAITING` state, with an event class of `User I/O`.
+Identifies SQL queries with the highest I/O waits in the last hour.
 
 ```sql
 SELECT sql_id, COUNT(*)
@@ -43,26 +50,28 @@ GROUP BY sql_id
 ORDER BY COUNT(*) DESC;
 ```
 
-### 4. Top SQLs Based on CPU, Wait, and I/O
+### Top SQLs by Resource Consumption
 
-This query aggregates the `v$active_session_history` and `v$event_name` to show which SQLs are consuming the most CPU, waiting time, or I/O resources.
+Aggregates SQL performance metrics showing CPU usage, wait time, and I/O operations.
 
 ```sql
 SELECT
   ash.SQL_ID,
-  SUM(DECODE(a.session_state, 'ON CPU', 1, 0)) "CPU",
-  SUM(DECODE(a.session_state, 'WAITING', 1, 0)) -
-    SUM(DECODE(a.session_state, 'WAITING', DECODE(en.wait_class, 'User I/O', 1, 0), 0)) "WAIT",
-  SUM(DECODE(a.session_state, 'WAITING', DECODE(en.wait_class, 'User I/O', 1, 0), 0)) "IO",
-  SUM(DECODE(a.session_state, 'ON CPU', 1, 1)) "TOTAL"
-FROM v$active_session_history a, v$event_name en
-WHERE SQL_ID IS NOT NULL
+  SUM(DECODE(ash.session_state, 'ON CPU', 1, 0)) "CPU",
+  SUM(DECODE(ash.session_state, 'WAITING', 1, 0)) -
+    SUM(DECODE(ash.session_state, 'WAITING', DECODE(en.wait_class, 'User I/O', 1, 0), 0)) "WAIT",
+  SUM(DECODE(ash.session_state, 'WAITING', DECODE(en.wait_class, 'User I/O', 1, 0), 0)) "IO",
+  SUM(DECODE(ash.session_state, 'ON CPU', 1, 1)) "TOTAL"
+FROM v$active_session_history ash, v$event_name en
+WHERE ash.SQL_ID IS NOT NULL
 AND en.event# = ash.event#
+GROUP BY ash.SQL_ID
+ORDER BY "TOTAL" DESC;
 ```
 
-### 5. SQL Analysis for a Particular Session
+### Session Analysis for Specific Time Period
 
-This query looks at the active session history for a particular session ID (`sid`) and provides details about the SQLs being executed, events, and the associated wait times.
+Analyzes active session history for a particular session within a specified time range.
 
 ```sql
 SELECT C.SQL_TEXT,
@@ -79,9 +88,9 @@ AND A.SQL_ID = C.SQL_ID
 GROUP BY C.SQL_TEXT, B.NAME;
 ```
 
-### 6. Top Sessions on CPU in the Last 15 Minutes
+### Top CPU Consuming Sessions (Last 15 Minutes)
 
-This query returns the top sessions that have consumed the most CPU time in the last 15 minutes.
+Returns the top 10 sessions with highest CPU consumption in the last 15 minutes.
 
 ```sql
 SELECT * FROM (
@@ -97,9 +106,30 @@ SELECT * FROM (
 WHERE rownum <= 10;
 ```
 
-### 7. Find Queries Executed in the Last 30 Days
+### Historical Query Analysis (Last 30 Days)
 
-This query retrieves the SQL queries executed by users in the last 30 days, providing the sample time, username, program, module, and the actual SQL text.
+Retrieves SQL queries executed in the last 30 days from historical data.
+
+```sql
+SELECT
+   h.sample_time,
+   u.username,
+   h.program,
+   h.module,
+   s.sql_text
+FROM
+   DBA_HIST_ACTIVE_SESS_HISTORY h,
+   DBA_USERS u,
+   DBA_HIST_SQLTEXT s
+WHERE sample_time >= SYSDATE - 30
+AND h.user_id = u.user_id
+AND h.sql_id = s.sql_id
+ORDER BY h.sample_time;
+```
+
+### Historical Query Analysis (Specific Time Range)
+
+Retrieves SQL queries executed within a specific date/time range.
 
 ```sql
 SELECT
@@ -119,28 +149,11 @@ AND h.sql_id = s.sql_id
 ORDER BY h.sample_time;
 ```
 
-```sql
-SELECT
-   h.sample_time,
-   u.username,
-   h.program,
-   h.module,
-   s.sql_text
-FROM
-   DBA_HIST_ACTIVE_SESS_HISTORY h,
-   DBA_USERS u,
-   DBA_HIST_SQLTEXT s
-WHERE sample_time >= SYSDATE - 30
-AND h.user_id = u.user_id
-AND h.sql_id = s.sql_id
-ORDER BY h.sample_time;
-```
+## Current Running SQL Queries
 
-## Running SQL Queries:
+### Currently Executing SQL Statements
 
-### 1. Current Running SQLs
-
-This query displays details of SQL queries currently being executed, including the SQL ID, program, machine, event, and session wait times. It excludes certain internal queries (e.g., `S.USERNAME`).
+Displays details of SQL queries currently being executed across all instances.
 
 ```sql
 SELECT sid, serial#, a.sql_id, a.SQL_TEXT, S.USERNAME, i.host_name, machine, S.event, S.seconds_in_wait sec_wait,
@@ -150,12 +163,14 @@ WHERE S.username IS NOT NULL
 AND S.sql_address = A.address
 AND s.inst_id = a.inst_id
 AND i.inst_id = a.inst_id
-AND sql_text NOT LIKE 'select S.USERNAME, S.seconds_in_wait%'
+AND sql_text NOT LIKE 'select S.USERNAME, S.seconds_in_wait%';
 ```
 
-### 2. Active Sessions Running for More Than 1 Hour
+## Long-Running Session Monitoring
 
-Displays active sessions that have been running for more than an hour. It provides session login details, including session ID, machine, program, and login time.
+### Active Sessions Running Over 1 Hour
+
+Identifies sessions that have been active for more than 60 minutes.
 
 ```sql
 SELECT USERNAME, machine, inst_id, sid, serial#, PROGRAM,
@@ -169,9 +184,9 @@ AND ROUND((SYSDATE - LOGON_TIME) * (24 * 60), 1) > 60
 ORDER BY MINUTES_LOGGED_ON DESC;
 ```
 
-### 3. Active Sessions Running for More Than 30 Minutes
+### Active Sessions Running Over 30 Minutes
 
-This query shows active sessions running for more than 30 minutes and their associated details.
+Identifies sessions that have been active for more than 30 minutes.
 
 ```sql
 SELECT USERNAME, machine, PROGRAM, TERMINAL,
@@ -185,11 +200,11 @@ AND ROUND((SYSDATE - LOGON_TIME) * (24 * 60), 1) > 30
 ORDER BY MINUTES_LOGGED_ON DESC;
 ```
 
-## Session Details Associated with Oracle SID:
+## Detailed Session Information
 
-### 1. Session Details
+### Comprehensive Session Details
 
-This script provides detailed session information for a particular `SID`, including client and server process IDs, SQL address, schema name, program, module, and more. It’s useful for diagnosing issues associated with specific sessions.
+Provides detailed information for a specific session ID (SID), including process IDs, SQL details, and session metadata.
 
 ```sql
 SET HEAD OFF
@@ -198,9 +213,11 @@ SET ECHO OFF
 SET PAGES 1500
 SET LINESIZE 100
 SET LINES 120
+
 PROMPT
 PROMPT Details of SID / SPID / Client PID
 PROMPT ==================================
+
 SELECT /*+ CHOOSE */
   'Session Id.............................................: ' || s.sid,
   'Serial Num..............................................: ' || s.serial#,
@@ -222,3 +239,18 @@ FROM v$session s, v$process p
 WHERE p.addr = s.paddr
 AND s.sid = NVL('&sid', s.sid);
 ```
+
+## Usage Notes
+
+- Replace `&1`, `&2`, `&sid`, `&starttime`, `&endtime` with actual values or use SQL*Plus substitution variables
+- These queries require appropriate Oracle database privileges (typically DBA or specific system view access)
+- Some queries use `gv$` views for RAC environments; use `v$` views for single-instance databases
+- Historical queries (`DBA_HIST_*` views) require Oracle Diagnostics Pack license
+
+## Contributing
+
+Feel free to contribute additional useful Oracle monitoring queries by submitting a pull request.
+
+## License
+
+This collection is provided as-is for educational and operational purposes.
