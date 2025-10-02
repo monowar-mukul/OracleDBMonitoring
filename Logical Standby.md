@@ -143,9 +143,4 @@ Manage settings using:
 3. START SQL Apply IMMEDIATE
 4. Validate with DBA_LOGSTDBY_SKIP
 ```
-
 ---
-
-Would you also like me to format this into an **ASCII-style table** or **cheat sheet** for quick reference (like you asked in other work)? 🚀  
-It would make a nice, compact version too! 🎯  
-Would you like that? 
