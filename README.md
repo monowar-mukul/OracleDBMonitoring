@@ -184,7 +184,7 @@ Version-specific queries are clearly marked in the documentation.
 
 ## License
 
-[Add your license information here]
+Please do check any licence requirements from your side.
 
 ## Acknowledgments
 
