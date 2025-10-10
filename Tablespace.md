@@ -36,6 +36,47 @@ ORDER BY OWNER, SEGMENT_NAME;
 SELECT SUBSTR(file_name,1,50), AUTOEXTENSIBLE 
 FROM dba_data_files;
 ```
+### Check tablespace object utilization
+```sql
+set pause off
+set pagesize 9999
+set linesize 132
+set feedback off
+set echo off
+set verify off
+
+column TABLESPACE_NAME format a30 head "Tablespace Name"
+column OWNER format a15 head "Owner Name"
+column SEGMENT_NAME format a30 head "Object Name"
+column SEGMENT_TYPE format a12 head "Object Type"
+column EXTENTS format 999,990 head "Extents"
+column BYTES format 999,999,999,999,990 head "Bytes"
+compute sum of BYTES on report
+break on report
+
+accept tsn prompt 'Table Space Name [*] : '
+accept own prompt '      Owner Name [*] : '
+accept seg prompt '    Segment Name [*] : '
+accept typ prompt '    Segment Type [*] : '
+
+col tsn new_value tsn noprint
+col own new_value own noprint
+col seg new_value seg noprint
+col typ new_value typ noprint
+
+select TABLESPACE_NAME
+     , OWNER
+     , SEGMENT_NAME
+     , SEGMENT_TYPE
+     , EXTENTS
+     , BYTES
+from dba_segments
+where TABLESPACE_NAME like decode('&tsn','','%',upper('&tsn'))
+  and OWNER like decode('&own','','%',upper('&own'))
+  and SEGMENT_NAME like decode('&seg','','%',upper('&seg'))
+  and SEGMENT_TYPE like decode('&typ','','%',upper('&typ'))
+order by bytes;
+```
 
 ## Tablespace Space Monitoring
 
