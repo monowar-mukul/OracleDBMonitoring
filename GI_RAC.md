@@ -411,7 +411,36 @@ AND s.inst_id = sl.inst_id
 AND s.serial# = sl.serial#
 ORDER BY progress_pct;
 ```
+### GC Blocks Lost and Waits
 
+```sql
+SELECT inst_id,
+       name,
+       value
+FROM gv$sysstat
+WHERE name LIKE 'gc%lost%';
+```
+
+### Interconnect Latency
+
+```sql
+SELECT inst_id,
+       name,
+       value
+FROM gv$sysstat
+WHERE name LIKE 'gc%time%';
+```
+
+### RAC Global Cache Statistics
+
+```sql
+SELECT inst_id,
+       name,
+       value
+FROM gv$sysstat
+WHERE name LIKE 'gc%'
+ORDER BY inst_id, name;
+```
 ### Session Waits
 
 ```sql
