@@ -105,3 +105,11 @@ FROM v$transaction t,
      v$session s
 WHERE t.addr = s.taddr;
 ```
+## Troubleshooting Guide
+### Locking and Blocking
+
+1. Identify blocking sessions
+2. Check for long-running transactions
+3. Review application logic for lock contention
+4. Consider row-level locking strategies
+5. Monitor deadlock frequency
