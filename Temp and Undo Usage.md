@@ -163,7 +163,15 @@ GROUP BY s.sid, s.username
 HAVING SUM(ss.value) > 0
 ORDER BY undo_size_mb DESC;
 ```
+### Undo Usage Summary
 
+```sql
+SELECT tablespace_name,
+       SUM(bytes)/1024/1024 used_mb
+FROM dba_undo_extents
+WHERE status IN ('ACTIVE', 'UNEXPIRED')
+GROUP BY tablespace_name;
+```
 ### UNDO Tablespace Recreation
 
 Step-by-step procedure for recreating UNDO tablespace:
@@ -359,7 +367,16 @@ ALTER DATABASE DEFAULT TEMPORARY TABLESPACE temp;
 -- Step 9: Drop temporary tablespace
 DROP TABLESPACE temp_new INCLUDING CONTENTS AND DATAFILES;
 ```
+### Temporary Tablespace Usage
 
+```sql
+SELECT tablespace_name,
+       file_id,
+       SUM(blocks * 8)/1024 AS temp_mb_used
+FROM v$tempseg_usage
+GROUP BY tablespace_name, file_id
+ORDER BY temp_mb_used DESC;
+```
 ### Historical TEMP Usage
 
 Track TEMP usage over time using AWR:
