@@ -24,26 +24,24 @@
 6. [Checking Recovery Mode of Standby](#checking-recovery-mode-of-standby)
     - [Real-Time Apply Standby](#real-time-apply-standby)
     - [Non-Realtime Apply Standby](#non-realtime-apply-standby)
-7. [Gap Checking Script (`Chk_gap.sql`)](#gap-checking-script-chk_gap-sql)
+7. [Gap Checking Script](#gap-checking)
 8. [Checking Log Archive Differences Between Threads](#checking-log-archive-differences-between-threads)
 9. [Monitoring Standby Database Time Difference](#monitoring-standby-database-time-difference)
 
 ---
 
 ## Checking the Database Mode
-Run the following SQL query to check the current database mode:
+
+### Data Guard Configuration
 
 ```sql
-SQL> select open_mode, database_role from v$database;
+SELECT open_mode,
+       database_role,
+       protection_mode,
+       protection_level,
+       standby_became_primary_scn
+FROM v$database;
 ```
-
-### Output:
-```
-OPEN_MODE            DATABASE_ROLE
--------------------- ----------------
-MOUNTED              PHYSICAL STANDBY
-```
-
 ---
 
 ## Checking Dataguard Transport Lag
@@ -55,12 +53,26 @@ Run the following SQL query to check the transport lag:
 select name, value from v$dataguard_stats
 where name = 'transport lag';
 ```
+### Data Guard Transport and Apply Lag
 
-### Output:
+```sql
+SELECT name,
+       value,
+       unit
+FROM v$dataguard_stats
+WHERE name IN ('transport lag', 'apply lag');
 ```
-NAME                    VALUE
-----------------------------------------------------------------
-transport lag +00 00:00:03
+### Managed Recovery Status
+
+```sql
+SELECT process,
+       status,
+       client_process,
+       sequence#,
+       block#,
+       blocks,
+       delay_mins
+FROM v$managed_standby;
 ```
 
 ### Dataguard Metrics for RAC Databases
