@@ -64,6 +64,35 @@ SELECT username, account_status, expiry_date, sysdate
 FROM dba_users
 WHERE username = '&usr';
 ```
+### Extract User profile information
+```
+set pause off
+set pagesize 9999
+set linesize 132
+set feedback off
+set echo off
+set verify off
+
+column PROFILE format a20 head "Profile"
+column RESOURCE_NAME format a30 head "Resource Name"
+column RESOURCE_TYPE format a8 head "Resource Type"
+column LIMIT format a20 head "Resource Type"
+
+accept pro prompt ' Profile Name [*] : '
+accept res prompt 'Resource Name [*] : '
+
+col pro new_value pro noprint
+col res new_value res noprint
+
+select PROFILE
+      ,RESOURCE_NAME
+      ,RESOURCE_TYPE
+      ,LIMIT
+from dba_profiles
+where profile like decode('&pro','','%',upper('&pro'))
+  and resource_name like decode('&res','','%',upper('&res'))
+order by profile;
+```
 
 ## User Cloning and Privilege Copying
 
