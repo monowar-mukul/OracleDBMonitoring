@@ -1283,6 +1283,14 @@ ALTER SYSTEM SET processes=1000 SCOPE=SPFILE;
 | CRS-0215 | Could not start resource | Check resource dependencies, review logs |
 | CRS-2771 | Maximum restart attempts reached | Clear resource failure, manually start |
 
+### RAC-Specific Issues
+
+1. Check interconnect latency
+2. Review global cache statistics
+3. Identify gc wait events
+4. Analyze block transfer patterns
+5. Consider application partitioning by instance
+
 ---
 
 ## Reference Documentation
