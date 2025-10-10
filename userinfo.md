@@ -561,6 +561,45 @@ SELECT * FROM sys.dba_priv_audit_opts;
 SELECT * FROM sys.dba_obj_audit_opts;
 ```
 
+### Find Users information
+```
+set pause off
+set pagesize 9999
+set linesize 132
+set feedback off
+set echo off
+set verify off
+
+accept usr prompt 'User Name    [*] : '
+accept dts prompt 'Default TS   [*] : '
+accept tts prompt 'Temporary TS [*] : '
+
+col usr new_value usr noprint
+col dts new_value dts noprint
+col tts new_value tts noprint
+
+column USERNAME format a27 head "Username"
+column ACCOUNT_STATUS format a8 head "Status"
+column LOCK_DATE format a10 head "Lock DT"
+column EXPIRY_DATE format a10 head "Expire DT"
+column DEFAULT_TABLESPACE format a20 head "Default TS"
+column TEMPORARY_TABLESPACE format a20 head "Temporary TS"
+column CREATED format a10 head "Created DT"
+
+select USERNAME
+      ,ACCOUNT_STATUS
+      ,LOCK_DATE
+      ,EXPIRY_DATE
+      ,DEFAULT_TABLESPACE
+      ,TEMPORARY_TABLESPACE
+      ,CREATED
+from DBA_USERS
+where USERNAME like upper('%&usr%')
+  and DEFAULT_TABLESPACE like upper('%&dts%')
+  and TEMPORARY_TABLESPACE like upper('%&tts%')
+order by CREATED,USERNAME;
+```
+
 ### Find Users with Restricted Session Access
 
 ```sql
@@ -573,6 +612,45 @@ SELECT b.username, 'User (Direct)'
 FROM dba_sys_privs a, dba_users b
 WHERE a.privilege = 'RESTRICTED SESSION'
 AND a.grantee = b.username;
+```
+### Drops user objects after prompting for input.
+```
+set echo off
+set feedback off
+set trimout on
+set trimspool on
+set verify off
+set pagesize 0
+set linesize 132
+
+accept owner   prompt 'Owner                   : '
+accept objtype prompt 'Object Type [all]       : '
+
+set term off
+set feed off
+
+select 'drop '||object_type||' '||owner||'.'||object_name||' '||
+       decode(object_type,'TABLE','CASCADE CONSTRAINTS')||';'
+from sys.dba_objects
+where owner = upper('&&owner')
+  and object_type = decode(upper(nvl('&&objtype','ALL'))
+                       ,'ALL',decode(object_type
+                                ,'INDEX','NO_MATCH'
+                                ,object_type)
+                       ,upper('&&objtype'))
+
+spool run_drop.sql
+/
+spool off
+
+set term on
+set feed on
+
+spool run_drop
+@run_drop.sql
+spool off
+exit;
+
 ```
 
 ## Usage Notes
