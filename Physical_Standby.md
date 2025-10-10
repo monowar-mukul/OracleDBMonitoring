@@ -159,6 +159,10 @@ To check the log transfer and apply status:
 SELECT SEQUENCE#, FIRST_TIME, NEXT_TIME, APPLIED FROM gV$ARCHIVED_LOG ORDER BY SEQUENCE#;
 select count(*) from GV$ARCHIVED_LOG where applied='NO';
 ```
+```sql
+select max(al.sequence#) "Last Seq Recieved", max(lh.sequence#) "Last Seq Applied"
+      from v$archived_log al, v$log_history lh;
+```
 
 ### Calculating Log Gaps
 To calculate the total log gap:
