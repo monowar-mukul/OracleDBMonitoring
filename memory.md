@@ -125,6 +125,99 @@ WHERE
     AND (pga.value + uga.value) > 50*1024*1024 -- Sessions using > 50MB
 ORDER BY total_mb DESC;
 ```
+### List memory allocations RAC Sessions.
+```
+SET PAUSE ON
+SET PAUSE 'Press Return to Continue'
+SET PAGESIZE 60
+SET LINESIZE 300
+ 
+COLUMN inst_id FORMAT 9
+COLUMN username FORMAT A20
+COLUMN module FORMAT A40
+COLUMN program FORMAT A40
+ 
+SELECT a.inst_id,
+       NVL(a.username,'(oracle)') AS username,
+       a.module,
+       a.program,
+       Trunc(b.value/1024) AS memory_kb
+FROM   gv$session a,
+       gv$sesstat b,
+       gv$statname c
+WHERE  a.sid = b.sid
+AND    a.inst_id = b.inst_id
+AND    b.statistic# = c.statistic#
+AND    b.inst_id = c.inst_id
+AND    c.name = 'session pga memory'
+AND    a.program IS NOT NULL
+ORDER BY b.value DESC;
+```
+```
+SET HEADING OFF
+SET FEEDBACK OFF
+SET ECHO OFF
+SET TERMOUT OFF
+SET VERIFY OFF
+SET PAGESIZE 0
+SET LINESIZE 80
+SET WRAP OFF
+
+SELECT ssn.osuser,to_char((se1.value/1024)/1024, '999G999G990D00') || ' MB' " CURRENT SIZE", 
+                                    to_char((se2.value/1024)/1024, '999G999G990D00') || ' MB' " MAXIMUM SIZE", 
+                                    ssn.sid||','||ssn.serial#|| ' - ' || nvl(ssn.username, nvl(bgp.name, 'background')) || ': ' 
+                                            || nvl(lower(ssn.machine), ins.host_name) "Sid,Serial - User", 
+                                                ssn.process,
+                                                prc.spid Spid,
+                                                prc.pid Pid,
+                                                ssn.action,ssn.logon_time,
+                                                ssn.module,
+                                                ssn.program,
+                                                q.sql_text ,
+                                                q.optimizer_mode
+                                    FROM v$sesstat se1, v$sesstat se2, v$session ssn, v$bgprocess bgp, v$process prc, v$instance ins 
+                                    , (select distinct hash_value,sql_text,optimizer_mode from v$sql ) q 
+                                    WHERE se1.statistic# = 20 
+                                    AND se2.statistic# = 21 
+                                    AND se1.sid = ssn.sid 
+                                    AND se2.sid = ssn.sid 
+                                    AND ssn.paddr = bgp.paddr (+) 
+                                    AND ssn.paddr = prc.addr (+) 
+                                    AND ssn.sql_hash_value = q.hash_value(+) 
+                                    ORDER BY se1.value DESC ;
+```
+```
+SET HEADING OFF
+SET FEEDBACK OFF
+SET ECHO OFF
+SET TERMOUT OFF
+SET VERIFY OFF
+SET PAGESIZE 0
+SET LINESIZE 80
+SET WRAP OFF
+SELECT ssn.osuser,to_char((se1.value/1024)/1024, '999G999G990D00') || ' MB' " CURRENT SIZE", 
+                                    to_char((se2.value/1024)/1024, '999G999G990D00') || ' MB' " MAXIMUM SIZE", 
+                                    ssn.sid||','||ssn.serial#|| ' - ' || nvl(ssn.username, nvl(bgp.name, 'background')) || ': ' 
+                                            || nvl(lower(ssn.machine), ins.host_name) "Sid,Serial - User", 
+                                                ssn.process,
+                                                prc.spid Spid,
+                                                prc.pid Pid,
+                                                ssn.action,ssn.logon_time,
+                                                ssn.module,
+                                                ssn.program,
+                                                q.sql_text ,
+                                                q.optimizer_mode
+                                    FROM v$sesstat se1, v$sesstat se2, v$session ssn, v$bgprocess bgp, v$process prc, v$instance ins 
+                                    , (select distinct hash_value,sql_text,optimizer_mode from v$sql ) q 
+                                    WHERE se1.statistic# = 20 
+                                    AND se2.statistic# = 21 
+                                    AND se1.sid = ssn.sid 
+                                    AND se2.sid = ssn.sid 
+                                    AND ssn.paddr = bgp.paddr (+) 
+                                    AND ssn.paddr = prc.addr (+) 
+                                    AND ssn.sql_hash_value = q.hash_value(+) 
+                                    ORDER BY ssn.osuser DESC ;
+```
 
 ## Process Memory Analysis
 
@@ -326,7 +419,7 @@ ORDER BY
     END;
 ```
 
-## Performance Optimization
+## Performance Optimization and Memory advise (Buffer cache, shared pool & library cache) 
 
 ### Identify Memory-Intensive SQL
 
@@ -381,7 +474,61 @@ GROUP BY SUBSTR(s.program, 1, 30)
 HAVING COUNT(*) > 1
 ORDER BY total_pga_mb DESC;
 ```
+### Database Buffer Cache Advice
+```
+SET HEADING OFF
+SET FEEDBACK OFF
+SET ECHO OFF
+SET TERMOUT OFF
+SET VERIFY OFF
+SET PAGESIZE 0
+SET LINESIZE 80
+SET WRAP OFF
+SELECT ssn.osuser,to_char((se1.value/1024)/1024, '999G999G990D00') || ' MB' " CURRENT SIZE", 
+                                    to_char((se2.value/1024)/1024, '999G999G990D00') || ' MB' " MAXIMUM SIZE", 
+                                    ssn.sid||','||ssn.serial#|| ' - ' || nvl(ssn.username, nvl(bgp.name, 'background')) || ': ' 
+                                            || nvl(lower(ssn.machine), ins.host_name) "Sid,Serial - User", 
+                                                ssn.process,
+                                                prc.spid Spid,
+                                                prc.pid Pid,
+                                                ssn.action,ssn.logon_time,
+                                                ssn.module,
+                                                ssn.program,
+                                                q.sql_text ,
+                                                q.optimizer_mode
+                                    FROM v$sesstat se1, v$sesstat se2, v$session ssn, v$bgprocess bgp, v$process prc, v$instance ins 
+                                    , (select distinct hash_value,sql_text,optimizer_mode from v$sql ) q 
+                                    WHERE se1.statistic# = 20 
+                                    AND se2.statistic# = 21 
+                                    AND se1.sid = ssn.sid 
+                                    AND se2.sid = ssn.sid 
+                                    AND ssn.paddr = bgp.paddr (+) 
+                                    AND ssn.paddr = prc.addr (+) 
+                                    AND ssn.sql_hash_value = q.hash_value(+) 
+                                    ORDER BY ssn.osuser DESC ;
+```
 
+### Database Shared Pool Advice
+```
+SELECT (SELECT ROUND(value/1024/1024,0) FROM v$parameter
+      WHERE name = 'shared_pool_size') "Current Mb"
+, shared_pool_size_for_estimate "Projected Mb"
+, ROUND(shared_pool_size_factor*100) "%"
+, ESTD_LC_SIZE "Library Mb"
+, ESTD_LC_TIME_SAVED "Parse Savings"
+,ESTD_LC_MEMORY_OBJECT_HITS "Hits"
+FROM v$shared_pool_advice
+ORDER BY 1;
+```
+### Database Shared Pool Advice
+```
+SELECT lc_namespace "Library"
+,LC_INUSE_MEMORY_OBJECTS "Objects"
+,LC_INUSE_MEMORY_SIZE "Objects Mb"
+,LC_FREEABLE_MEMORY_OBJECTS "Freeable Objects"
+,LC_FREEABLE_MEMORY_SIZE "Freeable Mb"
+FROM v$library_cache_memory;
+```
 ## Troubleshooting Queries
 
 ### Sessions Exceeding Memory Thresholds
