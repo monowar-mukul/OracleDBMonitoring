@@ -64,3 +64,14 @@ order by
 ;
 ```
 
+# displays how the block buffers are being used.
+
+```
+select decode(state,0,'FREE',1,decode(lrba_seq,0,'AVAILABLE','BEING USED'),
+	3,'BEING USED',4,'READ FROM DISK',5,'MEDIA RECOVERY',6,'RECOVERY MODE',state) "BLOCK STATUS",
+	count(*)
+from x$bh
+group by decode (state,0,'FREE',1,decode(lrba_seq,0,'AVAILABLE','BEING USED'),
+	3,'BEING USED',4,'READ FROM DISK',5,'MEDIA RECOVERY',6,'RECOVERY MODE',state)
+/
+```
