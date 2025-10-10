@@ -73,6 +73,27 @@ FROM (
 GROUP BY a.tablespace_name
 ORDER BY pct_free;
 ```
+```sql
+set lines 132
+col owner format a15
+col segment_name format a25
+col segment_type format a10
+col init format a20
+col next format a20
+col pctincr format a20
+
+select s.OWNER
+, s.SEGMENT_NAME
+, s.SEGMENT_TYPE
+, s.INITIAL_EXTENT || '(' ||t.INITIAL_EXTENT||')' init
+, s.NEXT_EXTENT || '(' ||t.NEXT_EXTENT||')' next
+, s.PCT_INCREASE || '(' ||t.PCT_INCREASE||')' pctincr
+from dba_segments s, dba_tablespaces t
+where s.TABLESPACE_NAME = t.TABLESPACE_NAME
+and t.TABLESPACE_NAME like upper('%&tablespace%')
+and (s.NEXT_EXTENT = t.NEXT_EXTENT
+     or s.PCT_INCREASE != t.PCT_INCREASE);
+```
 
 ### Tablespace Usage with Alert (< 10% Free)
 ```sql
