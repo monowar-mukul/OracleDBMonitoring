@@ -819,6 +819,14 @@ ORDER BY pga_mb DESC, idle_hours DESC;
    - Use memory distribution queries to identify bottlenecks
    - Check for sessions exceeding configured limits
    - Consider terminating idle sessions consuming significant memory
+  
+### Memory Issues
+
+1. Check PGA and SGA allocation
+2. Review memory advisories
+3. Identify sessions with high memory usage
+4. Check for memory-intensive operations (sorts, hash joins)
+5. Adjust memory parameters if needed
 
 ### Security and Maintenance
 
