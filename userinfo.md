@@ -195,7 +195,6 @@ FROM dba_users
 WHERE expiry_date < SYSDATE + 30
 AND account_status IN ('OPEN', 'EXPIRED(GRACE)');
 ```
-
 ## User Security and Auditing
 
 ### Last Login Information
@@ -343,7 +342,54 @@ SELECT grantee, 'Object Privs...' type,
 FROM sys.dba_tab_privs
 WHERE grantee = DECODE('&grantee', NULL, grantee, UPPER('&grantee'));
 ```
+### Directory Report
 
+```sql
+set pause off
+set pagesize 9999
+set linesize 128
+set feedback off
+set echo off
+set verify off
+
+accept own prompt  'Owner Name [*] : '
+accept dir prompt  'Dir Name   [*] : '
+accept path prompt 'Dir Path   [*] : '
+
+col own new_value own noprint
+col dir new_value dir noprint
+col path new_value path noprint
+
+column OWNER format a15 head "Owner"
+column DIRECTORY_NAME format a22 head "Name"
+column DIRECTORY_PATH format a80 head "Path"
+
+select OWNER
+      ,DIRECTORY_NAME
+      ,DIRECTORY_PATH
+from DBA_directories
+where OWNER like decode('&own','','%',upper('&own'))
+  and DIRECTORY_NAME like decode('&dir','','%',upper('&dir'))
+  and DIRECTORY_PATH like decode('&path','','%',upper('&path'))
+```
+```
+set pause off
+set pagesize 9999
+set linesize 128
+set feedback off
+set echo off
+set verify off
+
+column OWNER format a15 head "Owner"
+column DIRECTORY_NAME format a22 head "Name"
+column DIRECTORY_PATH format a80 head "Path"
+
+select OWNER
+      ,DIRECTORY_NAME
+      ,DIRECTORY_PATH
+from DBA_directories
+order by OWNER,DIRECTORY_NAME;
+```
 ## Import/Export Operations
 
 ### Generate Schema List for Export
