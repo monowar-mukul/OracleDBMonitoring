@@ -23,7 +23,66 @@ AND session_type = 'BACKGROUND'
 GROUP BY sql_id
 ORDER BY COUNT(*) DESC;
 ```
+### Active Sessions by Status
 
+```sql
+SELECT sid,
+       SUBSTR(username, 1, 20) usrname,
+       SUBSTR(osuser, 1, 20) osuser,
+       SUBSTR(program, 1, 20) pgram,
+       server,
+       status
+FROM v$session
+WHERE username IS NOT NULL
+  AND status = 'ACTIVE'
+ORDER BY server, status, sid;
+```
+
+### Top 10 Longest-Active User Sessions
+
+```sql
+SELECT *
+FROM (
+    SELECT TO_CHAR(s.logon_time, 'mm/dd hh:mi:ssAM') loggedon,
+           s.sid,
+           s.serial#,
+           s.status,
+           FLOOR(last_call_et/60) "LastCallET",
+           s.username,
+           s.osuser,
+           p.spid,
+           s.module || '_' || s.program uprogram,
+           s.machine,
+           s.sql_hash_value
+    FROM v$session s,
+         v$process p
+    WHERE p.addr = s.paddr
+      AND s.type = 'USER'
+      AND module IS NOT NULL
+      AND s.status = 'ACTIVE'
+    ORDER BY last_call_et DESC
+)
+WHERE ROWNUM < 11;
+```
+
+### Sessions Running for More Than 1 Hour
+
+```sql
+SELECT username,
+       machine,
+       inst_id,
+       sid,
+       serial#,
+       program,
+       TO_CHAR(logon_time, 'dd-mm-yy hh:mi:ss AM') "Logon Time",
+       ROUND((SYSDATE - logon_time) * (24 * 60), 1) AS minutes_logged_on,
+       ROUND(last_call_et/60, 1) AS minutes_for_current_sql
+FROM gv$session
+WHERE status = 'ACTIVE'
+  AND username IS NOT NULL
+  AND ROUND((SYSDATE - logon_time) * (24 * 60), 1) > 60
+ORDER BY minutes_logged_on DESC;
+```
 ### Wait Events for Specific Session
 
 Retrieves wait events and wait times for a specific session (use session ID and serial number from previous query).
@@ -49,7 +108,30 @@ AND evt.wait_class = 'User I/O'
 GROUP BY sql_id
 ORDER BY COUNT(*) DESC;
 ```
+### Detailed Session Information by SID
 
+```sql
+SELECT 'Session Id: ' || s.sid,
+       'Serial Num: ' || s.serial#,
+       'User Name: ' || s.username,
+       'Session Status: ' || s.status,
+       'Client Process Id: ' || s.process,
+       'Server Process ID: ' || p.spid,
+       'Sql_Address: ' || s.sql_address,
+       'Sql_hash_value: ' || s.sql_hash_value,
+       'Schema Name: ' || s.schemaname,
+       'Program: ' || s.program,
+       'Module: ' || s.module,
+       'Action: ' || s.action,
+       'Terminal: ' || s.terminal,
+       'Client Machine: ' || s.machine,
+       'LAST_CALL_ET: ' || s.last_call_et,
+       'LAST_CALL_ET Hours: ' || s.last_call_et/3600
+FROM v$session s,
+     v$process p
+WHERE p.addr = s.paddr
+  AND s.sid = NVL('&sid', s.sid);
+```
 ### Top SQLs by Resource Consumption
 
 Aggregates SQL performance metrics showing CPU usage, wait time, and I/O operations.
@@ -105,7 +187,67 @@ SELECT * FROM (
 )
 WHERE rownum <= 10;
 ```
+### Session Details with CPU and Wait Events
 
+```sql
+SELECT a.sid,
+       a.value session_cpu,
+       SUBSTR(d.event, 1, 30) evento,
+       d.seconds_in_wait
+FROM v$sesstat a,
+     v$statname b,
+     v$sess_io c,
+     v$session_wait d
+WHERE b.name = 'CPU used by this session'
+  AND a.statistic# = b.statistic#
+  AND a.sid = c.sid
+  AND a.sid = d.sid
+  AND a.sid IN (&sid_list);
+```
+### Current Running SQLs with Session Details
+
+```sql
+SET PAGES 50000 LINES 32767
+COLUMN host_name FORMAT A20
+COLUMN event FORMAT A40
+COLUMN machine FORMAT A30
+COLUMN sql_text FORMAT A50
+COLUMN username FORMAT A15
+
+SELECT sid,
+       serial#,
+       a.sql_id,
+       a.sql_text,
+       s.username,
+       i.host_name,
+       machine,
+       s.event,
+       s.seconds_in_wait sec_wait,
+       TO_CHAR(logon_time, 'DD-MON-RR HH24:MI') login
+FROM gv$session s,
+     gv$sqlarea a,
+     gv$instance i
+WHERE s.username IS NOT NULL
+  AND s.sql_address = a.address
+  AND s.inst_id = a.inst_id
+  AND i.inst_id = a.inst_id
+  AND sql_text NOT LIKE '%gv$session%';
+```
+
+### Last/Latest Running SQL
+
+```sql
+SELECT t.inst_id,
+       s.username,
+       s.sid,
+       s.serial#,
+       t.sql_id,
+       t.sql_text "Last SQL"
+FROM gv$session s,
+     gv$sqlarea t
+WHERE s.sql_address = t.address
+  AND s.sql_hash_value = t.hash_value;
+```
 ### Historical Query Analysis (Last 30 Days)
 
 Retrieves SQL queries executed in the last 30 days from historical data.
@@ -201,7 +343,44 @@ ORDER BY MINUTES_LOGGED_ON DESC;
 ```
 
 ## Detailed Session Information
+### Sessions by Machine
 
+```sql
+SELECT COUNT(1),
+       machine
+FROM gv$session
+WHERE inst_id = '&inst_id'
+GROUP BY machine;
+```
+
+### Session and Process Counts
+
+```sql
+SELECT (SELECT COUNT(*) FROM v$session) sessions,
+       (SELECT COUNT(*) FROM v$process) processes
+FROM dual;
+```
+
+### Find Session by SPID
+
+```sql
+SELECT sid,
+       serial#,
+       username,
+       status,
+       osuser,
+       process,
+       machine,
+       module,
+       action,
+       TO_CHAR(logon_time, 'yyyy-mm-dd hh24:mi:ss')
+FROM v$session
+WHERE paddr IN (
+    SELECT addr
+    FROM v$process
+    WHERE spid = '&spid'
+);
+```
 ### Comprehensive Session Details
 
 Provides detailed information for a specific session ID (SID), including process IDs, SQL details, and session metadata.
@@ -239,7 +418,84 @@ FROM v$session s, v$process p
 WHERE p.addr = s.paddr
 AND s.sid = NVL('&sid', s.sid);
 ```
+### Inactive Sessions by Username
 
+```sql
+SELECT username,
+       COUNT(*) num_inv_sess
+FROM v$session
+WHERE last_call_et > 3600
+  AND username IS NOT NULL
+  AND status = 'INACTIVE'
+GROUP BY username
+ORDER BY num_inv_sess DESC;
+```
+
+### Long Running Operations
+
+```sql
+ALTER SESSION SET nls_date_format = 'dd/mm/yyyy hh24:mi';
+
+SELECT sid,
+       opname,
+       target,
+       ROUND(sofar/totalwork * 100, 2) AS percent_done,
+       start_time,
+       last_update_time,
+       time_remaining
+FROM v$session_longops;
+```
+
+### Session Longops Details (RAC)
+
+```sql
+SELECT inst_id,
+       sid,
+       serial#,
+       opname,
+       sofar,
+       totalwork,
+       start_time,
+       last_update_time,
+       username
+FROM gv$session_longops;
+```
+
+### Undo Generated by Session
+
+```sql
+SELECT username,
+       t.used_ublk,
+       t.used_urec
+FROM gv$transaction t,
+     gv$session s
+WHERE t.addr = s.taddr
+  AND s.sid = '&sid';
+```
+
+### DB Time by Session
+
+```sql
+SET LINES 250
+COLUMN inst_id FORMAT 9999
+COLUMN username FORMAT A25
+COLUMN module FORMAT A20
+COLUMN stat_name FORMAT A40
+
+SELECT b.inst_id,
+       b.username,
+       SUBSTR(module, 1, 15) module,
+       a.stat_name,
+       ROUND(AVG(a.value)/1000000, 0) avg_time_secs
+FROM gv$sess_time_model a,
+     gv$session b
+WHERE a.inst_id = b.inst_id
+  AND a.sid = b.sid
+  AND ROUND(a.value/1000000, 0) > 1000
+  AND a.stat_name = 'DB time'
+GROUP BY b.inst_id, b.username, SUBSTR(module, 1, 15), a.stat_name
+ORDER BY avg_time_secs DESC;
+```
 ## Usage Notes
 
 - Replace `&1`, `&2`, `&sid`, `&starttime`, `&endtime` with actual values or use SQL*Plus substitution variables
