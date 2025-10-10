@@ -171,6 +171,20 @@ JOIN v$asm_diskgroup g ON d.group_number = g.group_number
 ORDER BY g.name, d.disk_number;
 ```
 
+### ASM Disk Activity
+
+```sql
+SELECT inst_id,
+       group_number,
+       disk_number,
+       reads,
+       writes,
+       read_time,
+       write_time
+FROM gv$asm_disk_iostat
+ORDER BY reads DESC;
+```
+
 ### 3. ASM File Details Per Disk Group
 
 List all files within disk groups:
@@ -299,6 +313,7 @@ SELECT
 FROM v$asm_diskgroup
 GROUP BY type;
 ```
+
 
 ## ASM Administration Scripts
 
