@@ -64,7 +64,7 @@ order by
 ;
 ```
 
-# displays how the block buffers are being used.
+## displays how the block buffers are being used.
 
 ```
 select decode(state,0,'FREE',1,decode(lrba_seq,0,'AVAILABLE','BEING USED'),
@@ -74,4 +74,21 @@ from x$bh
 group by decode (state,0,'FREE',1,decode(lrba_seq,0,'AVAILABLE','BEING USED'),
 	3,'BEING USED',4,'READ FROM DISK',5,'MEDIA RECOVERY',6,'RECOVERY MODE',state)
 /
+```
+## Hit Ratio
+```
+col "Consis Gets" format 999999999999999
+col "DB Blk Gets" format 999999999999999
+col "Phys Reads" format 999999999999999
+
+SELECT
+   SUM(DECODE(name, 'consistent gets',value, 0))  "Consis Gets",
+   SUM(DECODE(name, 'db block gets',value, 0))  "DB Blk Gets",
+   SUM(DECODE(name, 'physical reads',value, 0))  "Phys Reads",
+  ((SUM(DECODE(name, 'consistent gets',value, 0))
+    + SUM(DECODE(name, 'db block gets',value, 0))
+    -  SUM(DECODE(name, 'physical reads',value, 0))) /
+  (SUM(DECODE(name, 'consistent gets',value, 0))
+     + SUM(DECODE(name, 'db block gets',value, 0)))) * 100 "Hit Ratio"
+FROM v$sysstat;
 ```
