@@ -27,6 +27,125 @@ SELECT
     state
 FROM v$asm_diskgroup;
 ```
+```
+--
+-- display information on ASM
+--
+set wrap on
+set lines 256
+set pages 999
+col "Group Name"   form a25
+col "Disk Name"    form a15
+col "State"  form a9
+col "Type"   form a7
+col "Total GB" form 999,999
+col "Used GB"  form 999,999
+col "Free GB"  form 999,999
+col "Pct Used"  form 999.00
+
+compute sum of "Total GB" on report
+break on report
+
+prompt
+prompt ASM Disk Groups
+prompt ===============
+select group_number  "Group"
+,      name          "Group Name"
+,      state         "State"
+,      type          "Type"
+,      total_mb/1024 "Total GB"
+,      (total_mb - free_mb)/1024 "Used GB"
+,      free_mb/1024  "Free GB"
+,      (total_mb - free_mb)/total_mb * 100 "Pct Used"
+from   v$asm_diskgroup
+/
+```
+```
+--
+-- display information on ASM
+--
+set wrap on
+set lines 256
+set pages 999
+col "Group Name"   form a25
+col "Disk Name"    form a15
+col "State"  form a9
+col "Type"   form a7
+col "Total GB" form 999,999
+col "Used GB"  form 999,999
+col "Free GB"  form 999,999
+col "Pct Used"  form 999.00
+col "Instance"  form a10
+
+prompt
+prompt ASM Disks
+prompt =========
+
+col "Group"          form 999
+col "Disk"           form 999
+col "Header"         form a11
+col "Mode"           form a8
+col "Redundancy"     form a10
+col "Failure Group"  form a14
+col "Path"           form a30
+
+select group_number  "Group"
+,      disk_number   "Disk"
+,      header_status "Header"
+,      mode_status   "Mode"
+,      state         "State"
+,      redundancy    "Redundancy"
+,      total_mb      "Total MB"
+,      free_mb       "Free MB"
+,      name          "Disk Name"
+,      failgroup     "Failure Group"
+,      path          "Path"
+from   v$asm_disk
+order by group_number
+,        disk_number
+/
+
+prompt
+prompt free ASM disks and their paths
+prompt ==============================
+select header_status , mode_status, path from V$asm_disk
+where header_status in ('FORMER','CANDIDATE')
+/
+
+prompt
+prompt Instances currently accessing these diskgroups
+prompt ==============================================
+col "Instance" form a8
+select c.group_number  "Group"
+,      g.name          "Group Name"
+,      c.instance_name "Instance"
+from   v$asm_client c
+,      v$asm_diskgroup g
+where  g.group_number=c.group_number
+/
+
+prompt
+prompt Current ASM disk operations
+prompt ===========================
+select *
+from   v$asm_operation
+/
+
+prompt
+prompt ASM Disk Groups
+prompt ===============
+select group_number  "Group"
+,      name          "Group Name"
+,      state         "State"
+,      type          "Type"
+,      total_mb/1024 "Total GB"
+,      (total_mb - free_mb)/1024 "Used GB"
+,      free_mb/1024  "Free GB"
+,      (total_mb - free_mb)/total_mb * 100 "Pct Used"
+from   v$asm_diskgroup
+/
+
+```
 
 ### 2. Disk Group Layout and IO Statistics
 
@@ -72,6 +191,58 @@ SELECT
 FROM v$asm_file f
 JOIN v$asm_diskgroup g ON f.group_number = g.group_number
 ORDER BY g.name, f.file_type;
+```
+```
+--
+-- list v$asm_files by size - should run against ASM instance for speed. (db instance can be slow)
+--
+set echo off
+set verify off
+set heading on
+set feedback off
+set pagesize 1000
+set linesize 600
+set trimspool on
+
+col gname format a8 heading "Group"
+col mb_used format 99999999999999 heading "Mb Used"
+col full_path format a80 heading Path
+col creation_date format a9 heading Created
+col modification_date format a9 heading Modified
+
+break on gname skip 1 on report
+
+compute sum of MB_USED on gname
+compute sum of MB_USED on report
+
+select p.gname
+      ,p.full_path
+      ,f.CREATION_DATE
+      ,f.MODIFICATION_DATE
+      ,f.space / 1048576 MB_USED
+from v$asm_file f
+,(select gname, group_number, file_number, concat ('+'||gname , sys_connect_by_path(aname,'/')) full_path
+        from (select g.name gname
+                   , a.group_number
+                   , a.file_number
+                   , a.parent_index pindex
+                   , a.name aname
+                   , a.reference_index rindex
+                   , a.alias_directory adir
+                from v$asm_alias a
+                   , v$asm_diskgroup g
+               where a.group_number = g.group_number)
+       where adir='N'
+       start with (MOD(pindex, power(2,24))) = 0
+       connect by prior rindex = pindex
+       order by full_path desc) p
+where f.group_number = p.group_number
+and f.file_number = p.file_number
+order by p.gname,f.space
+.
+spool asm_files
+/
+spool off
 ```
 
 ### 4. Disk Mapping and Host Visibility
