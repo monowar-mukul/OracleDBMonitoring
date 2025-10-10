@@ -1,9 +1,9 @@
-# Oracle Memory Usage Monitoring
+# Memory and PGA Monitoring
 
 This wiki provides comprehensive SQL queries for monitoring memory usage in Oracle databases, including session-level monitoring, process memory analysis, and performance optimization queries.
 
 ## Table of Contents
-- [Session Memory Monitoring](#session-memory-monitoring)
+- [Database / Session Memory Monitoring](#session-memory-monitoring)
 - [Process Memory Analysis](#process-memory-analysis)
 - [User-Specific Memory Queries](#user-specific-memory-queries)
 - [Memory Statistics and Trends](#memory-statistics-and-trends)
@@ -11,6 +11,80 @@ This wiki provides comprehensive SQL queries for monitoring memory usage in Orac
 - [Troubleshooting Queries](#troubleshooting-queries)
 
 ## Session Memory Monitoring
+### Database Memory Configuration
+
+```sql
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+
+-- Database Name
+SELECT SUBSTR(a.name, 1, 30) "PARAM_NAME",
+       DECODE(a.value, '', 'ASM', a.value) "VALUE_MB"
+FROM v$parameter a
+WHERE UPPER(a.name) = 'DB_NAME';
+
+-- Memory Parameters
+SELECT SUBSTR(a.name, 1, 30) "PARAM_NAME",
+       ROUND(a.value/(1024 * 1024), 0) "VALUE_MB"
+FROM v$parameter a
+WHERE UPPER(a.name) IN (
+    'SGA_MAX_SIZE',
+    'SGA_TARGET',
+    'SHARED_POOL_SIZE',
+    'LARGE_POOL_SIZE',
+    'JAVA_POOL_SIZE',
+    'STREAMS_POOL_SIZE',
+    'LOG_BUFFER',
+    'DB_CACHE_SIZE',
+    'DB_KEEP_CACHE_SIZE',
+    'DB_RECYCLE_CACHE_SIZE',
+    'PGA_AGGREGATE_TARGET'
+)
+ORDER BY 1;
+
+-- Total PGA Allocated
+SELECT 'total_PGA_allocated' "PARAM_NAME",
+       ROUND(a.value/(1024 * 1024), 0) "VALUE_MB"
+FROM v$pgastat a
+WHERE name = 'total PGA allocated';
+
+-- Maximum PGA Allocated
+SELECT 'max_PGA_allocated' "PARAM_NAME",
+       ROUND(a.value/(1024 * 1024), 0) "VALUE_MB"
+FROM v$pgastat a
+WHERE name = 'maximum PGA allocated';
+```
+### PGA Target Advice
+
+```sql
+SELECT ROUND(pga_target_for_estimate/1024/1024) pga_target_mb,
+       estd_pga_cache_hit_percentage,
+       estd_overalloc_count
+FROM v$pga_target_advice
+ORDER BY 1;
+```
+
+### Top Sessions by PGA Usage
+
+```sql
+SELECT NVL(s.username, '(oracle)') username,
+       s.program,
+       TRUNC(v.value/1024) memory_kb
+FROM v$session s
+JOIN v$sesstat v ON s.sid = v.sid
+JOIN v$statname n ON v.statistic# = n.statistic#
+WHERE n.name = 'session pga memory'
+ORDER BY v.value DESC
+FETCH FIRST 20 ROWS ONLY;
+```
+### Sort Statistics
+
+```sql
+SELECT *
+FROM v$sysstat
+WHERE name LIKE '%sorts%';
+```
 
 ### Current Session Memory Overview
 
@@ -43,6 +117,38 @@ WHERE
     AND ssn.paddr = prc.addr (+)
     AND se1.value > 0
 ORDER BY se1.value DESC;
+```
+### Session Memory Allocations
+
+```sql
+SELECT b.inst_id,
+       b.username,
+       SUBSTR(module, 1, 15) module,
+       a.stat_name,
+       ROUND(AVG(a.value)/1000000, 0) avg_time_secs
+FROM gv$sess_time_model a,
+     gv$session b
+WHERE a.inst_id = b.inst_id
+  AND a.sid = b.sid
+  AND ROUND(a.value/1000000, 0) > 1000
+  AND a.stat_name = 'DB time'
+GROUP BY b.inst_id, b.username, SUBSTR(module, 1, 15), a.stat_name
+ORDER BY avg_time_secs DESC;
+```
+
+### Session CPU Usage
+
+```sql
+SELECT SUBSTR(name, 1, 30) parameter,
+       ss.username || '(' || se.sid || ')' user_process,
+       value
+FROM v$session ss,
+     v$sesstat se,
+     v$statname sn
+WHERE se.statistic# = sn.statistic#
+  AND name LIKE '%CPU used by this session%'
+  AND se.sid = ss.sid
+ORDER BY SUBSTR(name, 1, 25), value DESC;
 ```
 
 ### Comprehensive Session Memory Details
@@ -91,7 +197,25 @@ WHERE
                 AND ss.value > 1024*1024) -- Only sessions using > 1MB
 ORDER BY pga_current_mb DESC NULLS LAST;
 ```
+### Top CPU-Consuming Sessions
 
+```sql
+SELECT s.sid,
+       s.serial#,
+       s.username,
+       p.spid,
+       v.value/100 AS cpu_seconds
+FROM v$sesstat v,
+     v$statname n,
+     v$session s,
+     v$process p
+WHERE n.statistic# = v.statistic#
+  AND n.name LIKE '%CPU used by this session%'
+  AND v.sid = s.sid
+  AND s.paddr = p.addr
+ORDER BY v.value DESC
+FETCH FIRST 10 ROWS ONLY;
+```
 ### Top Memory Consuming Sessions
 
 Identify sessions consuming the most memory:
@@ -419,7 +543,7 @@ ORDER BY
     END;
 ```
 
-## Performance Optimization and Memory advise (Buffer cache, shared pool & library cache) 
+## Performance Optimization
 
 ### Identify Memory-Intensive SQL
 
@@ -473,6 +597,19 @@ WHERE
 GROUP BY SUBSTR(s.program, 1, 30)
 HAVING COUNT(*) > 1
 ORDER BY total_pga_mb DESC;
+```
+### Memory Allocation Recommendations
+
+```sql
+-- Set SGA and PGA
+ALTER SYSTEM SET sga_max_size = 12G SCOPE=SPFILE;
+ALTER SYSTEM SET sga_target = 12G SCOPE=SPFILE;
+ALTER SYSTEM SET pga_aggregate_target = 4G SCOPE=SPFILE;
+
+-- Set Block-Specific Cache Sizes
+ALTER SYSTEM SET db_8k_cache_size = 6G SCOPE=SPFILE;
+ALTER SYSTEM SET db_16k_cache_size = 4500M SCOPE=SPFILE;
+ALTER SYSTEM SET db_32k_cache_size = 1500M SCOPE=SPFILE;
 ```
 ### Database Buffer Cache Advice
 ```
