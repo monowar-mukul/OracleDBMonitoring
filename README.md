@@ -2,6 +2,24 @@
 
 A comprehensive collection of Oracle Database monitoring, maintenance, and administration queries and scripts. This repository serves as a practical reference guide for DBAs managing Oracle environments, covering everything from daily health checks to advanced RAC and Data Guard operations.
 
+## ⚠️ **IMPORTANT DISCLAIMER**
+
+> **🔴 CRITICAL: VALIDATE BEFORE EXECUTION 🔴**
+>
+> **ALWAYS validate and test all scripts in a non-production environment before running them on actual or production systems. Executing untested scripts can result in data loss, system downtime, or performance degradation.**
+>
+> **⚡ LICENSING REQUIREMENTS:**
+> - Performance tuning and diagnostic features may require Oracle Diagnostics Pack and/or Tuning Pack licenses
+> - Verify your Oracle license entitlements before using performance monitoring queries
+> - Unauthorized use of licensed features may result in compliance issues
+>
+> **📢 USE AT YOUR OWN RISK:**
+> - The author assumes NO responsibility for any issues, damages, or losses arising from the use of these scripts
+> - You are solely responsible for validating, testing, and ensuring the suitability of these scripts for your environment
+> - Always maintain valid backups and follow your organization's change management procedures
+>
+> **DON'T BLAME ME - YOU'VE BEEN WARNED!**
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
@@ -32,6 +50,7 @@ This repository contains battle-tested SQL queries, scripts, and reference guide
 | [DailyHealthCheck.md](DailyHealthCheck.md) | Essential daily monitoring queries for database health assessment |
 | [session_history_info.md](session_history_info.md) | Active and historical session monitoring queries |
 | [Lock_Session_monitoring.md](Lock_Session_monitoring.md) | Lock detection, blocking session analysis, and resolution scripts |
+| [blocking_monitoring.md](blocking_monitoring.md) | Advanced blocking session detection and resolution techniques |
 | [memory.md](memory.md) | SGA, PGA, and overall memory usage monitoring |
 | [Size.md](Size.md) | Database size, growth trends, and space utilization queries |
 
@@ -43,12 +62,14 @@ This repository contains battle-tested SQL queries, scripts, and reference guide
 | [Tablespace - Temp and Undo.md](Tablespace%20-%20Temp%20and%20Undo.md) | UNDO and TEMP tablespace management and troubleshooting |
 | [ASM.md](ASM.md) | ASM diagnostic queries, disk group management, and operational procedures |
 | [log&redo.md](log%26redo.md) | Redo log monitoring, switching frequency, and optimization |
+| [buffer_related.md](buffer_related.md) | Buffer cache analysis, hit ratios, and memory optimization |
 
 ### 🔐 Security & User Management
 
 | File | Description |
 |------|-------------|
 | [userinfo.md](userinfo.md) | User creation, privilege management, and security auditing queries |
+| [database_audit.md](database_audit.md) | Database auditing configuration, audit trail analysis, and compliance queries |
 
 ### 🔧 Database Objects & Utilities
 
@@ -56,6 +77,13 @@ This repository contains battle-tested SQL queries, scripts, and reference guide
 |------|-------------|
 | [dblinkSequenceSynonym.md](dblinkSequenceSynonym.md) | Database links, sequences, and synonym management scripts |
 | [Jobs.md](Jobs.md) | DBMS_SCHEDULER and legacy job monitoring and management |
+| [index_related.md](index_related.md) | Index analysis, rebuilding, and optimization queries |
+
+### ⚡ Performance & Tuning
+
+| File | Description |
+|------|-------------|
+| [Oracle-performance.md](Oracle-performance.md) | Comprehensive performance tuning queries, AWR analysis, and SQL optimization |
 
 ### 💼 Backup & Recovery
 
@@ -83,7 +111,7 @@ This repository contains battle-tested SQL queries, scripts, and reference guide
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/asiandevs/OracleDBMonitoring.git
    cd OracleDBMonitoring
    ```
 
@@ -131,6 +159,7 @@ WHERE used_percent > 85;
 - Appropriate privileges (most queries require SELECT on V$ and DBA_ views)
 - For advanced operations: SYSDBA or specific administrative privileges
 - Basic understanding of Oracle architecture and SQL
+- **Valid Oracle licenses for diagnostic and tuning features**
 
 ### Best Practices
 
@@ -140,6 +169,7 @@ WHERE used_percent > 85;
 4. **Backup critical changes**: Take backups before making structural changes
 5. **Monitor performance**: Some diagnostic queries can be resource-intensive
 6. **Customize as needed**: Adapt thresholds and parameters to your environment
+7. **Verify licensing**: Confirm you have appropriate Oracle licenses for tuning/diagnostic features
 
 ### Safety Notes
 
@@ -147,6 +177,7 @@ WHERE used_percent > 85;
 - DDL operations (CREATE, ALTER, DROP) should be reviewed carefully
 - Recovery operations should follow your organization's procedures
 - Always maintain valid backups before major changes
+- Performance tuning queries may require Oracle Diagnostics and Tuning Pack licenses
 
 ## Contributing
 
@@ -193,5 +224,3 @@ This repository represents collective knowledge and best practices from Oracle D
 ---
 
 **Note**: Always refer to official Oracle documentation for authoritative information and follow your organization's change management procedures before implementing any changes in production environments.
-
-**Last Updated**: October 2025
