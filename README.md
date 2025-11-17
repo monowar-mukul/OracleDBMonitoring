@@ -7,7 +7,8 @@ A comprehensive collection of Oracle Database monitoring, maintenance, and admin
 > **🔴 CRITICAL: VALIDATE BEFORE EXECUTION 🔴**
 >
 > **ALWAYS validate and test all scripts in a non-production environment before running them on actual or production systems. Executing untested scripts can result in data loss, system downtime, or performance degradation.**
->
+> **🔴Do use the right username and password based on your setup and the command requirements🔴**
+> 
 > **⚡ LICENSING REQUIREMENTS:**
 > - Performance tuning and diagnostic features may require Oracle Diagnostics Pack and/or Tuning Pack licenses
 > - Verify your Oracle license entitlements before using performance monitoring queries
