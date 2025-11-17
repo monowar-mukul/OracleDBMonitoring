@@ -19,8 +19,8 @@ export PATH=$JAVA_HOME/jdk/bin:$PATH
 cd $OMS_HOME/bin
 
 # Login to EMCLI
-./emcli login -username=SYSMAN -password=<sysman_passwd>
-./emcli login -username=oem_admin
+./emcli login -username=&usr -password=&pass
+#
 
 # Sync with OMS
 ./emcli sync
@@ -48,7 +48,7 @@ emcli list_swlib_storage_locations
   -type="oracle_database" \
   -host="oradb1.example.com" \
   -properties="SID:orcl;Port:1521;OracleHome:/u01/app/oracle/product/12.1.0/dbhome_1;MachineName:oradb1-vip.example.com" \
-  -credentials="Role:NORMAL;UserName:DBSNMP;password:<password>"
+  -credentials="<>"
 ```
 
 #### Add Database on Windows
@@ -56,7 +56,7 @@ emcli list_swlib_storage_locations
 ./emcli add_target -name="PMJS1" \
   -type="oracle_database" \
   -host="CSMJIM-VODBP05.apac.ent.bhpbilliton.net" \
-  -credentials="UserName:dbsnmp;password:oem0racle1;Role:Normal" \
+  -credentials="<>" \
   -properties="SID&PMJS1;Port&1521;OracleHome&\"c:\app\oracle\product\11.2.0\dbhome_1\";MachineName&CSMJIM-VODBP05" \
   -subseparator=properties="&"
 ```
@@ -67,14 +67,14 @@ emcli list_swlib_storage_locations
 ./emcli add_target -name="racdb_racdb_1" \
   -type="oracle_database" \
   -host="test1.oracle.com" \
-  -credentials="UserName:dbsnmp;password:welcome1;Role:Normal" \
+  -credentials="<>" \
   -properties="SID:racdb_1;Port:1521;OracleHome:/u01/racdb/11202;MachineName:test2-vip1.oracle.com"
 
 # Add second RAC instance
 ./emcli add_target -name="racdb_racdb_2" \
   -type="oracle_database" \
   -host="test2.oracle.com" \
-  -credentials="UserName:dbsnmp;password:welcome1;Role:Normal" \
+  -credentials="<>" \
   -properties="SID:racdb_2;Port:1521;OracleHome:/u01/racdb/11202;MachineName:test2-vip2.oracle.com"
 
 # Add RAC database cluster
