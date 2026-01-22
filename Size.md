@@ -156,6 +156,12 @@ Analyze storage usage by schema and segment type:
 
 ```sql
 -- Schema Size by Segment Type
+col owner format a15
+select owner, segment_type, round(sum(bytes)/1024/1024,2) "Seg Size, Mb" from dba_segments where owner in ('DW','DI_EDW_COG','SSBI','SSBI_HR') group by owner, segment_type order by 1,3 desc;
+```
+
+```sql
+-- Schema Size by Segment Type
 SET pagesize 10000
 COLUMN segment_type FORMAT A20
 COLUMN size_mb FORMAT 999,999.99
