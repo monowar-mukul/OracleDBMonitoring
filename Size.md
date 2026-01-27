@@ -215,6 +215,34 @@ FROM agg
 -- Order by Segment Type within each schema (largest first for that type)
 ORDER BY OWNER, SEGMENT_TYPE, SIZE_GB DESC;
 
+### All the schemas size under a database
+SET LINESIZE 300
+SET PAGESIZE 200
+
+COLUMN SCHEMA_NAME HEADING 'SCHEMA NAME' FORMAT A30
+COLUMN SIZE_MB     HEADING 'SIZE (MB)'   FORMAT A20
+COLUMN SIZE_GB     HEADING 'SIZE (GB)'   FORMAT A20
+
+SELECT
+    RPAD(s.owner, 30) AS schema_name,
+    LPAD(TO_CHAR(ROUND(SUM(s.bytes)/1024/1024, 2),
+                 'FM999G999G999G990D00'), 20) AS size_mb,
+    LPAD(TO_CHAR(ROUND(SUM(s.bytes)/1024/1024/1024, 3),
+                 'FM999G999G990D000'), 20) AS size_gb
+FROM dba_segments s
+WHERE s.owner NOT IN (
+    'SYS','SYSTEM','DBSNMP','OUTLN','MDSYS','CTXSYS','XDB','WMSYS',
+    'APPQOSSYS','AUDSYS','GSMADMIN_INTERNAL','ORDDATA','ORDPLUGINS',
+    'SI_INFORMTN_SCHEMA','SYSBACKUP','SYSDG','SYSKM','DVSYS','DVF',
+    'LBACSYS','OJVMSYS','GGSYS','REMOTE_SCHEDULER_AGENT',
+    'APEX_PUBLIC_USER','FLOWS_FILES'
+)
+AND s.owner NOT LIKE 'APEX\_%' ESCAPE '\'
+AND s.owner NOT LIKE 'FLOWS\_%' ESCAPE '\'
+GROUP BY s.owner
+HAVING SUM(s.bytes) > 0
+ORDER BY SUM(s.bytes) DESC;
+
 ### Schema Size by Segment Type
 
 Analyze storage usage by schema and segment type:
