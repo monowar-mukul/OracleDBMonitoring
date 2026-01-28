@@ -127,12 +127,6 @@ WHERE (name LIKE 'EXECUTE%INDEX%'
 
 SPOOL OFF
 ```
-
-Execute the generated script:
-```sql
-@@aud.lis
-```
-
 ### Verify Enabled Audit Actions
 
 ```sql
