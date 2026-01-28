@@ -64,6 +64,31 @@ SELECT username, account_status, expiry_date, sysdate
 FROM dba_users
 WHERE username = '&usr';
 ```
+###  Shows the profile assigned to each user - Excludes Oracle default/system users
+```
+SET LINESIZE 200
+SET PAGESIZE 200
+
+COLUMN USERNAME    HEADING 'USERNAME'    FORMAT A30
+COLUMN PROFILE     HEADING 'PROFILE'     FORMAT A30
+COLUMN ACCOUNT_STATUS HEADING 'ACCOUNT STATUS' FORMAT A20
+
+SELECT 
+    username       AS USERNAME,
+    profile        AS PROFILE,
+    account_status AS ACCOUNT_STATUS
+FROM dba_users
+WHERE username NOT IN (
+    'SYS','SYSTEM','OUTLN','DBSNMP','APPQOSSYS','AUDSYS','OJVMSYS',
+    'GGSYS','REMOTE_SCHEDULER_AGENT','XDB','WMSYS','ANONYMOUS',
+    'CTXSYS','MDSYS','ORDDATA','ORDPLUGINS','ORDSYS','SI_INFORMTN_SCHEMA',
+    'SYSBACKUP','SYSDG','SYSKM','SYSRAC','DVSYS','DVF','LBACSYS',
+    'FLOWS_FILES','APEX_PUBLIC_USER'
+)
+AND username NOT LIKE 'APEX\_%' ESCAPE '\'
+AND username NOT LIKE 'FLOWS\_%' ESCAPE '\'
+ORDER BY profile, username;
+```
 ### Extract User profile information
 ```
 set pause off
