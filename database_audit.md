@@ -323,6 +323,120 @@ SELECT * FROM all_def_audit_opts;
 SPOOL OFF
 ```
 
+## Additional Information - on ACL, UTL_HTTP and external tables
+```
+-- ============================================================
+--   ACLs Mapped to Hosts / Ports (19c SQL*Plus / SQLcl Format)
+-- ============================================================
+
+SET LINESIZE 200
+SET PAGESIZE 200
+SET TAB OFF
+SET WRAP ON
+
+COLUMN host        HEADING 'HOST'          FORMAT A40
+COLUMN lower_port  HEADING 'LOWER PORT'    FORMAT 99999
+COLUMN upper_port  HEADING 'UPPER PORT'    FORMAT 99999
+COLUMN acl         HEADING 'ACL FILE'      FORMAT A50
+
+PROMPT
+PROMPT === ACLs Assigned to Hosts / Ports ===
+PROMPT
+
+SELECT host,
+       lower_port,
+       upper_port,
+       acl
+FROM   dba_host_acls
+ORDER  BY host, lower_port;
+
+
+-- ============================================================
+--   ACL Privileges Per Principal (Grants)
+-- ============================================================
+
+COLUMN principal   HEADING 'PRINCIPAL'     FORMAT A30
+COLUMN privilege   HEADING 'PRIVILEGE'     FORMAT A12
+COLUMN is_grant    HEADING 'IS GRANT?'     FORMAT A10
+
+PROMPT
+PROMPT === ACL Privileges by Principal / Host / Port ===
+PROMPT
+
+SELECT host,
+       lower_port,
+       upper_port,
+       principal,
+       privilege,
+       is_grant
+FROM   dba_host_acl_privileges
+ORDER  BY host, principal, privilege;
+```
+
+```
+-- ============================================================
+--  Who Has EXECUTE on SYS.UTL_HTTP
+--  Requires: SELECT_CATALOG_ROLE or DBA privileges
+-- ============================================================
+
+SET LINESIZE 150
+SET PAGESIZE 200
+SET TAB OFF
+
+COLUMN grantee   HEADING 'GRANTEE'     FORMAT A30
+COLUMN owner     HEADING 'OWNER'       FORMAT A10
+COLUMN table_name HEADING 'OBJECT'     FORMAT A20
+COLUMN privilege HEADING 'PRIVILEGE'   FORMAT A15
+
+SELECT grantee,
+       owner,
+       table_name,
+       privilege
+FROM   dba_tab_privs
+WHERE  owner      = 'SYS'
+AND    table_name = 'UTL_HTTP'
+AND    privilege  = 'EXECUTE'
+ORDER  BY grantee;
+```
+
+```
+-- ===== External Tables with Directory Paths =====
+
+SET PAGESIZE 200
+SET LINESIZE 200
+SET LONG 200000
+SET LONGCHUNKSIZE 32767
+SET WRAP ON
+SET TAB OFF
+SET TRIMSPOOL ON
+
+COLUMN owner                   HEADING 'OWNER'                    FORMAT A18
+COLUMN table_name              HEADING 'TABLE NAME'               FORMAT A32
+COLUMN type_name               HEADING 'TYPE'                     FORMAT A14
+COLUMN default_directory_name  HEADING 'DEFAULT DIRECTORY'        FORMAT A28
+COLUMN directory_path          HEADING 'DIRECTORY PATH'           FORMAT A80
+COLUMN reject_limit            HEADING 'REJECT|LIMIT'             FORMAT A10
+COLUMN access_type             HEADING 'ACCESS|TYPE'              FORMAT A14
+COLUMN access_parameters       HEADING 'ACCESS PARAMETERS (wrapped)' FORMAT A120 WORD_WRAPPED
+
+BREAK ON owner SKIP 1
+
+SELECT t.owner,
+       t.table_name,
+       t.type_name,
+       t.default_directory_name,
+       d.directory_path,
+       t.reject_limit,
+       t.access_type,
+       t.access_parameters
+FROM   dba_external_tables t
+LEFT JOIN dba_directories d
+       ON d.directory_name = t.default_directory_name
+      AND d.owner          = 'SYS'      -- most directory objects are owned by SYS; remove this line if needed
+ORDER  BY t.owner, t.table_name;
+
+CLEAR BREAK
+```
 ### Understanding Audit Option Characters
 
 - **`-`** : Audit option is not set
