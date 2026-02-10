@@ -10,6 +10,60 @@ This wiki provides comprehensive guidance for Oracle database operations includi
 - [RAC Operations](#rac-operations)
 - [Monitoring and Statistics](#monitoring-and-statistics)
 
+## Alert Log [ MM - in progress] 
+```sql
+ 
+-- ===== SQL*Plus / SQLcl output formatting =====
+set pagesize 200
+set linesize 240
+set trimout on
+set trims on
+set trimspool on
+set tab off
+set wrap off
+set underline '='
+
+-- Column headings + widths
+column inst  heading 'Inst'          format a12
+column host  heading 'Host'          format a18
+column cid   heading 'Con|ID'        format 9999
+column sev   heading 'Sev'           format 999
+column typ   heading 'Type'          format 999
+column ts    heading 'Timestamp'     format a19
+column msg   heading 'Message'       format a160 word_wrapped
+
+-- ===== RAC-wide query (all instances) =====
+SELECT
+  inst,
+  host,
+  cid,
+  sev,
+  typ,
+  ts,
+  msg
+FROM TABLE(
+  gv$(CURSOR(
+    SELECT
+      (SELECT instance_name FROM v$instance)                 AS inst,
+      host_id                                                AS host,
+      con_id                                                 AS cid,
+      message_level                                          AS sev,
+      message_type                                           AS typ,
+      TO_CHAR(originating_timestamp,'YYYY-MM-DD HH24:MI:SS') AS ts,
+      message_text                                           AS msg
+    FROM v$diag_alert_ext
+    WHERE originating_timestamp >= SYSTIMESTAMP - INTERVAL '60' MINUTE
+      AND (
+            message_text LIKE '%ORA-%'
+         OR message_text LIKE '%TNS-%'
+         OR message_text LIKE '%WARNING%'
+         OR message_text LIKE '%ERROR%'
+         OR message_text LIKE '%INCIDENT%'
+          )
+  ))
+)
+ORDER BY ts DESC, inst, host, cid;
+```  
 ## Redo Log Management
 
 ### Display Redo Log Information
