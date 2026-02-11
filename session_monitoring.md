@@ -233,7 +233,48 @@ WHERE s.username IS NOT NULL
   AND i.inst_id = a.inst_id
   AND sql_text NOT LIKE '%gv$session%';
 ```
+###  Only the unique combinations of USERNAME, HOST_NAME, and MACHINE - To get the list of application sessions
+```
+SET PAGES 50000 LINES 32767
+COLUMN username  FORMAT A15
+COLUMN host_name FORMAT A20
+COLUMN machine   FORMAT A30
 
+SELECT DISTINCT
+       s.username,
+       i.host_name,
+       s.machine
+FROM   gv$session  s
+JOIN   gv$instance i
+       ON i.inst_id = s.inst_id
+WHERE  s.username IS NOT NULL
+ORDER  BY s.username, i.host_name, s.machine;
+```
+###  With RAC Setup and want to see which node the session is on (often useful when host_name might repeat in some setups), include inst_id:
+```
+SET PAGES 50000 LINES 32767
+COLUMN username  FORMAT A15
+COLUMN host_name FORMAT A20
+COLUMN machine   FORMAT A30
+
+SELECT DISTINCT
+       s.inst_id,
+       s.username,
+       i.host_name,
+       s.machine
+FROM   gv$session  s
+JOIN   gv$instance i
+       ON i.inst_id = s.inst_id
+WHERE  s.username IS NOT NULL
+ORDER  BY s.inst_id, s.username, i.host_name, s.machine;
+```
+Oracle background processes (DBWR, LGWR, ARCn, MMON, etc.) do not have a client machine, so MACHINE is NULL.
+You can confirm this by checking the session type:
+```
+SELECT username, type, machine, program
+FROM   gv$session
+WHERE  machine IS NULL;
+```
 ### Last/Latest Running SQL
 
 ```sql
