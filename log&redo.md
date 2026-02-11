@@ -11,8 +11,20 @@ This wiki provides comprehensive guidance for Oracle database operations includi
 - [Monitoring and Statistics](#monitoring-and-statistics)
 
 ## Alert Log [ MM - in progress] 
+
+## RAC Alert Log Queries (ALERT LOG)
+
+These queries read the RAC-wide alert log via `v$diag_alert_ext` using the `gv$` PL/SQL table function.
+They avoid querying `GV$DIAG_ALERT_EXT` directly and instead fan out a cursor against `v$diag_alert_ext`
+to all instances.
+
+> Adjust the `INTERVAL` literals as needed for minutes / days / hours.
+
+---
+
+### SQL*Plus / SQLcl Output Formatting
+
 ```sql
- 
 -- ===== SQL*Plus / SQLcl output formatting =====
 set pagesize 200
 set linesize 240
@@ -31,8 +43,16 @@ column sev   heading 'Sev'           format 999
 column typ   heading 'Type'          format 999
 column ts    heading 'Timestamp'     format a19
 column msg   heading 'Message'       format a160 word_wrapped
+```
 
--- ===== RAC-wide query (all instances) =====
+---
+
+###  RAC Alert Log – Last N Minutes
+
+```sql
+-- RAC-wide alert log messages in the last N minutes
+-- Change the 60 in INTERVAL '60' MINUTE as required
+
 SELECT
   inst,
   host,
@@ -54,17 +74,94 @@ FROM TABLE(
     FROM v$diag_alert_ext
     WHERE originating_timestamp >= SYSTIMESTAMP - INTERVAL '60' MINUTE
       AND (
-            message_text LIKE '%ORA-%'
-         OR message_text LIKE '%TNS-%'
-         OR message_text LIKE '%WARNING%'
-         OR message_text LIKE '%ERROR%'
-         OR message_text LIKE '%INCIDENT%'
+             message_text LIKE '%ORA-%'
+          OR message_text LIKE '%TNS-%'
+          OR message_text LIKE '%WARNING%'
+          OR message_text LIKE '%ERROR%'
+          OR message_text LIKE '%INCIDENT%'
           )
   ))
 )
 ORDER BY ts DESC, inst, host, cid;
-```  
-## Redo Log Management
+```
+
+---
+
+###  RAC Alert Log – Last N Days
+
+```sql
+-- RAC-wide alert log messages in the last N days
+-- Change the 10 in INTERVAL '10' DAY as required
+
+SELECT
+  inst,
+  host,
+  cid,
+  sev,
+  typ,
+  ts,
+  msg
+FROM TABLE(
+  gv$(CURSOR(
+    SELECT
+      (SELECT instance_name FROM v$instance)                 AS inst,
+      host_id                                                AS host,
+      con_id                                                 AS cid,
+      message_level                                          AS sev,
+      message_type                                           AS typ,
+      TO_CHAR(originating_timestamp,'YYYY-MM-DD HH24:MI:SS') AS ts,
+      message_text                                           AS msg
+    FROM v$diag_alert_ext
+    WHERE originating_timestamp >= SYSTIMESTAMP - INTERVAL '10' DAY
+      AND (
+             message_text LIKE '%ORA-%'
+          OR message_text LIKE '%TNS-%'
+          OR message_text LIKE '%WARNING%'
+          OR message_text LIKE '%ERROR%'
+          OR message_text LIKE '%INCIDENT%'
+          )
+  ))
+)
+ORDER BY ts DESC, inst, host, cid;
+```
+
+---
+
+###  RAC Alert Log – Hourly Check for Specific Error
+
+Example: filter for `ORA-12008` in the last N hours.
+
+```sql
+-- RAC-wide alert log messages for a specific error (e.g. ORA-12008)
+-- Change the 10 in INTERVAL '10' HOUR and the LIKE filter as required
+
+SELECT
+  inst,
+  host,
+  cid,
+  sev,
+  typ,
+  ts,
+  msg
+FROM TABLE(
+  gv$(CURSOR(
+    SELECT
+      (SELECT instance_name FROM v$instance)                 AS inst,
+      host_id                                                AS host,
+      con_id                                                 AS cid,
+      message_level                                          AS sev,
+      message_type                                           AS typ,
+      TO_CHAR(originating_timestamp,'YYYY-MM-DD HH24:MI:SS') AS ts,
+      message_text                                           AS msg
+    FROM v$diag_alert_ext
+    WHERE originating_timestamp >= SYSTIMESTAMP - INTERVAL '10' HOUR
+      AND message_text LIKE '%ORA-12008%'
+  ))
+)
+ORDER BY ts DESC, inst, host, cid;
+```
+
+### Redo Log Management
 
 ### Display Redo Log Information
 
