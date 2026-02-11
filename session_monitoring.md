@@ -534,6 +534,198 @@ WHERE a.inst_id = b.inst_id
 GROUP BY b.inst_id, b.username, SUBSTR(module, 1, 15), a.stat_name
 ORDER BY avg_time_secs DESC;
 ```
+## **SESSION CONNECTION TO RAC DATABASE LEVEL**
+
+These queries report on current sessions and historical logon activity across all RAC instances,
+using both dynamic performance views and AWR (`DBA_HIST_*`) views.
+
+> Run the AWR-based queries from `CDB$ROOT`, not from a PDB.
+
+---
+
+### 1. Current User Sessions per RAC Instance (No AWR)
+
+```sql
+-- Total current USER sessions per RAC instance (no AWR required)
+
+SELECT
+    s.inst_id,
+    i.instance_name,
+    s.service_name,
+    COUNT(*) AS session_count
+FROM   gv$session s
+JOIN   gv$instance i
+       ON s.inst_id = i.inst_id
+WHERE  s.type = 'USER'
+GROUP  BY
+       s.inst_id,
+       i.instance_name,
+       s.service_name
+ORDER  BY
+       s.service_name,
+       session_count DESC;
+```
+
+---
+
+### 2. Recent Logon Rate per Instance (No AWR)
+
+```sql
+-- Recent logon rate per RAC instance (no AWR, uses gv$sysmetric_history)
+
+SELECT
+    h.inst_id,
+    i.instance_name,
+    MIN(h.begin_time)      AS first_sample,
+    MAX(h.end_time)        AS last_sample,
+    ROUND(AVG(h.value), 2) AS avg_logons_per_sec
+FROM   gv$sysmetric_history h
+JOIN   gv$instance          i
+       ON i.inst_id = h.inst_id
+WHERE  h.metric_name = 'Logons Per Sec'
+GROUP  BY
+       h.inst_id,
+       i.instance_name
+ORDER  BY
+       avg_logons_per_sec DESC;
+```
+
+---
+
+### 3. Total Logons Since Startup per RAC Instance (No AWR)
+
+```sql
+-- Total logons since startup per RAC instance (cumulative since instance startup)
+
+SELECT
+    s.inst_id,
+    i.instance_name,
+    i.host_name,
+    MAX(s.value) AS logons_since_startup
+FROM   gv$sysstat s
+JOIN   gv$instance i
+       ON i.inst_id = s.inst_id
+WHERE  s.name = 'logons cumulative'
+GROUP  BY
+       s.inst_id,
+       i.instance_name,
+       i.host_name
+ORDER  BY
+       logons_since_startup DESC;
+```
+
+---
+
+### 4. AWR: Total Logons per Instance – Full AWR History
+
+> Run from `CDB$ROOT`. This aggregates deltas of `logons cumulative` across all AWR snapshots.
+
+```sql
+-- Total logons per instance across entire AWR history
+
+WITH stat_snap AS (
+  SELECT
+      sn.snap_id,
+      sn.dbid,
+      sn.instance_number,
+      sn.end_interval_time,
+      MAX(CASE
+            WHEN st.stat_name = 'logons cumulative'
+            THEN st.value
+          END) AS logons_cum
+  FROM   dba_hist_sysstat  st
+  JOIN   dba_hist_snapshot sn
+         ON st.snap_id         = sn.snap_id
+        AND st.dbid            = sn.dbid
+        AND st.instance_number = sn.instance_number
+  -- Optional time filter, e.g. last 7 days:
+  -- WHERE sn.end_interval_time >= SYSDATE - 7
+  GROUP  BY
+         sn.snap_id,
+         sn.dbid,
+         sn.instance_number,
+         sn.end_interval_time
+),
+deltas AS (
+  SELECT
+      instance_number AS inst_id,
+      end_interval_time,
+      logons_cum
+        - LAG(logons_cum) OVER (
+            PARTITION BY instance_number
+            ORDER BY end_interval_time
+          ) AS logons_delta
+  FROM stat_snap
+)
+SELECT
+    d.inst_id,
+    i.instance_name,
+    SUM(d.logons_delta) AS total_logons
+FROM   deltas    d
+JOIN   gv$instance i
+       ON i.inst_id = d.inst_id
+WHERE  d.logons_delta IS NOT NULL
+GROUP  BY
+       d.inst_id,
+       i.instance_name
+ORDER  BY
+       total_logons DESC;
+```
+
+---
+
+### 5. AWR: Total Logons per Instance – Last 7 Days
+
+```sql
+-- Total logons per instance in the last 7 days (AWR)
+
+WITH stat_snap AS (
+  SELECT
+      sn.snap_id,
+      sn.instance_number,
+      sn.end_interval_time,
+      MAX(CASE
+            WHEN st.stat_name = 'logons cumulative'
+            THEN st.value
+          END) AS logons_cum
+  FROM   dba_hist_sysstat  st
+  JOIN   dba_hist_snapshot sn
+         ON st.snap_id         = sn.snap_id
+        AND st.dbid            = sn.dbid
+        AND st.instance_number = sn.instance_number
+  WHERE  sn.end_interval_time >= SYSDATE - 7
+  GROUP  BY
+         sn.snap_id,
+         sn.instance_number,
+         sn.end_interval_time
+),
+deltas AS (
+  SELECT
+      instance_number AS inst_id,
+      end_interval_time,
+      logons_cum
+        - LAG(logons_cum) OVER (
+            PARTITION BY instance_number
+            ORDER BY end_interval_time
+          ) AS logons_delta
+  FROM   stat_snap
+)
+SELECT
+    d.inst_id,
+    i.instance_name,
+    SUM(d.logons_delta) AS total_logons
+FROM   deltas    d
+JOIN   gv$instance i
+       ON i.inst_id = d.inst_id
+WHERE  d.logons_delta IS NOT NULL
+GROUP  BY
+       d.inst_id,
+       i.instance_name
+ORDER  BY
+       total_logons DESC;
+```
+```
+
 ## Usage Notes
 
 - Replace `&1`, `&2`, `&sid`, `&starttime`, `&endtime` with actual values or use SQL*Plus substitution variables
